@@ -1,0 +1,20 @@
+diff --git a/ProjectReboundMainDLL/Client/UIShake.cpp b/ProjectReboundMainDLL/Client/UIShake.cpp
+--- a/ProjectReboundMainDLL/Client/UIShake.cpp
++++ b/ProjectReboundMainDLL/Client/UIShake.cpp
+@@ -7,2 +7,3 @@
+ #include "SparrowReticle.hpp"
++#include "MarkedHeadRadar.hpp"
+ #include <cmath>
+@@ -22,2 +23,3 @@
+     BrtSparrowReticle::OnCharacter(static_cast<APBCharacter*>(Object), funcName);
++    BrtHeadRadar::OnCharacter(static_cast<APBCharacter*>(Object), funcName);
+     if (!UIFixDebugEnabled)
+diff --git a/ProjectReboundMainDLL/Payload.vcxproj b/ProjectReboundMainDLL/Payload.vcxproj
+--- a/ProjectReboundMainDLL/Payload.vcxproj
++++ b/ProjectReboundMainDLL/Payload.vcxproj
+@@ -188,3 +188,5 @@
+     <ClCompile Include="SDK\ProjectBoundary_functions.cpp" />
+     <ClCompile Include="SDK\UMG_functions.cpp" />
++    <ClCompile Include="SDK\UMG_HelmetHUD_MiniMap_functions.cpp" />
++    <ClCompile Include="SDK\UMG_MinimapNode_functions.cpp" />
+     <ClCompile Include="SDK\UMG_LoginGate_functions.cpp" />

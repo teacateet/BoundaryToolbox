@@ -1,0 +1,58 @@
+diff --git a/index.js b/index.js
+--- a/index.js
++++ b/index.js
+@@ -103,13 +103,12 @@
+ 
+ // GET /api/definitions/roles/:roleId - role definition
+ app.get("/api/definitions/roles/:roleId", (req, res) => {
+-    const index = getDefinitionIndex();
+-    const role = index.getRole(req.params.roleId);
++    const { canonicalRoleId, role } = getLoadoutStore().getRoleDefinition(req.params.roleId);
+     if (!role) {
+         return res.status(404).json({ error: "Role not found", roleId: req.params.roleId });
+     }
+     res.status(200).json({
+-        roleId: req.params.roleId,
++        roleId: canonicalRoleId,
+         weaponScope: Array.from(role.weaponScope),
+         podScope: Array.from(role.podScope),
+         meleeWeaponScope: Array.from(role.meleeWeaponScope),
+@@ -561,7 +560,7 @@
+ 
+         // 按原版嵌套消息回传角色皮肤，以及每把枪独立的配件配置。
+         for (const roleData of playerRoleDatas) {
+-          const savedRole = roles[roleData.RoleID] || {};
++          const savedRole = store.getSavedRoleForQuery(roles, roleData.RoleID);
+           roleData.SkinConfig = store.getNativeRoleSkinConfig(roleData.RoleID, savedRole);
+           roleData.WeaponConfig = store.getNativeRoleWeaponConfig(roleData.RoleID, savedRole);
+         }
+diff --git a/game/loadoutStore.js b/game/loadoutStore.js
+--- a/game/loadoutStore.js
++++ b/game/loadoutStore.js
+@@ -337,6 +337,17 @@
+         return { index, canonicalRoleId: roleId, role: null };
+     }
+ 
++    getSavedRoleForQuery(roles, roleId) {
++        if (Object.prototype.hasOwnProperty.call(roles, roleId)) return roles[roleId] || {};
++        const { canonicalRoleId, role } = this.getRoleDefinition(roleId);
++        if (!role) return {};
++
++        // 只接受唯一的大小写别名，避免合并两个分别保存的角色。
++        const foldedId = canonicalRoleId.toLowerCase();
++        const keys = Object.keys(roles).filter((key) => key.toLowerCase() === foldedId);
++        return keys.length === 1 ? roles[keys[0]] || {} : {};
++    }
++
+     getNativeRoleSkinConfig(roleId, roleData = {}) {
+         const defaults = this.getDefaultRoleSkinMetadata(roleId);
+         const saved = this.decodeSkinData(roleData._skinData) || {};
+@@ -495,7 +506,7 @@
+         const roles = (data && data.roles) || {};
+ 
+         return roleIds.map((roleId) => {
+-            const roleData = this.getNormalizedRoleData(roleId, roles[roleId] || {});
++            const roleData = this.getNormalizedRoleData(roleId, this.getSavedRoleForQuery(roles, roleId));
+             return {
+                 RoleID: roleId,
+                 LeftPylon: this.toFlatItemId(roleData.leftPylon),

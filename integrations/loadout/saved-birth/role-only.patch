@@ -1,0 +1,91 @@
+diff --git a/integrations/loadout/room-spawn-client.cjs b/integrations/loadout/room-spawn-client.cjs
+index 05990f0..acfcb14 100644
+--- a/integrations/loadout/room-spawn-client.cjs
++++ b/integrations/loadout/room-spawn-client.cjs
+@@ -36,6 +36,7 @@ function createRoomSpawnClient({ origin, roomId, credential }) {
+                 return result;
+             }
+             return { prepareEnvelope, initialMenu,
++                prepareSaved: async (life, role) => (await prepareEnvelope(life, {role})).loadout,
+                 prepare: async (life, selection) => (await prepareEnvelope(life, selection)).loadout,
+                 leave: () => send('leave', {connectionId}),
+             };
+diff --git a/integrations/loadout/room-spawn.cjs b/integrations/loadout/room-spawn.cjs
+index edc66fe..fb4c896 100644
+--- a/integrations/loadout/room-spawn.cjs
++++ b/integrations/loadout/room-spawn.cjs
+@@ -170,18 +170,38 @@ function initialMenu(store, player, localOwner) {
+     return entries;
+ }
+ 
++function spawnSelection(input) {
++    const saved = input != null && !Object.hasOwn(input, 'primary') && !Object.hasOwn(input, 'secondary');
++    shape(input, saved ? ['role'] : ['role', 'primary', 'secondary']);
++    if (typeof input.role !== 'string' || !roles.has(input.role.toUpperCase())) fail(422, 'invalid-selected-role');
++    const role = input.role.toUpperCase();
++    if (saved) return {mode:'saved', role};
++    if (typeof input.primary !== 'string' || typeof input.secondary !== 'string') fail(422, 'weapon-outside-selected-role');
++    return {mode:'chosen', role, primary:input.primary, secondary:input.secondary};
++}
++
++function savedWeapon(store, role, data, effective, key) {
++    if (Object.hasOwn(data, key)) {
++        const raw = store.toFlatItemId(data[key], null);
++        const id = raw === 'None' ? raw : store.nativeWeaponId(role, raw);
++        // 档案存在但不属于这个干员时，不能用正常化器补的原厂枪冒充读档成功。
++        if (!id || effective[key] !== id) fail(409, 'invalid-saved-weapon-slot');
++    }
++    return effective[key];
++}
++
+ function selectedLoadout(store, type, player, selection, localOwner) {
+-    shape(selection, ['role', 'primary', 'secondary']);
+-    if (typeof selection.role !== 'string' || !roles.has(selection.role.toUpperCase())) fail(422, 'invalid-selected-role');
+-    const role = selection.role.toUpperCase();
++    const role = selection.role;
+     const data = playerRoles(store, player, localOwner).get(role);
+     if (!data) fail(409, 'selected-role-not-uniquely-saved');
+     const effective = normalizedEquipment(store, role, data);
+     try {
+         const character = characterAppearance(store, role, data);
+         return { CharacterID: role, ...(character ? { CharacterData:character } : {}),
+-            FirstWeaponPartData: weapon(store, type, role, data, selection.primary),
+-            SecondWeaponPartData: weapon(store, type, role, data, selection.secondary),
++            FirstWeaponPartData: weapon(store, type, role, data, selection.mode === 'saved' ?
++                savedWeapon(store, role, data, effective, 'primaryWeapon') : selection.primary),
++            SecondWeaponPartData: weapon(store, type, role, data, selection.mode === 'saved' ?
++                savedWeapon(store, role, data, effective, 'secondaryWeapon') : selection.secondary),
+             LeftLauncherData: { ID: effective.leftPylon }, RightLauncherData: { ID: effective.rightPylon },
+             MobilityModuleData: { MobilityModuleID: effective.mobilityModule }, MeleeWeaponData: { ID: effective.meleeWeapon } };
+     } catch (error) {
+@@ -259,8 +279,8 @@ function installRoomSpawn(app, getStore, type, configured = process.env.BRT_SPAW
+                 if (!room.owner || room.owner !== body.authenticatedSteamId) fail(403, 'wrong-local-player');
+                 if (!uuid.test(body.connectionId) || !Number.isSafeInteger(body.life) || body.life < 1)
+                     fail(400, 'invalid-birth-request');
+-                shape(body.selection, ['role', 'primary', 'secondary']);
+-                const loadout = selectedLoadout(getStore(), type(), room.owner, body.selection, room.owner);
++                const selected = spawnSelection(body.selection);
++                const loadout = selectedLoadout(getStore(), type(), room.owner, selected, room.owner);
+                 return res.json({ version:1, roomId:room.id, connectionId:body.connectionId,
+                     authenticatedSteamId:room.owner, life:body.life, loadout });
+             }
+@@ -340,8 +360,8 @@ function installRoomSpawn(app, getStore, type, configured = process.env.BRT_SPAW
+                     return res.json(member.menu);
+                 }
+                 if (!Number.isSafeInteger(body.life) || body.life < 1) fail(400, 'invalid-life');
+-                shape(body.selection, ['role', 'primary', 'secondary']);
+-                const signature = JSON.stringify([body.selection.role, body.selection.primary, body.selection.secondary]);
++                const selected = spawnSelection(body.selection);
++                const signature = JSON.stringify(selected);
+                 const deliver = value => {
+                     if (room.owner) res.once('finish', () => {
+                         if (!member.closed && local === room && (member.sentLife || 0) < value.life) {
+@@ -352,7 +372,7 @@ function installRoomSpawn(app, getStore, type, configured = process.env.BRT_SPAW
+                 };
+                 if (body.life === member.life && member.signature === signature) return deliver(member.output);
+                 if (body.life !== member.life + 1) fail(409, 'stale-or-conflicting-life');
+-                const loadout = selectedLoadout(getStore(), type(), member.player, body.selection, room.owner);
++                const loadout = selectedLoadout(getStore(), type(), member.player, selected, room.owner);
+                 const result = { version:1, roomId:req.params.room, connectionId:body.connectionId,
+                     authenticatedSteamId:member.player, life:body.life, loadout };
+                 member.signature = signature;

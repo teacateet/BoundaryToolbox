@@ -1,0 +1,157 @@
+{
+  "node": "v24.22.1",
+  "patchSha256": "2744eb46d704a625ea901e23703aab5400c5f7ed2d4c16967007446032953703",
+  "control": {
+    "hashes": {
+      "entry": "7c7d34e5a8760e78d0bc3a6cc071c9350f5750ae0f3c8dca4796b016c1a53988",
+      "store": "83be26e16c8e1f6dbf03174f28e8845957d4886ca22ceede1c460ca4e0c5ec5c"
+    },
+    "same": {
+      "both": [
+        "PEACE_TAC-EMP",
+        "PEACE_ATK-HE"
+      ],
+      "cleared": [
+        "None",
+        "PEACE_ATK-HE"
+      ],
+      "weapons": [
+        "PEACE_GSW-AR",
+        "PEACE_RU-AKM"
+      ],
+      "magazines": [
+        "GSW-AR_MAG-AR-EXT",
+        "RU-AKM_MAG-AK-EXT"
+      ]
+    },
+    "pairs": [
+      {
+        "first": "Sniper",
+        "second": "SNIPER",
+        "visibleAfterWeapon": false,
+        "target": [
+          "SNIPER_INFO-SNAPSHOT",
+          "SNIPER_INFO-MOTION",
+          "RU-MOSIN_SGT-SNIPE-8X"
+        ],
+        "returned": [
+          [
+            "SNIPER_INFO-SNAPSHOT",
+            "SNIPER_SMK-TRI",
+            "RU-MOSIN_SGT-ACOG-6X"
+          ],
+          [
+            "SNIPER_TAC-EMP",
+            "SNIPER_INFO-MOTION",
+            "RU-MOSIN_SGT-SNIPE-8X"
+          ]
+        ]
+      },
+      {
+        "first": "SNIPER",
+        "second": "Sniper",
+        "visibleAfterWeapon": false,
+        "target": [
+          "SNIPER_INFO-SNAPSHOT",
+          "SNIPER_INFO-MOTION",
+          "RU-MOSIN_SGT-SNIPE-8X"
+        ],
+        "returned": [
+          [
+            "SNIPER_INFO-SNAPSHOT",
+            "SNIPER_SMK-TRI",
+            "RU-MOSIN_SGT-ACOG-6X"
+          ],
+          [
+            "SNIPER_TAC-EMP",
+            "SNIPER_INFO-MOTION",
+            "RU-MOSIN_SGT-SNIPE-8X"
+          ]
+        ]
+      }
+    ],
+    "roleKeys": [
+      "PEACE",
+      "SNIPER",
+      "Sniper"
+    ],
+    "isolatedAccounts": true,
+    "sameAfterLoginAndRestart": true
+  },
+  "fixed": {
+    "hashes": {
+      "entry": "c545fa600c8c81d72947e1e7ad80a6fdea6f4acaf96089b7fecd88ed42e97258",
+      "store": "ece1d2bd26fe2cc11e8134a7c08a5a959fd17a54bb6d921930e52503554d5ae6"
+    },
+    "same": {
+      "both": [
+        "PEACE_TAC-EMP",
+        "PEACE_ATK-HE"
+      ],
+      "cleared": [
+        "None",
+        "PEACE_ATK-HE"
+      ],
+      "weapons": [
+        "PEACE_GSW-AR",
+        "PEACE_RU-AKM"
+      ],
+      "magazines": [
+        "GSW-AR_MAG-AR-EXT",
+        "RU-AKM_MAG-AK-EXT"
+      ]
+    },
+    "pairs": [
+      {
+        "first": "Sniper",
+        "second": "SNIPER",
+        "visibleAfterWeapon": true,
+        "target": [
+          "SNIPER_INFO-SNAPSHOT",
+          "SNIPER_INFO-MOTION",
+          "RU-MOSIN_SGT-SNIPE-8X"
+        ],
+        "returned": [
+          [
+            "SNIPER_INFO-SNAPSHOT",
+            "SNIPER_INFO-MOTION",
+            "RU-MOSIN_SGT-SNIPE-8X"
+          ],
+          [
+            "SNIPER_INFO-SNAPSHOT",
+            "SNIPER_INFO-MOTION",
+            "RU-MOSIN_SGT-SNIPE-8X"
+          ]
+        ]
+      },
+      {
+        "first": "SNIPER",
+        "second": "Sniper",
+        "visibleAfterWeapon": true,
+        "target": [
+          "SNIPER_INFO-SNAPSHOT",
+          "SNIPER_INFO-MOTION",
+          "RU-MOSIN_SGT-SNIPE-8X"
+        ],
+        "returned": [
+          [
+            "SNIPER_INFO-SNAPSHOT",
+            "SNIPER_INFO-MOTION",
+            "RU-MOSIN_SGT-SNIPE-8X"
+          ],
+          [
+            "SNIPER_INFO-SNAPSHOT",
+            "SNIPER_INFO-MOTION",
+            "RU-MOSIN_SGT-SNIPE-8X"
+          ]
+        ]
+      }
+    ],
+    "roleKeys": [
+      "PEACE",
+      "Sniper"
+    ],
+    "isolatedAccounts": true,
+    "sameAfterLoginAndRestart": true
+  }
+}

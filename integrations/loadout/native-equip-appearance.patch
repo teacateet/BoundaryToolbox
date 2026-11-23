@@ -1,0 +1,259 @@
+diff --git a/index.js b/index.js
+--- a/index.js
++++ b/index.js
+@@ -470,81 +470,6 @@
+-        if (roleId) {
+-          const store = getLoadoutStore();
+-          const index = getDefinitionIndex();
+-          const playerId = socket.playerId || TEMP_USER_ID;
+-          const data = store.load(playerId) || { playerId, roles: {} };
+-          const role = store.getRoleForNativeUpdate(data.roles, roleId);
+-
+-          // 原版 0x14178c360 将角色槽位转换为以下 RPC 操作编号。
+-          const SLOT_MAP = {
+-            1: 'primaryWeapon', 2: 'secondaryWeapon',
+-            3: 'meleeWeapon', 4: 'mobilityModule',
+-            5: 'leftPylon', 6: 'rightPylon',
+-          };
+-          const setPrimaryWeapon = (nextWeapon) => {
+-            role.primaryWeapon = nextWeapon;
+-          };
+-          const setSecondaryWeapon = (nextWeapon) => {
+-            role.secondaryWeapon = nextWeapon;
+-          };
+-          const ensureWeaponArchive = (weaponId) => {
+-            if (!weaponId || weaponId === 'None') return;
+-            if (!role._weaponArchives || typeof role._weaponArchives !== 'object' || Array.isArray(role._weaponArchives)) {
+-              role._weaponArchives = {};
+-            }
+-            if (!role._weaponArchives[weaponId]) {
+-              const defaultRaw = store.buildDefaultWeaponArchiveRaw(roleId, weaponId);
+-              if (defaultRaw) role._weaponArchives[weaponId] = defaultRaw;
+-            }
+-          };
+-
+-          if (skinData && skinData.length > 0) {
+-            try {
+-              const SkinType = protobuf.loadSync("./game/proto/Request/UpdateRoleArchiveV2Request.proto")
+-                .lookupType("ProjectBoundary.SkinPayload");
+-              const skinObj = SkinType.toObject(SkinType.decode(skinData), ObjectOptions);
+-              if (skinObj.TokenId) role._skinToken = skinObj.TokenId;
+-              if (skinObj.OrnamentId) role._ornamentId = skinObj.OrnamentId;
+-              role._skinData = skinData.toString('hex');
+-            } catch (e) {
+-              console.log(`[ARCHIVE] Invalid skin payload role=${roleId}: ${e.message}`);
+-            }
+-          } else if (itemId) {
+-            const itemType = index.getItemType(itemId);
+-            const roleDef = index.getRole(roleId) || index.getRole(String(roleId).toUpperCase());
+-            const allowed = (scope) => !roleDef || (roleDef[scope] && roleDef[scope].has(itemId));
+-
+-            if (itemType === 'EPBItemType::Weapon' && allowed('weaponScope')) {
+-              if (op === 1 || op === 2) {
+-                if (op === 2) setSecondaryWeapon(itemId);
+-                else setPrimaryWeapon(itemId);
+-                ensureWeaponArchive(itemId);
+-              } else {
+-                console.log(`[ARCHIVE] Ignored weapon update with invalid operation role=${roleId} op=${op} item=${itemId}`);
+-              }
+-            } else if (itemType === 'EPBItemType::Pod' && allowed('podScope')) {
+-              if (op === 5) role.leftPylon = itemId;
+-              else if (op === 6) role.rightPylon = itemId;
+-              else console.log(`[ARCHIVE] Ignored pod update with invalid operation role=${roleId} op=${op} item=${itemId}`);
+-            } else if (itemType === 'EPBItemType::Mobility' && allowed('mobilityScope')) {
+-              if (op === 4) role.mobilityModule = itemId;
+-              else console.log(`[ARCHIVE] Ignored mobility update with invalid operation role=${roleId} op=${op} item=${itemId}`);
+-            } else if (itemType === 'EPBItemType::MeleeWeapon' && allowed('meleeWeaponScope')) {
+-              if (op === 3) role.meleeWeapon = itemId;
+-              else console.log(`[ARCHIVE] Ignored melee update with invalid operation role=${roleId} op=${op} item=${itemId}`);
+-            } else {
+-              console.log(`[ARCHIVE] Ignored slot update role=${roleId} op=${op} item=${itemId} type=${itemType || 'Unknown'}`);
+-            }
+-          } else {
+-            // Empty item = unequip
+-            if (SLOT_MAP[op]) {
+-              role[SLOT_MAP[op]] = 'None';
+-            }
+-          }
+-          store.save(playerId, data);
+-        }
+-
+-        // Return success; the request body is decoded above only for the fields we persist.
+-
+-        Root = protobuf.loadSync("./game/proto/Response/UpdateRoleArchiveV2.proto");
+-        let UpdateRoleArchiveV2Type = Root.lookupType("ProjectBoundary.UpdateRoleArchiveV2Response");
+-        let UpdateRoleArchiveV2 = UpdateRoleArchiveV2Type.create({StatusCode: 0});
++        const store = getLoadoutStore();
++        const written = store.commitNativeEdit(socket.playerId, roleId, (role, definition) =>
++          store.updateNativeEquipment(roleId, role, definition, op, itemId, skinData));
++        Root = protobuf.loadSync("./game/proto/Response/UpdateRoleArchiveV2.proto");
++        let UpdateRoleArchiveV2Type = Root.lookupType("ProjectBoundary.UpdateRoleArchiveV2Response");
++        let UpdateRoleArchiveV2 = UpdateRoleArchiveV2Type.create({StatusCode: written ? 200 : 1});
+@@ -970,26 +895,20 @@
+-        if (weaponRoleId) {
+-          const store = getLoadoutStore();
+-          const playerId = socket.playerId || TEMP_USER_ID;
+-          const data = store.load(playerId) || { playerId, roles: {} };
+-          const role = store.getRoleForNativeUpdate(data.roles, weaponRoleId);
+-          const rawHex = MessageBytes ? MessageBytes.toString('hex') : '';
+-          const archiveWeaponId = waParsed && waParsed.WeaponArchive && waParsed.WeaponArchive.WeaponId
+-            ? waParsed.WeaponArchive.WeaponId
+-            : '';
+-          if (!role._weaponArchives || typeof role._weaponArchives !== 'object' || Array.isArray(role._weaponArchives)) {
+-            role._weaponArchives = {};
+-          }
+-          if (archiveWeaponId) {
+-            role._weaponArchives[archiveWeaponId] = rawHex;
+-          }
+-          // Backward-compatible field for old clients; the per-weapon map remains authoritative.
+-          role._weaponArchiveRaw = rawHex;
+-
+-          // Weapon skin/ornament are part of the per-weapon raw archive. Do not
+-          // copy them into role skin fields used by PlayerRoleData.
+-          store.save(playerId, data);
+-        }
+-
+-        Root = protobuf.loadSync("./game/proto/Response/UpdateRoleArchiveV2.proto");
+-        let RespType = Root.lookupType("ProjectBoundary.UpdateRoleArchiveV2Response");
+-        let Resp = RespType.create({StatusCode: 0});
++        const store = getLoadoutStore();
++        const written = store.commitNativeEdit(socket.playerId, weaponRoleId, (role) => {
++          const id = waParsed?.WeaponArchive?.WeaponId;
++          const scoped = store.nativeWeaponId(weaponRoleId, id);
++          if (!scoped) return false;
++          let bytes = MessageBytes;
++          if (id !== scoped) {
++            const type = protobuf.loadSync("./game/proto/Request/UpdateWeaponArchiveV2Request.proto")
++              .lookupType("ProjectBoundary.UpdateWeaponArchiveV2Request");
++            const edit = type.decode(bytes);
++            edit.WeaponArchive.WeaponId = scoped;
++            bytes = Buffer.from(type.encode(edit).finish());
++          }
++          role._weaponArchives = { ...role._weaponArchives, [scoped]: bytes.toString('hex') };
++          role._weaponArchiveRaw = role._weaponArchives[scoped];
++          return true;
++        });
++        Root = protobuf.loadSync("./game/proto/Response/UpdateRoleArchiveV2.proto");
++        let RespType = Root.lookupType("ProjectBoundary.UpdateRoleArchiveV2Response");
++        let Resp = RespType.create({StatusCode: written ? 0 : 1});
+diff --git a/game/loadoutStore.js b/game/loadoutStore.js
+--- a/game/loadoutStore.js
++++ b/game/loadoutStore.js
+@@ -588,1 +588,82 @@
++    nativeWeaponId(roleId, id) {
++        const { index, role } = this.getRoleDefinition(roleId);
++        if (!role || !id) return null;
++        if (role.weaponScope.has(id) && index.getItemType(id) === "EPBItemType::Weapon") return id;
++        if (!index.getWeapon(id)) return null;
++        const choices = (index.baseToRoleWeapon.get(id) || []).filter(item => role.weaponScope.has(item));
++        return choices.length === 1 ? choices[0] : null;
++    }
++
++    nativePodId(roleId, id) {
++        const { index, role } = this.getRoleDefinition(roleId);
++        if (!role || !id) return null;
++        if (role.podScope.has(id)) return id;
++        if (index.getItemType(id) !== "EPBItemType::Pod") return null;
++        const matches = (index.baseToRoleWeapon.get(id) || []).filter(key => role.podScope.has(key));
++        return matches.length === 1 ? matches[0] : null;
++    }
++
++    commitNativeEdit(playerId, roleId, change) {
++        const { role: definition } = this.getRoleDefinition(roleId);
++        if (!playerId || !definition) return false;
++        try {
++            // 校验和落盘都成功后才替换缓存；拒绝的更新不能污染后续读取。
++            const roles = structuredClone(this.load(playerId)?.roles || {});
++            if (!change(this.getRoleForNativeUpdate(roles, roleId), definition)) return false;
++            this.save(playerId, { playerId, roles });
++            return true;
++        } catch (error) {
++            console.warn("[ARCHIVE] Native edit not saved:", error.message);
++            return false;
++        }
++    }
++
++    updateNativeEquipment(roleId, target, definition, op, item, skinBytes) {
++        if (op === 7) {
++            if (!skinBytes?.length || item) return false;
++            const type = protobuf.loadSync(SKIN_PROTO).lookupType("ProjectBoundary.SkinPayload");
++            const edit = type.decode(skinBytes);
++            const hasModel = Object.hasOwn(edit, "TokenId");
++            const hasPaint = Object.hasOwn(edit, "OrnamentId");
++            if (!hasModel && !hasPaint) return false;
++            const previous = this.getNativeRoleSkinConfig(roleId, target).Suit;
++            const token = hasModel ? edit.TokenId : previous.SkinItem;
++            const paint = hasPaint ? edit.OrnamentId : (token === previous.SkinItem ? previous.PaintItem : "");
++            // 发行协议的旧款示例和历史互操作测试使用这对 ID，现行定义不再列出它们。
++            const legacySuit = roleId.toUpperCase() === "PEACE" && "PEACE_TOK-DOS-01" === token;
++            if (!token || (!definition.spaceSuitSkinScope.has(token) && !legacySuit)) return false;
++            const normalized = legacySuit ? ((paint === "" || paint === "None" || paint === token + "_PTOriginal") ? paint : null) :
++                require("../role-paint-scope.cjs").canonicalCharacterPaint(token, paint);
++            if (normalized === null) return false;
++            target._skinToken = token;
++            target._ornamentId = normalized;
++            const bytes = hasModel && hasPaint && normalized === paint ? skinBytes : type.encode({ TokenId: token, OrnamentId: normalized }).finish();
++            target._skinData = Buffer.from(bytes).toString("hex");
++            return true;
++        }
++        if (skinBytes?.length) return false;
++        const slots = {
++            1: ["primaryWeapon", "weaponScope"], 2: ["secondaryWeapon", "weaponScope"],
++            3: ["meleeWeapon", "meleeWeaponScope"], 4: ["mobilityModule", "mobilityScope"],
++            5: ["leftPylon", "podScope"], 6: ["rightPylon", "podScope"],
++            9: ["_armBadgeId", "armBadgeScope"], 10: ["_headAccessoryId", "headAccessoryScope"],
++        };
++        const slot = slots[op];
++        if (!slot) return false;
++        const id = !item || item === "None" ? "None" :
++            (op === 1 || op === 2 ? this.nativeWeaponId(roleId, item) :
++                op === 5 || op === 6 ? this.nativePodId(roleId, item) : item);
++        if (!id || (id !== "None" && !definition[slot[1]].has(id))) return false;
++        if ((op === 1 || op === 2) && id !== "None") {
++            const base = getDefinitionIndex().resolveBaseWeaponId(id);
++            const archives = target._weaponArchives || {};
++            if (!archives[id] && !archives[base]) {
++                const raw = this.getWeaponArchiveRawForRole(target, id, roleId);
++                if (raw) target._weaponArchives = { ...archives, [id]: raw };
++            }
++        }
++        target[slot[0]] = id;
++        return true;
++    }
++
+     getNativeRoleSkinConfig(roleId, roleData = {}) {
+@@ -590,7 +671,9 @@
+-        const saved = this.decodeSkinData(roleData._skinData) || {};
+-        return {
+-            Suit: {
+-                SkinItem: saved.tokenId || roleData._skinToken || defaults.skinToken || "",
+-                PaintItem: saved.ornamentId || roleData._ornamentId || defaults.ornamentId || "",
+-            },
++        const saved = this.decodeSkinData(roleData._skinData);
++        const token = saved?.tokenId || roleData._skinToken || defaults.skinToken || "";
++        const paint = saved ? saved.ornamentId :
++            (roleData._ornamentId ?? (token === defaults.skinToken ? defaults.ornamentId : ""));
++        return {
++            Suit: { SkinItem: token, PaintItem: paint === "None" ? "" : paint || "" },
++            ...(roleData._armBadgeId && roleData._armBadgeId !== "None" ? { SpecialSlot: roleData._armBadgeId } : {}),
++            ...(roleData._headAccessoryId && roleData._headAccessoryId !== "None" ? { Ornament: roleData._headAccessoryId } : {}),
+         };
+@@ -619,1 +702,3 @@
+-            ...Object.keys(archives), ...Object.keys(roleData.loadoutSnapshot?.weaponConfigs || {}), legacy && legacy.WeaponId,
++            ...[...Object.keys(archives), ...Object.keys(roleData.loadoutSnapshot?.weaponConfigs || {})]
++                .map(id => this.nativeWeaponId(roleId, id)),
++            legacy && this.nativeWeaponId(roleId, legacy.WeaponId),
+@@ -627,1 +712,5 @@
+-                archive = legacy && legacy.WeaponId === weaponId ? legacy : null;
++                const base = index.resolveBaseWeaponId(weaponId);
++                const old = base && decode(archives[base]);
++                const fallback = old && old.WeaponId === base ? old : legacy;
++                archive = fallback && this.nativeWeaponId(roleId, fallback.WeaponId) === weaponId
++                    ? { ...fallback, WeaponId: weaponId } : null;
+@@ -716,2 +805,5 @@
+-            const itemId = this.toFlatItemId(roleData[slot], null);
++            const stored = this.toFlatItemId(roleData[slot], null);
++            const itemId = (slot === "primaryWeapon" || slot === "secondaryWeapon")
++                ? this.nativeWeaponId(roleId, stored) || stored
++                : (slot === "leftPylon" || slot === "rightPylon") ? this.nativePodId(roleId, stored) || stored : stored;
+             // 明确卸下的槽位不能在读取时被默认装备重新填满。

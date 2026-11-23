@@ -1,0 +1,17 @@
+/target/
+/installer_tool/
+*.exe
+*.pdb
+*.log
+*.tmp
+*.zip
+/payload
+/wintun.dll
+/Deprecated/
+
+/integrations/profile-runtime/release-084-code.json.gz
+.workflow/
+.env
+.env.*
+*.dmp
+*.sav

@@ -1,0 +1,8 @@
+diff --git a/ProjectReboundMainDLL/Payload.vcxproj b/ProjectReboundMainDLL/Payload.vcxproj
+index b80ba70..834538e 100644
+--- a/ProjectReboundMainDLL/Payload.vcxproj
++++ b/ProjectReboundMainDLL/Payload.vcxproj
+@@ -191,2 +191,3 @@
+     <ClCompile Include="SDK\UMG_MainMenuLayout_functions.cpp" />
++    <ClCompile Include="SDK\UMG_Prompt_functions.cpp" />
+   </ItemGroup>

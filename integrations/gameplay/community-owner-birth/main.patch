@@ -1,0 +1,296 @@
+diff --git a/ProjectReboundMainDLL/BrtInventory/Birth.cpp b/ProjectReboundMainDLL/BrtInventory/Birth.cpp
+index be1009d..955933b 100644
+--- a/ProjectReboundMainDLL/BrtInventory/Birth.cpp
++++ b/ProjectReboundMainDLL/BrtInventory/Birth.cpp
+@@ -2,6 +2,8 @@
+ #include "BirthWindow.hpp"
+ #include "BoundaryInventory.hpp"
+ #include "RolePaths.hpp"
++#include "OwnerBirthGate.hpp"
++#include <chrono>
+ #include "RoomHttp.hpp"
+ #include "SDK/ProjectBoundary_classes.hpp"
+ #include <cstdio>
+@@ -29,6 +31,13 @@ struct Watched {
+     Counts previousCounts{};
+     bool sawPawn{};
+     float previousTime{-1.0f};
++    APBPlayerState* loginState{};
++    UNetConnection* loginTransport{};
++    std::chrono::steady_clock::time_point deadline{};
++    std::string_view lastWait;
++    std::optional<Selection> fetchedSelection;
++    std::string fetchedReply;
++    std::array<APBWeapon*, 2> fetchedActors{};
+ };
+ std::shared_ptr<Watched> watched;
+ 
+@@ -50,12 +59,18 @@ Counts CurrentCounts(APBPlayerState& state) {
+     return {state.GetDeaths(), state.GetNumBulletsFired(), state.GetNumRocketsFired()};
+ }
+ 
+-bool UnusedPawn(Watched& session, APBPlayerController& pc, APBPlayerState& state, APBCharacter& pawn) {
+-    return pc.HasAuthority() && pawn.HasAuthority() && session.window.Owns(&pawn, pawn.GetGameTimeSinceCreation()) &&
+-           pc.K2_GetPawn() == &pawn && pawn.GetController() == &pc && pawn.IsAlive() &&
+-           session.window.Unused(CurrentCounts(state), pawn.GetGameTimeSinceCreation(),
+-               !UGameplayStatics::IsGamePaused(&pawn), !pc.IsLocalController(), pc.AcknowledgedPawn == &pawn,
+-               pawn.IsFiring(), pawn.IsADS() || pawn.IsTargeting());
++brt::owner_birth::Verdict BirthStatus(const Watched& s, APBPlayerController& pc, APBPlayerState& state, APBCharacter& pawn) {
++    const auto counts = CurrentCounts(state), before = s.window.Baseline();
++    const auto* controller = pawn.GetController();
++    const auto* link = pc.NetConnection;
++    return brt::owner_birth::Inspect({
++        s.window.Owns(&pawn, pawn.GetGameTimeSinceCreation()), std::chrono::steady_clock::now() > s.deadline,
++        &state == s.loginState && pc.PlayerState == &state && link && link == s.loginTransport && link->PlayerController == &pc,
++        pc.HasAuthority() && pawn.HasAuthority(), pc.K2_GetPawn() == &pawn, controller && controller != &pc,
++        pawn.IsInKilledStatus(), pc.AcknowledgedPawn == &pawn, pawn.IsFiring(), pawn.IsADS() || pawn.IsTargeting(),
++        before.deaths, counts.deaths, before.bullets, counts.bullets, before.rockets, counts.rockets,
++        controller == &pc, pawn.IsAlive(), UGameplayStatics::IsGamePaused(&pawn), state.HasSelectedRole()
++    });
+ }
+ 
+ bool UnusedWeapon(APBWeapon* weapon, APBCharacter& pawn) {
+@@ -66,63 +81,52 @@ bool UnusedWeapon(APBWeapon* weapon, APBCharacter& pawn) {
+         state == EPBWeaponState::Idle, state == EPBWeaponState::Equipping, pawn.GetGameTimeSinceCreation());
+ }
+ 
+-bool Matches(const Name& selected, const Name& role, const Name& actual) {
+-    const Name prefix = role + "_";
+-    return selected != None && selected.starts_with(prefix) &&
+-           (selected == actual || std::string_view(selected).substr(prefix.size()) == actual);
+-}
+-
+ struct Guns {
+     const SavedMenuRole* row{};
+     std::array<APBWeapon*, 2> actors{};
++    std::array<Name, 2> ids{None, None};
+ };
+ 
+-std::optional<Guns> Match(const Watched& session, APBCharacter& pawn) {
+-    auto* pawnClass = UGameplayStatics::GetObjectClass(&pawn);
+-    if (!pawnClass) return {};
+-    const auto classPath = UKismetSystemLibrary::GetPathName(pawnClass).ToString();
+-    const auto mode = UPBGameplayStatics::GetModeRuleSetting(&pawn);
+-    if (!mode.CharacterDefinitionIDScope.Num()) return {};
+-    const auto weapons = pawn.GetWeaponArray();
+-    if (weapons.Num() < 1 || weapons.Num() > 2) return {};
+-    std::array<Name, 2> actual{};
+-    for (int i = 0; i < weapons.Num(); ++i) {
+-        if (!weapons[i] || !weapons[i]->HasAuthority() || weapons[i]->GetPawnOwner() != &pawn ||
+-            !brt::birth::BornWithPawn(weapons[i]->GetGameTimeSinceCreation(), pawn.GetGameTimeSinceCreation()) ||
+-            (i && weapons[0] == weapons[i])) return {};
+-        actual[i] = weapons[i]->GetWeaponId().ToString();
+-    }
+-    const SavedMenuRole* approved = nullptr;
+-    for (int i = 0; i < mode.CharacterDefinitionIDScope.Num(); ++i) {
+-        const auto role = mode.CharacterDefinitionIDScope[i].ToString();
+-        const auto def = std::find_if(brt::birth::rolePaths.begin(), brt::birth::rolePaths.end(),
+-            [&](const auto& r) { return r.id == role; });
+-        if (def == brt::birth::rolePaths.end()) return {};
+-        if (def->path != classPath) continue;
+-        // 同模型限定干员也可能持有同一支枪。只有引擎给出的角色前缀才可消除歧义。
+-        const bool excluded = std::any_of(actual.begin(), actual.end(), [&](const auto& id) {
+-            std::string_view prefix;
+-            for (const auto& other : brt::birth::rolePaths)
+-                if (other.id.size() > prefix.size() && id.starts_with(std::string(other.id) + "_")) prefix = other.id;
+-            return !prefix.empty() && prefix != role;
+-        });
+-        if (excluded) continue;
+-        const auto row = std::find_if(session.rows.begin(), session.rows.end(), [&](const auto& r) { return r.id == role; });
+-        if (approved || row == session.rows.end()) return {};
+-        approved = &*row;
++std::optional<Guns> Match(const Watched& session, APBPlayerState& state, APBCharacter& pawn, const char*& wait) {
++    wait = "awaiting-possessed-role";
++    const auto role = state.PossessedCharacterId;
++    if (role == FName{}) return {};
++    const auto row = std::find_if(session.rows.begin(), session.rows.end(),
++        [&](const auto& candidate) { return Intern(candidate.id) == role; });
++    if (row == session.rows.end()) { wait = "role-outside-owner-menu"; return {}; }
++    // 换人时旧状态可能尚未同步；蓝图类只用于核对已确认角色。
++    auto* cls = UGameplayStatics::GetObjectClass(&pawn);
++    if (!cls) return {};
++    const auto path = UKismetSystemLibrary::GetPathName(cls).ToString();
++    const auto def = std::find_if(brt::birth::rolePaths.begin(), brt::birth::rolePaths.end(),
++        [&](const auto& entry) { return entry.id == row->id; });
++    if (def == brt::birth::rolePaths.end() || path != def->path) { wait = "role-pawn-class-disagrees"; return {}; }
++    Guns found{&*row};
++    const auto inventory = pawn.GetWeaponArray();
++    wait = "awaiting-weapon-inventory";
++    if (inventory.Num() < 1 || inventory.Num() > 2) return {};
++    std::array<APBWeapon*, 2> remaining{};
++    std::array<Name, 2> pendingIds{};
++    int pending = 0;
++    for (int i = 0; i < inventory.Num(); ++i) {
++        auto* actor = inventory[i];
++        if (!actor || !actor->HasAuthority() || actor->GetPawnOwner() != &pawn ||
++            !brt::birth::BornWithPawn(actor->GetGameTimeSinceCreation(), pawn.GetGameTimeSinceCreation()) ||
++            (i && actor == inventory[0])) return {};
++        auto id = brt::owner_birth::QualifiedGun(row->id, actor->GetWeaponId().ToString());
++        if (id.empty()) { wait = "weapon-id-unavailable-for-role"; return {}; }
++        if (i && brt::owner_birth::QualifiedGun(row->id, inventory[0]->GetWeaponId().ToString()) == id) {
++            wait = "ambiguous-weapon-id"; return {};
++        }
++        const int slot = id == row->items[0] ? 0 : id == row->items[1] ? 1 : -1;
++        if (slot >= 0) { found.actors[slot] = actor; found.ids[slot] = std::move(id); }
++        else { remaining[pending] = actor; pendingIds[pending++] = std::move(id); }
+     }
+-    if (!approved) return {};
+-    Guns found{approved, {}};
+-    for (int i = 0; i < weapons.Num(); ++i) {
+-        const bool first = Matches(approved->items[0], approved->id, actual[i]);
+-        const bool second = Matches(approved->items[1], approved->id, actual[i]);
+-        if (first == second) return {};
+-        auto& slot = found.actors[first ? 0 : 1];
+-        if (slot) return {};
+-        slot = weapons[i];
++    // 返回的两个配置各自按请求的枪 ID 回到原实体，不变更主副槽，也不创建空槽。
++    for (int i = 0; i < pending; ++i) {
++        const unsigned slot = found.actors[0] ? 1 : 0;
++        found.actors[slot] = remaining[i]; found.ids[slot] = std::move(pendingIds[i]);
+     }
+-    for (unsigned i = 0; i < 2; ++i)
+-        if ((found.actors[i] == nullptr) != (approved->items[i] == None)) return {};
+     return found;
+ }
+ 
+@@ -168,30 +172,51 @@ BirthStep ApplyAtBirth(Watched& session, APBPlayerController& pc, APBPlayerState
+             inventory.Num(), pawn.GetCurrentWeapon() != nullptr, pc.AcknowledgedPawn == &pawn);
+         std::fflush(stdout);
+     }
+-    if (!UnusedPawn(session, pc, state, pawn)) {
+-        const char* reason = !session.window.Owns(&pawn, pawn.GetGameTimeSinceCreation()) ? "newborn-window-expired-or-replaced" :
+-            pc.AcknowledgedPawn == &pawn ? "possession-acknowledged" : "pawn-not-in-unused-state";
+-        Skipped(session.life,reason);
+-        return BirthStep::Finished;
++    auto waiting = [&](const char* reason) {
++        if (session.lastWait != reason) {
++            session.lastWait = reason;
++            std::printf("[BRT-INVENTORY] newborn-wait life=%llu reason=%s\n",
++                static_cast<unsigned long long>(session.life), reason); std::fflush(stdout);
++        }
++        return BirthStep::Waiting;
++    };
++    const auto status = BirthStatus(session, pc, state, pawn);
++    if (status.action == brt::owner_birth::Action::Stop) {
++        Skipped(session.life, status.reason); return BirthStep::Finished;
+     }
+-    if (!state.HasSelectedRole()) return BirthStep::Waiting;
+-    const auto found = Match(session, pawn);
+-    if (!found) return BirthStep::Waiting;
+-    const Selection chosen{found->row->id, found->row->items[0], found->row->items[1]};
+-    const auto request = session.requests + 1;
+-    if (!session.archive->Begin(request, session.life, chosen)) { Skipped(session.life,"request-out-of-order"); return BirthStep::Finished; }
+-    session.requests = request;
+-    const auto reply = session.room.OwnerBirthPlan(session.member, request, chosen);
+-    const auto applied = session.archive->Accept(session.life, reply, [&](const Loadout& loadout) {
+-        std::array<FPBWeaponNetworkConfig, 2> configs{};
++    const char* why{};
++    const auto found = Match(session, state, pawn, why);
++    if (!found) return waiting(status.action == brt::owner_birth::Action::Wait ? status.reason : why);
++    const Selection chosen{found->row->id, found->ids[0], found->ids[1]};
++    if (!session.fetchedSelection) {
++        const auto request = session.requests + 1;
++        if (!session.archive->Begin(request, session.life, chosen)) { Skipped(session.life,"request-out-of-order"); return BirthStep::Finished; }
++        session.requests = request;
++        session.fetchedReply = session.room.OwnerBirthPlan(session.member, request, chosen);
++        session.fetchedSelection.emplace(chosen);
++        session.fetchedActors = found->actors;
++        std::printf("[BRT-INVENTORY] newborn-plan-returned life=%llu present-guns=%d\n",
++            static_cast<unsigned long long>(session.life), int(found->actors[0] != nullptr) + int(found->actors[1] != nullptr));
++        std::fflush(stdout);
++    } else if (*session.fetchedSelection != chosen || session.fetchedActors != found->actors) {
++        Skipped(session.life, "selection-changed-after-read"); return BirthStep::Finished;
++    }
++    if (status.action == brt::owner_birth::Action::Wait) return waiting(status.reason);
++    const auto applied = session.archive->Accept(session.life, session.fetchedReply, [&](const Loadout& loadout) {
+         const Weapon* plans[]{&loadout.primary, &loadout.secondary};
+-        for (unsigned i = 0; i < 2; ++i)
+-            if (found->actors[i] && !Build(*plans[i], *found->actors[i], configs[i])) return false;
+         return brt::birth::VerifyOccupied(found->actors, [&](unsigned i, APBWeapon* weapon) {
+-            if (watched.get() != &session || !state.HasSelectedRole() || !UnusedPawn(session, pc, state, pawn)) return false;
+-            const auto still = Match(session, pawn);
+-            if (!still || still->row != found->row || still->actors != found->actors) return false;
+-            const bool already = SameParts(weapon->GetPBWeaponPartSaveConfig(), configs[i]);
++            const auto valid = BirthStatus(session, pc, state, pawn);
++            if (watched.get() != &session || valid.action != brt::owner_birth::Action::Ready) {
++                Skipped(session.life, valid.action == brt::owner_birth::Action::Ready ? "owner-session-replaced" : valid.reason);
++                return false;
++            }
++            const auto still = Match(session, state, pawn, why);
++            if (!still || still->row != found->row || still->actors != found->actors || still->ids != found->ids) {
++                Skipped(session.life, "born-inventory-changed"); return false;
++            }
++            FPBWeaponNetworkConfig config{};
++            if (!Build(*plans[i], *weapon, config)) { Skipped(session.life, "weapon-config-incompatible"); return false; }
++            const bool already = SameParts(weapon->GetPBWeaponPartSaveConfig(), config);
+             if (!already) {
+                 // 主枪已进入手中时保留它，同时继续处理尚未使用的副枪。
+                 if (pawn.GetCurrentWeapon() == weapon || !UnusedWeapon(weapon, pawn)) {
+@@ -200,9 +225,9 @@ BirthStep ApplyAtBirth(Watched& session, APBPlayerController& pc, APBPlayerState
+                     std::fflush(stdout);
+                     return false;
+                 }
+-                weapon->InitWeapon(configs[i], false);
++                weapon->InitWeapon(config, false);
+             }
+-            const bool readback = SameParts(weapon->GetPBWeaponPartSaveConfig(), configs[i]);
++            const bool readback = SameParts(weapon->GetPBWeaponPartSaveConfig(), config);
+             std::printf("[BRT-INVENTORY] newborn-weapon life=%llu slot=%u submitted=%d parts-readback=%d\n",
+                 static_cast<unsigned long long>(session.life), i + 1, !already, readback);
+             std::fflush(stdout);
+@@ -228,6 +253,9 @@ bool BrtWatchOwnerBirth(SDK::APBPlayerController* pc, const brt::spawn::RoomHttp
+         Member member{room.RoomId(), connection, steam};
+         auto next = std::make_shared<Watched>(Watched{UKismetSystemLibrary::Conv_ObjectToSoftObjectReference(pc),
+             pc, room, member, rows, std::make_unique<Consumer>(member), {}, 0, 0, false});
++        if (!pc->NetConnection || pc->NetConnection->PlayerController != pc) return false;
++        next->loginState = state;
++        next->loginTransport = pc->NetConnection;
+         if (!pc->GetPBCharacter()) next->window.Wait(CurrentCounts(*state), UGameplayStatics::GetTimeSeconds(pc));
+         watched = std::move(next);
+         return true;
+@@ -252,20 +280,31 @@ void BrtTickOwnerBirth() noexcept {
+         const auto counts = CurrentCounts(state);
+         const float now = UGameplayStatics::GetTimeSeconds(&pc);
+         if (!pawn || pc.K2_GetPawn() != pawn || pawn->IsInKilledStatus()) {
++            if (session->window.Pending()) Skipped(session->life, !pawn ? "pawn-removed" :
++                pc.K2_GetPawn() != pawn ? "owner-pawn-replaced" : "pawn-killed");
+             session->window.Wait(counts, now);
+             session->sawPawn = false;
+             return;
+         }
+         // 有些重生在相邻两帧直接替换角色，没有一帧可见的空 Pawn。
+-        if (session->sawPawn && session->previousPawn != pawn && session->previousCounts.deaths < counts.deaths)
++        if (session->sawPawn && session->previousPawn != pawn && session->previousCounts.deaths < counts.deaths) {
++            if (session->window.Pending()) Skipped(session->life, "old-life-replaced");
+             session->window.Wait(session->previousCounts, session->previousTime);
++        }
+         session->previousPawn = pawn;
+         session->previousTime = now;
+         session->previousCounts = counts;
+         session->sawPawn = true;
+         const bool first = session->window.Start(pawn, pawn->GetGameTimeSinceCreation(), now);
+         if (!first && !session->window.Pending()) return;
+-        if (first) ++session->life;
++        if (first) {
++            ++session->life;
++            session->deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(250);
++            session->lastWait = {};
++            session->fetchedSelection.reset();
++            session->fetchedReply.clear();
++            session->fetchedActors = {};
++        }
+         if (state.GetDefaultIDStr().ToString() != session->member.steam) { watched.reset(); return; }
+         try {
+             if (ApplyAtBirth(*session, pc, state, *pawn, first) == BirthStep::Finished) session->window.Finish();
+diff --git a/ProjectReboundMainDLL/BrtInventory/BirthWindow.hpp b/ProjectReboundMainDLL/BrtInventory/BirthWindow.hpp
+index f0d3d3b..67a630a 100644
+--- a/ProjectReboundMainDLL/BrtInventory/BirthWindow.hpp
++++ b/ProjectReboundMainDLL/BrtInventory/BirthWindow.hpp
+@@ -32,6 +32,7 @@ public:
+             age > 0.0f && age <= MaxAge && age <= now - waitedAt_) ? pawn : nullptr;
+         return true;
+     }
++    Counts Baseline() const noexcept { return before_; }
+     bool Pending() const noexcept { return newborn_ != nullptr; }
+     void Finish() noexcept { newborn_ = nullptr; }
+     bool Owns(const void* pawn, float age) const noexcept {

@@ -1,0 +1,549 @@
+diff --git a/Payload/BrtInventory/LoginRows.hpp b/Payload/BrtInventory/LoginRows.hpp
+new file mode 100644
+index 0000000..f0682eb
+--- /dev/null
++++ b/Payload/BrtInventory/LoginRows.hpp
+@@ -0,0 +1,39 @@
++#pragma once
++#include "OwnerRoleMenu.hpp"
++#include "RoomHttp.hpp"
++#include <objbase.h>
++#pragma comment(lib, "ole32.lib")
++
++namespace brt::login {
++
++inline bool IsSteamAccount(std::string_view id) {
++    return id.size() == 17 && id > "76561197960265728" && id <= "76561202255233023" &&
++        id.find_first_not_of("0123456789") == std::string_view::npos;
++}
++
++inline bool ValidRows(const std::vector<spawn::SavedMenuRole>& rows) {
++    const std::array<std::string_view, 6> regular{"PEACE","PROBE","FIXER","SNIPER","FORT","SPIKE"};
++    if (rows.size() != regular.size()) return false;
++    for (const auto& row : rows) {
++        if (std::find(regular.begin(), regular.end(), row.id) == regular.end()) return false;
++        for (const auto& item : row.items) {
++            if (item.size() > 128 || item.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-.") != std::string::npos) return false;
++        }
++    }
++    return true;
++}
++
++// 只申请当前登录的选角快照，绝不占用这个房间登记出生的连接。
++inline std::optional<std::vector<spawn::SavedMenuRole>> ReadAtLogin(const spawn::RoomHttp& room, const std::string& steam) {
++    if (!IsSteamAccount(steam)) return {};
++    GUID uuid{};
++    wchar_t formatted[40]{};
++    if (FAILED(CoCreateGuid(&uuid)) || StringFromGUID2(uuid, formatted, 40) != 39) return {};
++    std::string request(36, ' ');
++    std::transform(formatted + 1, formatted + 37, request.begin(), [](wchar_t c) { return static_cast<char>(c); });
++    const spawn::Member member{room.RoomId(), request, steam};
++    auto rows = spawn::ReadOwnerMenu(member, room.LoginMenu(member));
++    if (!rows || !ValidRows(*rows)) return {};
++    return rows;
++}
++}
+diff --git a/Payload/BrtInventory/OwnerLogin.cpp b/Payload/BrtInventory/OwnerLogin.cpp
+new file mode 100644
+index 0000000..5b072d9
+--- /dev/null
++++ b/Payload/BrtInventory/OwnerLogin.cpp
+@@ -0,0 +1,46 @@
++#include "OwnerLogin.hpp"
++#include "SDK/ProjectBoundary_classes.hpp"
++#include "LoginRows.hpp"
++#include <cstdio>
++
++namespace {
++using namespace SDK;
++
++FName ItemName(const std::string& ascii) {
++    const std::wstring wide(ascii.begin(), ascii.end());
++    return UKismetStringLibrary::Conv_StringToName(FString(wide.c_str()));
++}
++}
++
++void BrtPreorderOwnerInventory(SDK::AGameMode* gameMode, SDK::APBPlayerController* player) noexcept {
++    try {
++        const auto room = brt::spawn::RoomHttp::FromLocalServer();
++        if (!room || !gameMode || !player || !gameMode->HasAuthority() || !player->HasAuthority()) return;
++        auto* state = player->PlayerState;
++        if (!state || !state->IsA(SDK::APBPlayerState::StaticClass())) return;
++        auto* owner = static_cast<SDK::APBPlayerState*>(state);
++        if (owner->HasSelectedRole()) return;
++        const auto steam = owner->GetDefaultIDStr().ToString();
++        const auto rows = brt::login::ReadAtLogin(*room, steam);
++        if (!rows || owner->HasSelectedRole()) return;
++
++        using Slot = SDK::EPBCharacterSlotType;
++        constexpr std::array slots{Slot::FirstWeapon, Slot::SecondWeapon, Slot::LeftPod,
++                                   Slot::RightPod, Slot::MeleeWeapon, Slot::Mobility};
++        // 先构造完整的六名角色。游戏决定是否接受每一组预订，保留原来的配额及菜单响应。
++        struct Order { SDK::FName role; SDK::FPBInventoryNetworkConfig inventory; };
++        std::array<Order, 6> orders{};
++        for (std::size_t i = 0; i < rows->size(); ++i) {
++            orders[i].role = ItemName((*rows)[i].id);
++            for (std::size_t j = 0; j < slots.size(); ++j) {
++                orders[i].inventory.CharacterSlots.Add(slots[j]);
++                orders[i].inventory.InventoryItems.Add(ItemName((*rows)[i].items[j]));
++            }
++        }
++        for (const auto& order : orders) player->ServerPreOrderInventory(order.role, order.inventory);
++        std::puts("[BRT-INVENTORY] owner-preorder-submitted roles=6 slots=36");
++        std::fflush(stdout);
++    } catch (const std::exception&) {
++        // 本机档案未就绪、不是房主或资源不可用时，让正常的游戏登录流程继续。
++    }
++}
+diff --git a/Payload/BrtInventory/OwnerLogin.hpp b/Payload/BrtInventory/OwnerLogin.hpp
+new file mode 100644
+index 0000000..c5a33b4
+--- /dev/null
++++ b/Payload/BrtInventory/OwnerLogin.hpp
+@@ -0,0 +1,4 @@
++#pragma once
++
++namespace SDK { class AGameMode; class APBPlayerController; }
++void BrtPreorderOwnerInventory(SDK::AGameMode* gameMode, SDK::APBPlayerController* player) noexcept;
+diff --git a/Payload/BrtInventory/OwnerRoleMenu.hpp b/Payload/BrtInventory/OwnerRoleMenu.hpp
+new file mode 100644
+index 0000000..7cc1b5f
+--- /dev/null
++++ b/Payload/BrtInventory/OwnerRoleMenu.hpp
+@@ -0,0 +1,85 @@
++#pragma once
++#include "SpawnConsumer.hpp"
++#include <array>
++#include <optional>
++#include <set>
++#include <vector>
++
++namespace brt::spawn {
++
++// 在房主首次初始化此连接的选角页时，把军械库的六个槽带到原有角色和配额里。
++struct SavedMenuRole {
++    Name id;
++    std::array<Name, 6> items;
++};
++
++inline std::optional<std::vector<SavedMenuRole>> ReadOwnerMenu(const Member& owner, std::string_view reply) {
++    if (reply.empty() || reply.size() > 16384) return {};
++    const Json doc = Json::parse(reply.begin(), reply.end(), nullptr, false);
++    if (!doc.is_object()) return {};
++    std::vector<SavedMenuRole> saved;
++    std::set<Name> seen;
++    try {
++        if (doc.at("version") != 1 || doc.at("connectionId") != owner.connection ||
++            doc.at("roomId") != owner.room || doc.at("authenticatedSteamId") != owner.steam)
++            return {};
++        const auto& roles = doc.at("roles");
++        if (!roles.is_array() || roles.size() > 6) return {};
++        for (const auto& row : roles) {
++            SavedMenuRole role{ReadName(row, "CharacterID"), {}};
++            if (!seen.insert(role.id).second) return {};
++            const auto& items = row.at("InventoryItems");
++            if (!items.is_array() || items.size() != role.items.size()) return {};
++            for (size_t slot = 0; slot < role.items.size(); ++slot) {
++                role.items[slot] = items.at(slot).get<Name>();
++                const auto& id = role.items[slot];
++                if (id.empty() || id.size() > 256 || id.find_first_of("\r\n\t") != Name::npos) return {};
++            }
++            saved.push_back(std::move(role));
++        }
++    } catch (const std::exception&) { return {}; }
++    return saved;
++}
++
++// 代替宿主原来的 ClientInitFieldMod 调用。初始化完成后不再次覆盖正在编辑的槽。
++// 只遍历房间准许的角色，以原本配额初始化本玩家的 PlayerState。
++template<class PlayerState, class Menu, class RoleIds, class Quotas, class Intern>
++bool InitOwnerFieldMod(PlayerState& state, const Member& owner, std::string_view reply,
++                       const Menu& original, const RoleIds& allowed, const Quotas& quotas, Intern&& name) {
++    const auto saved = ReadOwnerMenu(owner, reply);
++    if (!saved || allowed.Num() != quotas.Num() || original.RoleArray.Num() != original.RoleInventoryNetworkConfigArray.Num())
++        return false;
++    using Inventory = std::remove_cv_t<std::remove_reference_t<decltype(original.RoleInventoryNetworkConfigArray[0])>>;
++    using Slot = std::remove_cv_t<std::remove_reference_t<decltype(std::declval<Inventory&>().CharacterSlots[0])>>;
++    Menu updated{};
++    // 从值构造新配置，原有数组始终归游戏所有。缺席的角色保留服务器自己的装备。
++    auto fill = [&](const auto& role, const Inventory* stock) {
++        const auto found = std::find_if(saved->begin(), saved->end(), [&](const auto& item) { return name(item.id) == role; });
++        bool available = false;
++        for (int i = 0; i < allowed.Num(); ++i) if (allowed[i] == role) { available = true; break; }
++        if (!available || found == saved->end()) {
++            if (stock) {
++                updated.RoleArray.Add(role);
++                updated.RoleInventoryNetworkConfigArray.Add(*stock);
++            }
++            return;
++        }
++        Inventory inventory{};
++        for (int i = 0; i < 6; ++i) {
++            inventory.CharacterSlots.Add(static_cast<Slot>(i + 1));
++            inventory.InventoryItems.Add(name(found->items[i]));
++        }
++        updated.RoleArray.Add(role);
++        updated.RoleInventoryNetworkConfigArray.Add(inventory);
++    };
++    for (int i = 0; i < original.RoleArray.Num(); ++i) fill(original.RoleArray[i], &original.RoleInventoryNetworkConfigArray[i]);
++    for (int i = 0; i < allowed.Num(); ++i) {
++        bool exists = false;
++        for (int j = 0; j < original.RoleArray.Num(); ++j) if (original.RoleArray[j] == allowed[i]) { exists = true; break; }
++        if (!exists) fill(allowed[i], nullptr);
++    }
++    state.ClientInitFieldMod(updated, allowed, quotas);
++    return true;
++}
++
++} // namespace brt::spawn
+diff --git a/Payload/BrtInventory/RoomHttp.cpp b/Payload/BrtInventory/RoomHttp.cpp
+new file mode 100644
+index 0000000..54ee9fb
+--- /dev/null
++++ b/Payload/BrtInventory/RoomHttp.cpp
+@@ -0,0 +1,94 @@
++#include "RoomHttp.hpp"
++#define WIN32_LEAN_AND_MEAN
++#define NOMINMAX
++#include <windows.h>
++#include <winhttp.h>
++#include <memory>
++#include <chrono>
++#include <stdexcept>
++#pragma comment(lib, "winhttp.lib")
++
++namespace brt::spawn {
++namespace {
++struct CloseHandle {
++    void operator()(HINTERNET handle) const { WinHttpCloseHandle(handle); }
++};
++using Handle = std::unique_ptr<void, CloseHandle>;
++void Check(bool ok) {
++    if (!ok) throw std::runtime_error("room HTTP transport failed");
++}
++}
++
++RoomHttp::RoomHttp(unsigned short port, Name room, Name credential)
++    : port_(port), room_(std::move(room)), credential_(std::move(credential)) {
++    const auto roomChar = [](char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
++        (c >= '0' && c <= '9') || c == '_' || c == '-'; };
++    const auto hex = [](char c) { return (c >= 'a' && c <= 'f') || (c >= '0' && c <= '9'); };
++    if (!port_ || room_.empty() || room_.size() > 80 || !std::all_of(room_.begin(), room_.end(),roomChar) ||
++        credential_.size() != 64 || !std::all_of(credential_.begin(),credential_.end(),hex))
++        throw std::invalid_argument("invalid room HTTP configuration");
++}
++
++// 只读取工具箱交给本次专服进程的环境。大厅不会获得这两项，也不能用自己的 Gate 票据代替。
++std::optional<RoomHttp> RoomHttp::FromLocalServer(unsigned short port) {
++    char room[81]{}, key[65]{};
++    const DWORD n = GetEnvironmentVariableA("BRT_LOCAL_SPAWN_ROOM", room, sizeof(room));
++    const DWORD k = GetEnvironmentVariableA("BRT_LOCAL_SPAWN_TOKEN", key, sizeof(key));
++    if (!n && !k) return std::nullopt;
++    if (n != 40 || k != 64 || std::string_view(room, 4) != "pve-")
++        throw std::invalid_argument("invalid local server registration");
++    return RoomHttp(port, Name(room, n), Name(key, k));
++}
++
++std::string RoomHttp::Post(const wchar_t* operation, const Json& body, DWORD expected, bool atLogin) const {
++    const Handle session(WinHttpOpen(L"BRT room inventory/1", WINHTTP_ACCESS_TYPE_NO_PROXY, nullptr, nullptr, 0));
++    Check(bool(session));
++    Check(atLogin ? WinHttpSetTimeouts(session.get(), 100, 120, 120, 250)
++                  : WinHttpSetTimeouts(session.get(), 2000, 2000, 4000, 4000));
++    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(350);
++    const Handle local(WinHttpConnect(session.get(), L"127.0.0.1", port_, 0));
++    Check(bool(local));
++    const std::wstring path = L"/api/brt/v1/rooms/" + std::wstring(room_.begin(),room_.end()) + L"/spawn/" + operation;
++    const Handle request(WinHttpOpenRequest(local.get(),L"POST",path.c_str(),nullptr,WINHTTP_NO_REFERER,WINHTTP_DEFAULT_ACCEPT_TYPES,0));
++    Check(bool(request));
++    DWORD redirects = WINHTTP_OPTION_REDIRECT_POLICY_NEVER;
++    Check(WinHttpSetOption(request.get(), WINHTTP_OPTION_REDIRECT_POLICY, &redirects, sizeof(redirects)));
++    const std::wstring headers = L"Content-Type: application/json\r\nAuthorization: Bearer " +
++                                  std::wstring(credential_.begin(),credential_.end()) + L"\r\n";
++    auto bytes = body.dump();
++    const DWORD length = static_cast<DWORD>(bytes.size());
++    Check(WinHttpSendRequest(request.get(),headers.c_str(),static_cast<DWORD>(headers.size()),bytes.data(),length,length,0));
++    Check(WinHttpReceiveResponse(request.get(), nullptr));
++    DWORD status = 0, size = sizeof(status);
++    Check(WinHttpQueryHeaders(request.get(),WINHTTP_QUERY_STATUS_CODE|WINHTTP_QUERY_FLAG_NUMBER,
++          WINHTTP_HEADER_NAME_BY_INDEX,&status,&size,WINHTTP_NO_HEADER_INDEX));
++    if (status != expected) throw std::runtime_error("room request rejected with HTTP " + std::to_string(status));
++    std::string reply;
++    char data[4096]; DWORD read = 0;
++    do {
++        if (atLogin) Check(std::chrono::steady_clock::now() < deadline);
++        Check(WinHttpReadData(request.get(), data, sizeof(data), &read));
++        if (reply.size() + read > (atLogin ? 16384u : 131072u)) throw std::runtime_error("oversize room response");
++        reply.append(data,read);
++    } while (read != 0);
++    return reply;
++}
++std::string RoomHttp::LoginMenu(const Member& authenticated) const {
++    if (authenticated.room != room_) throw std::invalid_argument("room mismatch");
++    return Post(L"login-menu",{{"connectionId",authenticated.connection},{"authenticatedSteamId",authenticated.steam}},200,true);
++}
++void RoomHttp::Admit(const Member& authenticated) const {
++    if (authenticated.room != room_) throw std::invalid_argument("room mismatch");
++    Post(L"admit",{{"connectionId",authenticated.connection},{"authenticatedSteamId",authenticated.steam}},204);
++}
++std::string RoomHttp::InitialMenu(const Name& connection) const {
++    return Post(L"menu", {{"connectionId",connection}}, 200);
++}
++std::string RoomHttp::Prepare(const Name& connection, std::uint64_t life, const Selection& chosen) const {
++    return Post(L"prepare",{{"connectionId",connection},{"life",life},{"selection",{
++        {"role",chosen.role},{"primary",chosen.primary},{"secondary",chosen.secondary}}}},200);
++}
++void RoomHttp::Leave(const Name& connection) const {
++    Post(L"leave",{{"connectionId",connection}},204);
++}
++} // namespace brt::spawn
+diff --git a/Payload/BrtInventory/RoomHttp.hpp b/Payload/BrtInventory/RoomHttp.hpp
+new file mode 100644
+index 0000000..fe345ff
+--- /dev/null
++++ b/Payload/BrtInventory/RoomHttp.hpp
+@@ -0,0 +1,22 @@
++#pragma once
++#include "SpawnConsumer.hpp"
++
++namespace brt::spawn {
++
++// 此对象归专服工作线程所有。I/O 完成后将字符串和原出生编号投递回同一游戏线程。
++class RoomHttp {
++    unsigned short port_;
++    Name room_, credential_;
++    std::string Post(const wchar_t* operation, const Json& body, unsigned long status, bool atLogin = false) const;
++public:
++    RoomHttp(unsigned short port, Name room, Name credential);
++    static std::optional<RoomHttp> FromLocalServer(unsigned short port = 8000);
++    const Name& RoomId() const { return room_; }
++    std::string LoginMenu(const Member& authenticated) const;
++    void Admit(const Member& authenticated) const;
++    std::string InitialMenu(const Name& connection) const;
++    std::string Prepare(const Name& connection, std::uint64_t life, const Selection& chosen) const;
++    void Leave(const Name& connection) const;
++};
++
++} // namespace brt::spawn
+diff --git a/Payload/BrtInventory/SpawnConsumer.hpp b/Payload/BrtInventory/SpawnConsumer.hpp
+new file mode 100644
+index 0000000..9cf608b
+--- /dev/null
++++ b/Payload/BrtInventory/SpawnConsumer.hpp
+@@ -0,0 +1,177 @@
++#pragma once
++
++#include "json.hpp"
++#include <algorithm>
++#include <array>
++#include <cstdint>
++#include <optional>
++#include <string>
++#include <string_view>
++#include <utility>
++
++namespace brt::spawn {
++
++using Json = nlohmann::json;
++using Name = std::string;
++inline constexpr char None[] = "None";
++
++struct Member {
++    Name room, connection, steam;
++};
++struct Selection {
++    Name role, primary, secondary;
++    bool operator==(const Selection& other) const {
++        return role == other.role && primary == other.primary && secondary == other.secondary;
++    }
++};
++struct Appearance {
++    Name skin{None}, paint{None}, special{None}, ornament{None};
++};
++struct Part {
++    Name id{None}, skin{None}, special{None}, paint{None}, archiveOrnament{None};
++};
++struct ReceiverAppearance {
++    Name part, skin, paint;
++};
++struct Weapon {
++    Name id, ornament{None};
++    std::optional<Name> classId;
++    Appearance appearance;
++    std::array<Part, 10> parts;
++    std::optional<ReceiverAppearance> receiver;
++    bool Present() const { return id != None; }
++};
++struct CharacterAppearance {
++    std::optional<Name> suit, painting, badge, head;
++};
++struct Loadout {
++    Name role, left, right, mobility, melee;
++    Weapon primary, secondary;
++    std::optional<CharacterAppearance> character;
++};
++enum class Result { Applied, AlreadyApplied, Rejected, HostDeclined };
++
++inline Name ReadName(const Json& object, const char* key) {
++    Name value = object.at(key).get<Name>();
++    if (value.empty() || value.size() > 256 ||
++        std::any_of(value.begin(), value.end(), [](unsigned char c) { return c < 32 || c == 127; }))
++        throw std::invalid_argument(key);
++    return value;
++}
++inline Weapon ReadWeapon(const Json& object, const Name& selected) {
++    Weapon weapon;
++    weapon.id = ReadName(object, "WeaponID");
++    if (weapon.id != selected) throw std::invalid_argument("unexpected weapon");
++    const auto& slots = object.at("WeaponPartSlotTypeArray");
++    const auto& parts = object.at("WeaponPartConfigs");
++    if (!slots.is_array() || !parts.is_array() || slots.size() != parts.size() ||
++        slots.size() != (weapon.Present() ? weapon.parts.size() : 0))
++        throw std::invalid_argument("weapon parts");
++    if (!weapon.Present()) {
++        if (object.contains("ReceiverMainAppearance")) throw std::invalid_argument("receiver on empty weapon");
++        return weapon;
++    }
++    weapon.ornament = ReadName(object, "OrnamentID");
++    if (object.contains("WeaponClassID")) weapon.classId = ReadName(object, "WeaponClassID");
++    const auto& body = object.at("ArchiveAppearance");
++    weapon.appearance = {ReadName(body, "SkinItem"), ReadName(body, "PaintItem"),
++                         ReadName(body, "SpecialSlot"), ReadName(body, "Ornament")};
++    if (object.contains("ReceiverMainAppearance")) {
++        const auto& row = object.at("ReceiverMainAppearance");
++        ReceiverAppearance look{ReadName(row, "WeaponPartID"), ReadName(row, "WeaponPartSkinID"),
++                                ReadName(row, "WeaponPartSkinPaintingID")};
++        if (look.part == None || look.skin == None || look.paint == None ||
++            weapon.appearance.skin == None || weapon.appearance.paint == None)
++            throw std::invalid_argument("incomplete receiver appearance");
++        weapon.receiver = std::move(look);
++    }
++    std::array<bool, 10> seen{};
++    for (size_t i = 0; i < slots.size(); ++i) {
++        if (!slots[i].is_number_integer()) throw std::invalid_argument("slot must be an integer");
++        const auto number = slots[i].get<std::int64_t>();
++        if (number < 1 || number > 10 || seen[number - 1]) throw std::invalid_argument("weapon slot");
++        seen[number - 1] = true;
++        const auto& item = parts[i];
++        weapon.parts[number - 1] = {ReadName(item, "WeaponPartID"), ReadName(item, "WeaponPartSkinID"),
++                                    ReadName(item, "WeaponPartSpecialSkinID"), ReadName(item, "WeaponPartSkinPaintingID"),
++                                    ReadName(item, "ArchiveOrnament")};
++    }
++    return weapon;
++}
++
++// 每个已认证连接持有一个对象。注册、回包、离房都在服务器游戏线程串行处理。
++class Consumer {
++    Member member_;
++    Selection selection_;
++    std::uint64_t life_{}, pawn_{};
++    bool closed_{}, applying_{};
++    std::optional<Json> committed_;
++public:
++    explicit Consumer(Member authenticated) : member_(std::move(authenticated)) {}
++    Consumer(const Consumer&) = delete;
++    Consumer& operator=(const Consumer&) = delete;
++
++    bool Begin(std::uint64_t life, std::uint64_t pawnGeneration, Selection chosen) {
++        if (closed_ || applying_ || !life || !pawnGeneration || chosen.role.empty() || chosen.role == None ||
++            member_.room.empty() || member_.connection.empty() || member_.steam.empty()) return false;
++        // selection 由房主已批准的当前选择提供，枪名为角色限定 ID 或显式 None。
++        auto allowed = [&](const Name& gun) {
++            const auto prefix = chosen.role + "_";
++            return gun == None || (gun.compare(0, prefix.size(), prefix) == 0 && gun.size() > prefix.size());
++        };
++        if (!allowed(chosen.primary) || !allowed(chosen.secondary)) return false;
++        if (life == life_) return pawnGeneration == pawn_ && chosen == selection_;
++        if (life != life_ + 1) return false;
++        selection_ = std::move(chosen);
++        life_ = life; pawn_ = pawnGeneration; committed_.reset();
++        return true;
++    }
++    void Leave() { closed_ = true; committed_.reset(); }
++    bool Targets(std::uint64_t pawnGeneration) const {
++        return !closed_ && life_ && pawn_ == pawnGeneration;
++    }
++
++    template<class Commit>
++    Result Accept(std::uint64_t currentPawnGeneration, std::string_view bytes, Commit&& commit) {
++        if (!Targets(currentPawnGeneration) || applying_ || bytes.size() > 131072)
++            return Result::Rejected;
++        Json document = Json::parse(bytes.begin(), bytes.end(), nullptr, false);
++        if (!document.is_object()) return Result::Rejected;
++        Loadout plan;
++        try {
++            if (document.at("version") != 1 || document.at("roomId") != member_.room ||
++                document.at("connectionId") != member_.connection || document.at("authenticatedSteamId") != member_.steam ||
++                !document.at("life").is_number_unsigned() || document.at("life").get<std::uint64_t>() != life_)
++                return Result::Rejected;
++            const auto& data = document.at("loadout");
++            if (data.at("CharacterID") != selection_.role) return Result::Rejected;
++            if (committed_) return *committed_ == data ? Result::AlreadyApplied : Result::Rejected;
++            plan = {selection_.role, ReadName(data.at("LeftLauncherData"), "ID"), ReadName(data.at("RightLauncherData"), "ID"),
++                    ReadName(data.at("MobilityModuleData"), "MobilityModuleID"), ReadName(data.at("MeleeWeaponData"), "ID"),
++                    ReadWeapon(data.at("FirstWeaponPartData"), selection_.primary), ReadWeapon(data.at("SecondWeaponPartData"), selection_.secondary), {}};
++            if (data.contains("CharacterData")) {
++                const auto& fields = data.at("CharacterData");
++                if (!fields.is_object() || fields.empty()) return Result::Rejected;
++                CharacterAppearance look;
++                for (auto it = fields.begin(); it != fields.end(); ++it) {
++                    const auto& key = it.key();
++                    auto* value = key == "SpacesuitID" ? &look.suit : key == "SpacesuitSkinPaintingID" ? &look.painting :
++                                  key == "ArmBadgeID" ? &look.badge : key == "HeadAccessoryID" ? &look.head : nullptr;
++                    if (!value) return Result::Rejected;
++                    *value = ReadName(fields, key.c_str());
++                }
++                if ((look.suit && *look.suit == None) || (look.suit.has_value() != look.painting.has_value())) return Result::Rejected;
++                plan.character = std::move(look);
++            }
++        } catch (const std::exception&) { return Result::Rejected; }
++        // 预先保留回执。只有宿主成功提交整份新生装备才推进同命去重状态。
++        Json receipt = std::move(document.at("loadout"));
++        applying_ = true;
++        struct Clear { bool& flag; ~Clear() { flag = false; } } onReturn{applying_};
++        if (!commit(plan)) return Result::HostDeclined;
++        if (!closed_) committed_.emplace(std::move(receipt));
++        return Result::Applied;
++    }
++};
++
++} // namespace brt::spawn
+diff --git a/Payload/Payload.vcxproj b/Payload/Payload.vcxproj
+index ae80fa8..785085f 100644
+--- a/Payload/Payload.vcxproj
++++ b/Payload/Payload.vcxproj
+@@ -172,6 +172,14 @@
+     <ClCompile Include="SDK\UMG_LoginGate_functions.cpp" />
+     <ClCompile Include="SDK\UMG_MainMenuLayout_functions.cpp" />
+     <ClCompile Include="ServerLogic\LateJoinManager.cpp" />
++    <ClCompile Include="BrtInventory\OwnerLogin.cpp">
++      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Libs;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <ExceptionHandling>Sync</ExceptionHandling>
++    </ClCompile>
++    <ClCompile Include="BrtInventory\RoomHttp.cpp">
++      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Libs;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <ExceptionHandling>Sync</ExceptionHandling>
++    </ClCompile>
+     <ClCompile Include="ServerLogic\ServerLogic.cpp" />
+     <ClCompile Include="Utility\LauncherFix.cpp" />
+     <ClCompile Include="Loadout\LoadoutFix.cpp" />
+diff --git a/Payload/ServerLogic/LateJoinManager.cpp b/Payload/ServerLogic/LateJoinManager.cpp
+index 8040081..b1aee81 100644
+--- a/Payload/ServerLogic/LateJoinManager.cpp
++++ b/Payload/ServerLogic/LateJoinManager.cpp
+@@ -21,6 +21,8 @@
+ #include "../SDK/ProjectBoundary_parameters.hpp"
+ #include "../Debug/Debug.h"
+ 
++#include "../BrtInventory/OwnerLogin.hpp"
++
+ using namespace SDK;
+ 
+ // =====================================================================
+@@ -48,6 +50,7 @@ LateJoinManager::LateJoinManager(
+ //  - 否则返回 false，由调用方执行正常首生逻辑
+ bool LateJoinManager::OnPostLogin(AGameMode* GameMode, APBPlayerController* PC)
+ {
++    BrtPreorderOwnerInventory(GameMode, PC);
+     if (PC && IsLateJoinWindowOpen())
+     {
+         QueueLateJoinPlayer(PC);

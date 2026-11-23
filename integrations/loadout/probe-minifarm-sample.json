@@ -1,0 +1,202 @@
+{
+  "role": "PROBE",
+  "left": "PROBE_MISSILE-SPARROW",
+  "right": "PROBE_INFO-PROBE",
+  "mobility": "PROBE_FCM-GRAPPLE",
+  "primary": "PROBE_GSW-DMR",
+  "secondary": "PROBE_GSW-FOP",
+  "weapons": [
+    {
+      "WeaponId": "PROBE_GSW-DMR",
+      "Parts": [
+        {
+          "SlotId": 1,
+          "PartId": "GSW-DMR_MZL-BRAKE",
+          "Ornament": {
+            "Info": {
+              "Type": "PartOri",
+              "Id": "GSW-DMR_Muzzle_PTOriginal"
+            }
+          }
+        },
+        {
+          "SlotId": 2,
+          "PartId": "GSW-DMR_BRL-DMR-HEAVY",
+          "Ornament": {
+            "Info": {
+              "Type": "PartOri",
+              "Id": "GSW-DMR_Barrel_PTMetalGold"
+            }
+          }
+        },
+        {
+          "SlotId": 3,
+          "PartId": "GSW-DMR_HGD-HEAVY",
+          "Ornament": {
+            "Info": {
+              "Type": "PartOri",
+              "Id": "GSW-DMR_HandGuard_PTMetalGold"
+            }
+          }
+        },
+        {
+          "SlotId": 4,
+          "PartId": "GSW-DMR_FRM-SEMI",
+          "Ornament": {
+            "Info": {
+              "Id": "PTOriginal"
+            }
+          }
+        },
+        {
+          "SlotId": 5,
+          "PartId": "GSW-DMR_GRP-GSW-TAC",
+          "Ornament": {
+            "Info": {
+              "Type": "PartOri",
+              "Id": "GSW-DMR_Grip_PTMetalGold"
+            }
+          }
+        },
+        {
+          "SlotId": 6,
+          "PartId": "GSW-DMR_SGT-REFLEX-3X",
+          "Ornament": {
+            "Info": {
+              "Type": "PartOri",
+              "Id": "GSW-DMR_SightOptical_PTMetalGold"
+            },
+            "SpecialSlot": "CRH3XREGDOT"
+          }
+        },
+        {
+          "SlotId": 7,
+          "Ornament": {
+            "Info": {}
+          }
+        },
+        {
+          "SlotId": 8,
+          "Ornament": {
+            "Info": {}
+          }
+        },
+        {
+          "SlotId": 9,
+          "PartId": "GSW-DMR_MAG-DMR-FAST",
+          "Ornament": {
+            "Info": {
+              "Type": "PartOri",
+              "Id": "GSW-DMR_AmmoStorageDevice_PTMetalGold"
+            }
+          }
+        },
+        {
+          "SlotId": 10,
+          "Ornament": {
+            "Info": {}
+          }
+        }
+      ],
+      "Skin": {
+        "SkinInfo": {
+          "Type": "SkinDMROriginal",
+          "Id": "GSW-DMR_Original_PTMetalGold"
+        },
+        "WeaponOrnament": "WO-SUN"
+      }
+    },
+    {
+      "WeaponId": "PROBE_GSW-FOP",
+      "Parts": [
+        {
+          "SlotId": 1,
+          "PartId": "GSW-FOP_MZL-BRAKE",
+          "Ornament": {
+            "Info": {
+              "Type": "PartOri",
+              "Id": "GSW-FOP_Muzzle_PTOriginal"
+            }
+          }
+        },
+        {
+          "SlotId": 2,
+          "Ornament": {
+            "Info": {}
+          }
+        },
+        {
+          "SlotId": 3,
+          "Ornament": {
+            "Info": {}
+          }
+        },
+        {
+          "SlotId": 4,
+          "PartId": "GSW-FOP_FRM-METALSTORM",
+          "Ornament": {
+            "Info": {
+              "Id": "PTOriginal"
+            }
+          }
+        },
+        {
+          "SlotId": 5,
+          "PartId": "GSW-FOP_GRP-GSW-TAC",
+          "Ornament": {
+            "Info": {
+              "Type": "PartOri",
+              "Id": "GSW-FOP_Grip_PTElectroRed"
+            }
+          }
+        },
+        {
+          "SlotId": 6,
+          "PartId": "GSW-FOP_SGT-REDDOT-MICRO",
+          "Ornament": {
+            "Info": {
+              "Type": "PartOri",
+              "Id": "GSW-FOP_SightOptical_PTElectroRed"
+            },
+            "SpecialSlot": "CRHREDDDOTGREEN"
+          }
+        },
+        {
+          "SlotId": 7,
+          "Ornament": {
+            "Info": {}
+          }
+        },
+        {
+          "SlotId": 8,
+          "Ornament": {
+            "Info": {}
+          }
+        },
+        {
+          "SlotId": 9,
+          "PartId": "GSW-FOP_MAG-FOP-STD",
+          "Ornament": {
+            "Info": {
+              "Type": "PartOri",
+              "Id": "GSW-FOP_AmmoStorageDevice_PTElectroRed"
+            }
+          }
+        },
+        {
+          "SlotId": 10,
+          "Ornament": {
+            "Info": {}
+          }
+        }
+      ],
+      "Skin": {
+        "SkinInfo": {
+          "Type": "SkinFOPOriginal",
+          "Id": "GSW-FOP_Original_PTElectroRed"
+        },
+        "WeaponOrnament": "WO-NONE"
+      }
+    }
+  ]
+}

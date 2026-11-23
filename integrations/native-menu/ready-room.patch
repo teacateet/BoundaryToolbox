@@ -1,0 +1,100 @@
+diff --git a/index.js b/index.js
+--- a/index.js
++++ b/index.js
+@@ -381,8 +381,12 @@ function generateTicketId() {
+ let fs = require("fs");
+ 
+ const { createMenuSession } = require('./session-progress.cjs');
++const { createReadyRoomSession, roomReader, lobbyRoomReader } = require('./ready-room.cjs');
++const readModes = () => require('./game/definitions/DT_GameModeDefinition.json');
++const readRoom = MatchmakingHost === '127.0.0.1' ? roomReader(__dirname) : () => undefined;
+ const server = net.createServer((socket) => {
+-  const menuSession = createMenuSession(() => require('./game/definitions/DT_GameModeDefinition.json'), MatchmakingHost === '127.0.0.1');
++  const menuSession = createMenuSession(readModes, MatchmakingHost === '127.0.0.1');
++  const roomSession = createReadyRoomSession(readModes, lobbyRoomReader(socket, readRoom), { report: e => console.log('[PVE-ROOM] ' + JSON.stringify(e)) });
+   console.log('\n=== Client connected ===');
+   console.log(`From: ${socket.remoteAddress}:${socket.remotePort}\n`);
+ 
+@@ -427,6 +431,7 @@ const server = net.createServer((socket) => {
+ 
+       if(gateSessions.has(RPCPath)){
+         menuSession.reset();
++        roomSession.reset();
+         socket.playerId = gateSessions.get(RPCPath);
+         console.log(`[SESSION] Bound protobuf socket to player ${socket.playerId}`);
+         socket.write(data);
+@@ -707,6 +712,7 @@ const server = net.createServer((socket) => {
+         console.log(`[PARTY] Presence ${PartyPresence} => ${DecodedPartyPresence}`);
+ 
+         PartyPresence = DecodedPartyPresence;
++        roomSession.presence(socket.playerId, DecodedPartyPresence);
+ 
+         Root = protobuf.loadSync("./game/proto/Response/SetPartyPresenceResponse.proto");
+ 
+@@ -773,14 +779,15 @@ const server = net.createServer((socket) => {
+         // Try MatchServer API; fall back to in-memory ticket
+         let ticketId = generateTicketId();
+         let matchFound = false;
++        const localRoom = roomSession.start(socket.playerId, requestedBy, requestedMode, ticketId, attempt.seq);
+         try {
+-          const result = await matchServerRequest('POST', '/matchmaking/enqueue', {
++          const result = localRoom || await matchServerRequest('POST', '/matchmaking/enqueue', {
+             userId, regionIds, gameMode, ticketId,
+           });
+           ticketId = result.ticketId || ticketId;
+           menuSession.enqueued(attempt, ticketId, result.status);
+           matchFound = result.status === 'found';
+-          if (matchFound) {
++          if (matchFound && !localRoom) {
+             matchTickets.set(ticketId, {
+               userId, gameMode, regionIds,
+               status: 'found',
+@@ -789,7 +796,7 @@ const server = net.createServer((socket) => {
+               createdAt: Date.now(),
+             });
+           }
+-          console.log(`[MATCH] MatchServer: ticket=${ticketId} status=${result.status}`);
++          if (!localRoom) console.log(`[MATCH] MatchServer: ticket=${ticketId} status=${result.status}`);
+         } catch(_) {
+           menuSession.enqueued(attempt, null, null);
+           // MatchServer unavailable - queue locally
+@@ -821,6 +828,7 @@ const server = net.createServer((socket) => {
+ 
+         const progress = menuSession.query(socket.playerId, ticketId, MessageBytes?.length ?? 0, decoded);
+         ticketId = progress.ticket;
++        const localRoom = roomSession.status(socket.playerId, ticketId);
+         let backend = 'not-polled';
+         let status = 'queued', serverIp = '', serverPort = 0;
+         if (ticketId && matchTickets.has(ticketId)) {
+@@ -830,10 +838,16 @@ const server = net.createServer((socket) => {
+           serverPort = ticket.serverPort || 0;
+         }
+ 
+-        if (progress.cached) status = 'found';
+-        if (ticketId && status === 'found') backend = 'cache-found';
++        if (localRoom) {
++          status = backend = localRoom.status;
++          serverIp = localRoom.serverIp || '';
++          serverPort = localRoom.serverPort || 0;
++        } else {
++          if (progress.cached) status = 'found';
++          if (ticketId && status === 'found') backend = 'cache-found';
++        }
+         // Poll MatchServer if available
+-        if (ticketId && status === 'queued') {
++        if (!localRoom && ticketId && status === 'queued') {
+           try {
+             const result = await matchServerRequest('GET', `/matchmaking/status/${ticketId}`);
+             backend = result.status;
+@@ -869,8 +883,10 @@ const server = net.createServer((socket) => {
+         } catch(_) {}
+ 
+         menuSession.stop(socket.playerId, ticketId);
++        const wasLocal = roomSession.stop(socket.playerId, ticketId);
++        if (wasLocal) menuSession.reset();
+         console.log(`[MATCH] Stop matchmaking: ticket=${ticketId}`);
+-        if (ticketId) {
++        if (ticketId && !wasLocal) {
+           matchTickets.delete(ticketId);
+           try {
+             await matchServerRequest('POST', `/matchmaking/cancel/${ticketId}`);

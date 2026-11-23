@@ -1,0 +1,66 @@
+diff --git a/ProjectReboundMainDLL/Client/AutoConnect.cpp b/ProjectReboundMainDLL/Client/AutoConnect.cpp
+index 9d9cfa7..2eb386a 100644
+--- a/ProjectReboundMainDLL/Client/AutoConnect.cpp
++++ b/ProjectReboundMainDLL/Client/AutoConnect.cpp
+@@ -8,6 +8,7 @@
+ #include "../SDK/Engine_parameters.hpp"
+ #include "../SDK/ProjectBoundary_parameters.hpp"
+ #include "../Libs/json.hpp"
++#include "DeathMenu.sdk.hpp"
+ 
+ #include <Windows.h>
+ 
+@@ -125,6 +126,12 @@ bool NotifyClientLoginCompleted()
+     return !loginCompleted.exchange(true);
+ }
+ 
++void BrtRoleConfirmed(SDK::UObject* sender, const SDK::FName& role)
++{
++    if (loginCompleted.load() && gameThreadId.load() == GetCurrentThreadId())
++        BrtDeathMenu::Confirmed(sender, role);
++}
++
+ void PumpPendingClientCommands()
+ {
+     static thread_local bool pumping = false;
+@@ -146,6 +153,8 @@ void PumpPendingClientCommands()
+     if (localPlayer == nullptr)
+         return;
+ 
++    BrtDeathMenu::Tick(world, localPlayer);
++
+     const auto now = std::chrono::steady_clock::now();
+     bool enterRange = false;
+     std::optional<std::string> connectTarget;
+@@ -186,6 +195,7 @@ void PumpPendingClientCommands()
+                 std::wstring(connectTarget->begin(), connectTarget->end());
+             ClientDebugLog("[CLIENT] Connecting to match: " + *connectTarget);
+             UKismetSystemLibrary::ExecuteConsoleCommand(world, command.c_str(), nullptr);
++            BrtDeathMenu::Travel(world, localPlayer, *connectTarget);
+             actionSucceeded = true;
+         }
+     }
+diff --git a/ProjectReboundMainDLL/Hooking/ClientHooks.cpp b/ProjectReboundMainDLL/Hooking/ClientHooks.cpp
+index 662e492..7f76034 100644
+--- a/ProjectReboundMainDLL/Hooking/ClientHooks.cpp
++++ b/ProjectReboundMainDLL/Hooking/ClientHooks.cpp
+@@ -14,6 +14,8 @@
+ 
+ using namespace SDK;
+ 
++void BrtRoleConfirmed(SDK::UObject* sender, const SDK::FName& role);
++
+ // ======================================================
+ //  ProcessEventHookClient — client-side dispatch
+ // ======================================================
+@@ -84,6 +86,10 @@ void ProcessEventHookClient(UObject *Object, UFunction *Function, void *Parms)
+ 
+     ProcessEventClient.call(Object, Function, Parms);
+ 
++    if (Parms && (EventInfo.FullName == "Function ProjectBoundary.PBPlayerController.ConfirmRoleSelection" ||
++        EventInfo.FullName == "Function ProjectBoundary.PBPlayerController.ServerConfirmRoleSelection"))
++        BrtRoleConfirmed(Object, *static_cast<const FName*>(Parms));
++
+     // Execute pipe-originated Unreal work only after the original callback,
+     // on the game thread captured by the login-complete event.
+     PumpPendingClientCommands();

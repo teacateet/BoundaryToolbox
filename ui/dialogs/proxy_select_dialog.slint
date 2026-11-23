@@ -1,0 +1,109 @@
+import { ListView } from "std-widgets.slint";
+import { ProxyRow } from "../models.slint";
+import { Action } from "../components/controls.slint";
+import { Txt } from "../components/foundation.slint";
+import { Panel, TitleBlock } from "../components/surfaces.slint";
+import { ProxyLine } from "../rows/dialog_rows.slint";
+import { I18n } from "../i18n.slint";
+
+// GitHub 下载代理选择弹窗。
+export component ProxySelectDialog inherits Rectangle {
+    in property <bool> busy;
+    in property <bool> loading;
+    in property <string> status_text;
+    in property <[ProxyRow]> proxy_rows;
+    callback proxy_selected(url: string);
+    callback proxy_refresh_clicked();
+    callback proxy_cancelled();
+
+    Rectangle {
+        width: parent.width;
+        height: parent.height;
+        background: #05070bd9;
+
+        dialog := Panel {
+            property <length> max-panel-width: root.width > 64px ? root.width - 64px : root.width;
+            property <length> max-panel-height: root.height > 64px ? root.height - 64px : root.height;
+            property <length> fixed-height: 178px;
+            property <length> natural-list-height: proxy_rows.length <= 0 ? 72px : 18px + 68px * proxy_rows.length;
+            property <length> available-list-height: max-panel-height > fixed-height + 64px ? max-panel-height - fixed-height : 64px;
+            property <length> list-height: min(natural-list-height, available-list-height);
+
+            width: min(760px, max-panel-width);
+            height: min(max-panel-height, fixed-height + list-height);
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            radius: 24px;
+
+            VerticalLayout {
+                padding: 24px;
+                spacing: 14px;
+
+                TitleBlock {
+                    title: I18n.tr("选择下载代理", "Select Download Proxy", "ダウンロードプロキシを選択");
+                    sub: status_text;
+                }
+
+                Panel {
+                    height: dialog.list-height;
+                    fill: #0f131a;
+                    radius: 18px;
+
+                    if proxy_rows.length <= 0 : Txt {
+                        x: 18px;
+                        y: 0px;
+                        width: parent.width - 36px;
+                        height: parent.height;
+                        text: loading
+                            ? I18n.tr("正在获取代理列表...", "Loading proxy list...", "プロキシ一覧を読み込み中...")
+                            : I18n.tr("暂无代理节点", "No proxy nodes", "プロキシノードがありません");
+                        color: #95a3b8;
+                        font-size: 13px;
+                        font-weight: 600;
+                        vertical-alignment: center;
+                    }
+
+                    if proxy_rows.length > 0 : ListView {
+                        x: 12px;
+                        y: 10px;
+                        width: parent.width - 24px;
+                        height: parent.height - 20px;
+
+                        for proxy[index] in proxy_rows: ProxyLine {
+                            url: proxy.url;
+                            latency: proxy.latency;
+                            state: proxy.state;
+                            current: proxy.current;
+                            selected => { root.proxy_selected(proxy.url); }
+                        }
+                    }
+                }
+
+                HorizontalLayout {
+                    height: 58px;
+                    spacing: 12px;
+
+                    Action {
+                        width: 132px;
+                        label: loading ? I18n.tr("测速中", "Testing", "測定中") : I18n.tr("刷新延迟", "Refresh Ping", "遅延を更新");
+                        sub: "";
+                        enabled: !busy && !loading;
+                        accent: #a8d8ff;
+                        clicked => { root.proxy_refresh_clicked(); }
+                    }
+
+                    Rectangle { horizontal-stretch: 1; background: #00000000; }
+
+                    Action {
+                        width: 132px;
+                        label: I18n.tr("取消", "Cancel", "キャンセル");
+                        sub: "";
+                        enabled: !busy;
+                        accent: #ffb4ab;
+                        clicked => { root.proxy_cancelled(); }
+                    }
+                }
+            }
+        }
+    }
+}

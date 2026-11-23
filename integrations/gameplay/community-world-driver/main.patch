@@ -1,0 +1,20 @@
+--- a/ProjectReboundMainDLL/Server/RoundManager.cpp
++++ b/ProjectReboundMainDLL/Server/RoundManager.cpp
+@@ -254,6 +254,17 @@
+ 
+     ServerLog("[SERVER] Calling Listen()...");
+     libReplicate->Listen(NetDriver, World, LibReplicate::EJoinMode::Open, Config.Port);
++    // 普通人机地图的两个关卡集合共用当前世界。引擎切换集合时从这里恢复网络驱动。
++    if (Config.IsPvE && NetDriver->World == World && World->NetDriver == NetDriver) {
++        int bound = 0;
++        for (auto& collection : World->LevelCollections) {
++            if (collection.PersistentLevel != World->PersistentLevel || collection.NetDriver ||
++                collection.DemoNetDriver) continue;
++            collection.NetDriver = NetDriver;
++            ++bound;
++        }
++        ServerLog("[BRT-LEVEL] bound world driver to collections=" + std::to_string(bound));
++    }
+     NetDriverAccess::Observe(NetDriver, World, NetDriverAccess::Source::World);
+ 
+     NetDriverAccess::Snapshot snapshot{};

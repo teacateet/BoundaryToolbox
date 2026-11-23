@@ -1,0 +1,69 @@
+diff --git a/ProjectReboundMainDLL/Server/LateJoin.cpp b/ProjectReboundMainDLL/Server/LateJoin.cpp
+index 11061a3..5c66a3c 100644
+--- a/ProjectReboundMainDLL/Server/LateJoin.cpp
++++ b/ProjectReboundMainDLL/Server/LateJoin.cpp
+@@ -127,16 +127,23 @@
+     }
+ }
+ 
++static bool BrtHasSelectedFirstRole(APBPlayerController* pc)
++{
++    return pc->PlayerState && pc->PlayerState->IsA(APBPlayerState::StaticClass()) &&
++        static_cast<APBPlayerState*>(pc->PlayerState)->HasSelectedRole();
++}
++
+ void LateJoinManager::ForceFirstLifeSpawn(APBPlayerController* PC)
+ {
+     if (!PC) return;
+-    QueueLateJoinPlayer(PC);
++    // 开场动画可能晚于选角或正常出生。保留已经收到的确认、计时和生成次数。
++    if (!IsLateJoinPlayer(PC)) QueueLateJoinPlayer(PC);
+     auto it = LateJoinPlayers.find(PC);
+-    if (it != LateJoinPlayers.end()) {
+-        it->second.State = ELateJoinState::RoleConfirmed;
+-        it->second.ElapsedSeconds = 0.0f;
+-        ServerDebugLog(std::string("[LATEJOIN] ForceFirstLifeSpawn: ") + PC->GetFullName());
+-    }
++    if (it == LateJoinPlayers.end()) return;
++    it->second.BrtIntroFirstLife = true;
++    if (it->second.State == ELateJoinState::PendingRoleSelection &&
++        BrtHasSelectedFirstRole(PC))
++        OnRoleConfirmed(PC);
+ }
+ 
+ // @brief 每帧驱动中途加入状态机。
+@@ -159,6 +166,22 @@
+         }
+ 
+         Info.ElapsedSeconds += DeltaTime;
++
++        if (Info.BrtIntroFirstLife && Info.State == ELateJoinState::RoleConfirmed &&
++            Info.SpawnAttempts == 0 && BrtHasSelectedFirstRole(PC))
++        {
++            auto* pawn = PC->GetPBCharacter();
++            if (pawn && PC->K2_GetPawn() == pawn && pawn->GetController() == PC &&
++                pawn->IsAlive() && !pawn->IsInKilledStatus())
++            {
++                // 正常出生已交付这名干员和挂载。把开场镜头还给玩家，保留当前实体。
++                if (PC->AcknowledgedPawn != pawn) FinalizeLateJoinSpawn(PC);
++                PC->ClientSetViewTarget(pawn, {});
++                it = LateJoinPlayers.erase(it);
++                continue;
++            }
++        }
++
+ 
+         // ---- 检测生成成功 ----
+         // 如果角色已确认且已尝试过生成，且现在拥有非旁观者 Pawn，则完成
+diff --git a/ProjectReboundMainDLL/Server/LateJoin.h b/ProjectReboundMainDLL/Server/LateJoin.h
+index fd997dc..732108b 100644
+--- a/ProjectReboundMainDLL/Server/LateJoin.h
++++ b/ProjectReboundMainDLL/Server/LateJoin.h
+@@ -58,6 +58,7 @@
+         float ElapsedSeconds = 0.0f;    // 当前阶段已持续时间（秒）
+         int   SpawnAttempts   = 0;      // 已尝试生成的次数（最多 3 次）
+         bool  ClientStartSent = false;   // 是否已发送 ClientStart 序列
++        bool  BrtIntroFirstLife = false; // 开场镜头结束后的首次出生。
+     };
+ 
+     // ------------------------------------------------------------------

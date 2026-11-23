@@ -1,0 +1,139 @@
+import { LineEdit, ScrollView } from "std-widgets.slint";
+import { Action } from "../components/controls.slint";
+import { Txt } from "../components/foundation.slint";
+import { InputBox } from "../components/inputs.slint";
+import { Panel, TitleBlock } from "../components/surfaces.slint";
+import { I18n } from "../i18n.slint";
+
+// 通用应用弹窗，支持确认、错误提示和路径输入。
+export component AppDialog inherits Rectangle {
+    in property <bool> app_dialog_confirm;
+    in property <bool> app_dialog_input;
+    in property <bool> app_dialog_error;
+    in property <int> app_dialog_text_lines: 1;
+    in property <string> app_dialog_title;
+    in property <string> app_dialog_text;
+    in-out property <string> app_dialog_input_text;
+    in property <string> app_dialog_primary_text;
+    in property <string> app_dialog_secondary_text;
+    in property <string> app_dialog_tertiary_text;
+    in property <bool> app_dialog_has_tertiary;
+    callback app_dialog_primary();
+    callback app_dialog_secondary();
+    callback app_dialog_tertiary();
+    Rectangle {
+        width: parent.width;
+        height: parent.height;
+        background: #05070bd9;
+        TouchArea {}
+
+        dialog := Panel {
+            property <length> max-panel-width: root.width > 64px ? root.width - 64px : root.width;
+            property <length> max-panel-height: root.height > 64px ? root.height - 64px : root.height;
+            property <length> fixed-height: app_dialog_input ? 246px : 186px;
+            property <length> natural-text-height: app_dialog_text_lines <= 1 ? 34px : app_dialog_text_lines * 22px;
+            property <length> available-text-height: max-panel-height > fixed-height + 56px ? max-panel-height - fixed-height : 56px;
+            property <length> text-height: min(natural-text-height, available-text-height);
+
+            width: min(680px, max-panel-width);
+            height: min(max-panel-height, fixed-height + text-height);
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            radius: 24px;
+
+            VerticalLayout {
+                padding: 24px;
+                spacing: 14px;
+
+                HorizontalLayout {
+                    height: 52px;
+                    spacing: 12px;
+
+                    Rectangle {
+                        width: 8px;
+                        background: #00000000;
+
+                        Rectangle {
+                            width: 8px;
+                            height: 40px;
+                            y: (parent.height - self.height) / 2;
+                            border-radius: 4px;
+                            background: app_dialog_error ? #ffb4ab : (app_dialog_confirm ? #f6c76d : #9ef0b5);
+                        }
+                    }
+
+                    TitleBlock {
+                        horizontal-stretch: 1;
+                        title: app_dialog_title;
+                        sub: app_dialog_confirm ? I18n.tr("需要确认", "Confirmation Required", "確認が必要です") : "";
+                    }
+                }
+
+                ScrollView {
+                    height: dialog.text-height;
+                    viewport-width: self.width;
+                    viewport-height: dialog.natural-text-height;
+
+                    Txt {
+                        x: 0px;
+                        y: 0px;
+                        width: parent.width;
+                        height: dialog.natural-text-height;
+                        text: app_dialog_text;
+                        color: #dbeafe;
+                        font-size: 14px;
+                        font-weight: 500;
+                        wrap: char-wrap;
+                    }
+                }
+
+                if app_dialog_input : InputBox {
+                    enabled: true;
+
+                    LineEdit {
+                        x: 14px;
+                        y: 8px;
+                        width: parent.width - 28px;
+                        height: parent.height - 16px;
+                        text: app_dialog_input_text;
+                        placeholder-text: I18n.tr("游戏根目录", "Game root", "ゲームルート");
+                        font-family: "Maple Mono CN";
+                        font-size: 14px;
+                        edited(text) => { root.app_dialog_input_text = text; }
+                    }
+                }
+
+                HorizontalLayout {
+                    height: 58px;
+                    spacing: 12px;
+
+                    Rectangle { horizontal-stretch: 1; background: #00000000; }
+
+                    if app_dialog_confirm || app_dialog_input : Action {
+                        width: 132px;
+                        label: app_dialog_secondary_text;
+                        sub: "";
+                        accent: #ffb4ab;
+                        clicked => { root.app_dialog_secondary(); }
+                    }
+
+                    if app_dialog_has_tertiary : Action {
+                        width: 132px;
+                        label: app_dialog_tertiary_text;
+                        sub: "";
+                        accent: #f6c76d;
+                        clicked => { root.app_dialog_tertiary(); }
+                    }
+
+                    Action {
+                        width: 156px;
+                        label: app_dialog_primary_text;
+                        sub: "";
+                        accent: app_dialog_error ? #ffb4ab : #62e2c1;
+                        clicked => { root.app_dialog_primary(); }
+                    }
+                }
+            }
+        }
+    }
+}

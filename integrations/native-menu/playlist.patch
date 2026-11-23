@@ -1,0 +1,29 @@
+diff --git a/index.js b/index.js
+--- a/index.js
++++ b/index.js
+@@ -328,7 +328,7 @@
+   let RegionList = [];
+ 
+-  for(let Region in matchmakingUDPServerDiscoveryPayload.servers){
+-    RegionList.push({RegionId: Region.regionid, RegionName: "us-east1"});
++  for(const region of matchmakingUDPServerDiscoveryPayload.servers){
++    RegionList.push({RegionId: region.region_id, RegionName: "us-east1"});
+   }
+ 
+   return RegionList;
+@@ -881,7 +881,14 @@
+ 
+         let QueryPlaylistResponseType = Root.lookupType("ProjectBoundary.QueryPlaylistResponse");
+ 
+-        let QueryPlaylistResponse = QueryPlaylistResponseType.create({StatusCode: 0, PlaylistsJSON: JSON.stringify(PLAYLISTS_JSON)});
++        let catalog = PLAYLISTS_JSON;
++        try {
++          const { withPvePlaylists } = require("./native-menu.cjs");
++          catalog = withPvePlaylists(catalog, require("./game/definitions/DT_GameModeDefinition.json"));
++        } catch (error) {
++          console.warn("[native-menu] PvE playlist unavailable:", error.message);
++        }
++        let QueryPlaylistResponse = QueryPlaylistResponseType.create({StatusCode: 0, PlaylistsJSON: JSON.stringify(catalog)});
+ 
+         let ResponseBytes = QueryPlaylistResponseType.encode(QueryPlaylistResponse).finish();
+ 

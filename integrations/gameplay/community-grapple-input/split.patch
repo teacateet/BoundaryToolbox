@@ -1,0 +1,11 @@
+diff --git a/ProjectReboundMainDLL/Client/UIShake.cpp b/ProjectReboundMainDLL/Client/UIShake.cpp
+--- a/ProjectReboundMainDLL/Client/UIShake.cpp
++++ b/ProjectReboundMainDLL/Client/UIShake.cpp
+@@ -7,2 +7,3 @@
+ #include "SparrowReticle.hpp"
++#include "GrappleInput.hpp"
+ #include "MarkedHeadRadar.hpp"
+@@ -23,2 +24,3 @@
+     BrtSparrowReticle::OnCharacter(static_cast<APBCharacter*>(Object), funcName);
++    BrtGrappleInput::OnCharacter(static_cast<APBCharacter*>(Object), funcName);
+     BrtHeadRadar::OnCharacter(static_cast<APBCharacter*>(Object), funcName);

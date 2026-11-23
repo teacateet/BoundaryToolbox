@@ -1,0 +1,68 @@
+import { ServerRow } from "../models.slint";
+import { Workbench, Divider, Caption, Value, Command, Field } from "../components/workbench.slint";
+import { ServerLine } from "../rows/server_rows.slint";
+import { I18n } from "../i18n.slint";
+import { OnlineTabs } from "../header.slint";
+
+export component ServersPage inherits Workbench {
+    in property <bool> servers_loading;
+    in property <bool> busy;
+    in property <string> server_status_text;
+    in property <[ServerRow]> server_rows;
+    in-out property <string> fixed_room_port;
+    in-out property <bool> fixed_room_pve;
+    callback switch-page(int);
+    in property <string> fixed_room_status;
+    in property <bool> fixed_room_running;
+    in property <bool> fixed_room_error;
+    callback start_fixed_room_clicked();
+    callback stop_fixed_room_clicked();
+    callback refresh_servers_clicked();
+    callback copy_server_address_clicked(address: string);
+    callback join_clicked(address: string);
+
+    public pure function mode-button-center(pve: bool) -> Point {
+        return pve ? { x: pve-button.absolute-position.x + pve-button.width / 2,
+                       y: pve-button.absolute-position.y + pve-button.height / 2 }
+                   : { x: pvp-button.absolute-position.x + pvp-button.width / 2,
+                       y: pvp-button.absolute-position.y + pvp-button.height / 2 };
+    }
+
+    OnlineTabs { busy: root.busy; switch-page(page) => { root.switch-page(page); } }
+    Caption { text: I18n.tr("好友直连 · LAN 或联机地址", "Direct join · LAN or network address", "直接参加 · LAN または接続先"); }
+    HorizontalLayout { spacing: 8px;
+        endpoint := Field { placeholder: "192.168.1.20:7777"; enabled: !root.busy;
+            accepted => { if self.enabled && self.text != "" { root.join_clicked(self.text); } }
+        }
+        Command { label: I18n.tr("加入对局", "Join match", "対戦に参加"); emphasis: true;
+            enabled: !root.busy && endpoint.text != ""; clicked => { root.join_clicked(endpoint.text); } }
+    }
+    Divider {}
+    HorizontalLayout { min-height: 26px; spacing: 12px;
+        Caption { text: I18n.tr("好友房间", "Host a room", "フレンドルーム"); }
+        pvp-button := Command { label: "PvP"; emphasis: !root.fixed_room_pve; enabled: !root.busy && !root.fixed_room_running; clicked => { root.fixed_room_pve = false; } }
+        pve-button := Command { label: "PvE"; emphasis: root.fixed_room_pve; enabled: !root.busy && !root.fixed_room_running; clicked => { root.fixed_room_pve = true; } }
+        Value { text: root.fixed_room_status; color: root.fixed_room_error ? #ffaaa0 : root.fixed_room_running ? #88e1b7 : #acb8b3; horizontal-alignment: right; }
+    }
+    HorizontalLayout { spacing: 8px;
+        Caption { text: "UDP"; width: 38px; }
+        Field { text <=> root.fixed_room_port; input-type: InputType.number; enabled: !root.busy && !root.fixed_room_running;
+            accepted => { if self.enabled { root.start_fixed_room_clicked(); } }
+        }
+        Command { label: I18n.tr("开启房间", "Start room", "ルームを起動"); enabled: !root.busy && !root.fixed_room_running; clicked => { root.start_fixed_room_clicked(); } }
+        Command { label: I18n.tr("停止房间", "Stop room", "ルームを停止"); enabled: !root.busy; clicked => { root.stop_fixed_room_clicked(); } }
+    }
+    Divider {}
+    HorizontalLayout { height: 36px; spacing: 12px;
+        Caption { text: I18n.tr("社区服务器", "Community servers", "コミュニティサーバー"); horizontal-stretch: 1; }
+        Command { label: root.servers_loading ? I18n.tr("刷新中", "Refreshing", "更新中") : I18n.tr("刷新列表", "Refresh list", "一覧を更新");
+            enabled: !root.servers_loading; clicked => { root.refresh_servers_clicked(); } }
+    }
+    Value { text: root.server_status_text; }
+    for server in root.server_rows: ServerLine {
+        name: server.name; address: server.address; meta: server.meta; state: server.state; players: server.players;
+        active: server.active; joinable: server.joinable && !root.busy;
+        join_clicked(address) => { root.join_clicked(address); }
+        copy_clicked(address) => { root.copy_server_address_clicked(address); }
+    }
+}

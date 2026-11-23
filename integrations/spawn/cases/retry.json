@@ -1,0 +1,210 @@
+{
+  "version": 1,
+  "roomId": "minifarm",
+  "connectionId": "fadebabe-0000-4000-8000-c09d490c1b9e",
+  "authenticatedSteamId": "76561197987927242",
+  "life": 1,
+  "loadout": {
+    "CharacterID": "PROBE",
+    "FirstWeaponPartData": {
+      "WeaponID": "PROBE_GSW-DMR",
+      "OrnamentID": "WO-SUN",
+      "ArchiveAppearance": {
+        "SkinItem": "SkinDMROriginal",
+        "PaintItem": "GSW-DMR_Original_PTMetalGold",
+        "SpecialSlot": "None",
+        "Ornament": "WO-SUN"
+      },
+      "WeaponPartSlotTypeArray": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "WeaponPartConfigs": [
+        {
+          "WeaponPartID": "GSW-DMR_MZL-BRAKE",
+          "WeaponPartSkinID": "PartOri",
+          "WeaponPartSpecialSkinID": "None",
+          "WeaponPartSkinPaintingID": "GSW-DMR_Muzzle_PTOriginal",
+          "ArchiveOrnament": "None"
+        },
+        {
+          "WeaponPartID": "GSW-DMR_BRL-DMR-HEAVY",
+          "WeaponPartSkinID": "PartOri",
+          "WeaponPartSpecialSkinID": "None",
+          "WeaponPartSkinPaintingID": "GSW-DMR_Barrel_PTMetalGold",
+          "ArchiveOrnament": "None"
+        },
+        {
+          "WeaponPartID": "GSW-DMR_HGD-HEAVY",
+          "WeaponPartSkinID": "PartOri",
+          "WeaponPartSpecialSkinID": "None",
+          "WeaponPartSkinPaintingID": "GSW-DMR_HandGuard_PTMetalGold",
+          "ArchiveOrnament": "None"
+        },
+        {
+          "WeaponPartID": "GSW-DMR_FRM-SEMI",
+          "WeaponPartSkinID": "None",
+          "WeaponPartSpecialSkinID": "None",
+          "WeaponPartSkinPaintingID": "PTOriginal",
+          "ArchiveOrnament": "None"
+        },
+        {
+          "WeaponPartID": "GSW-DMR_GRP-GSW-TAC",
+          "WeaponPartSkinID": "PartOri",
+          "WeaponPartSpecialSkinID": "None",
+          "WeaponPartSkinPaintingID": "GSW-DMR_Grip_PTMetalGold",
+          "ArchiveOrnament": "None"
+        },
+        {
+          "WeaponPartID": "GSW-DMR_SGT-REFLEX-3X",
+          "WeaponPartSkinID": "PartOri",
+          "WeaponPartSpecialSkinID": "CRH3XREGDOT",
+          "WeaponPartSkinPaintingID": "GSW-DMR_SightOptical_PTMetalGold",
+          "ArchiveOrnament": "None"
+        },
+        {
+          "WeaponPartID": "None",
+          "WeaponPartSkinID": "None",
+          "WeaponPartSpecialSkinID": "None",
+          "WeaponPartSkinPaintingID": "None",
+          "ArchiveOrnament": "None"
+        },
+        {
+          "WeaponPartID": "None",
+          "WeaponPartSkinID": "None",
+          "WeaponPartSpecialSkinID": "None",
+          "WeaponPartSkinPaintingID": "None",
+          "ArchiveOrnament": "None"
+        },
+        {
+          "WeaponPartID": "GSW-DMR_MAG-DMR-FAST",
+          "WeaponPartSkinID": "PartOri",
+          "WeaponPartSpecialSkinID": "None",
+          "WeaponPartSkinPaintingID": "GSW-DMR_AmmoStorageDevice_PTMetalGold",
+          "ArchiveOrnament": "None"
+        },
+        {
+          "WeaponPartID": "None",
+          "WeaponPartSkinID": "None",
+          "WeaponPartSpecialSkinID": "None",
+          "WeaponPartSkinPaintingID": "None",
+          "ArchiveOrnament": "None"
+        }
+      ]
+    },
+    "SecondWeaponPartData": {
+      "WeaponID": "PROBE_GSW-FOP",
+      "OrnamentID": "WO-NONE",
+      "ArchiveAppearance": {
+        "SkinItem": "SkinFOPOriginal",
+        "PaintItem": "GSW-FOP_Original_PTElectroRed",
+        "SpecialSlot": "None",
+        "Ornament": "WO-NONE"
+      },
+      "WeaponPartSlotTypeArray": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "WeaponPartConfigs": [
+        {
+          "WeaponPartID": "GSW-FOP_MZL-BRAKE",
+          "WeaponPartSkinID": "PartOri",
+          "WeaponPartSpecialSkinID": "None",
+          "WeaponPartSkinPaintingID": "GSW-FOP_Muzzle_PTOriginal",
+          "ArchiveOrnament": "None"
+        },
+        {
+          "WeaponPartID": "None",
+          "WeaponPartSkinID": "None",
+          "WeaponPartSpecialSkinID": "None",
+          "WeaponPartSkinPaintingID": "None",
+          "ArchiveOrnament": "None"
+        },
+        {
+          "WeaponPartID": "None",
+          "WeaponPartSkinID": "None",
+          "WeaponPartSpecialSkinID": "None",
+          "WeaponPartSkinPaintingID": "None",
+          "ArchiveOrnament": "None"
+        },
+        {
+          "WeaponPartID": "GSW-FOP_FRM-METALSTORM",
+          "WeaponPartSkinID": "None",
+          "WeaponPartSpecialSkinID": "None",
+          "WeaponPartSkinPaintingID": "PTOriginal",
+          "ArchiveOrnament": "None"
+        },
+        {
+          "WeaponPartID": "GSW-FOP_GRP-GSW-TAC",
+          "WeaponPartSkinID": "PartOri",
+          "WeaponPartSpecialSkinID": "None",
+          "WeaponPartSkinPaintingID": "GSW-FOP_Grip_PTElectroRed",
+          "ArchiveOrnament": "None"
+        },
+        {
+          "WeaponPartID": "GSW-FOP_SGT-REDDOT-MICRO",
+          "WeaponPartSkinID": "PartOri",
+          "WeaponPartSpecialSkinID": "CRHREDDDOTGREEN",
+          "WeaponPartSkinPaintingID": "GSW-FOP_SightOptical_PTElectroRed",
+          "ArchiveOrnament": "None"
+        },
+        {
+          "WeaponPartID": "None",
+          "WeaponPartSkinID": "None",
+          "WeaponPartSpecialSkinID": "None",
+          "WeaponPartSkinPaintingID": "None",
+          "ArchiveOrnament": "None"
+        },
+        {
+          "WeaponPartID": "None",
+          "WeaponPartSkinID": "None",
+          "WeaponPartSpecialSkinID": "None",
+          "WeaponPartSkinPaintingID": "None",
+          "ArchiveOrnament": "None"
+        },
+        {
+          "WeaponPartID": "GSW-FOP_MAG-FOP-STD",
+          "WeaponPartSkinID": "PartOri",
+          "WeaponPartSpecialSkinID": "None",
+          "WeaponPartSkinPaintingID": "GSW-FOP_AmmoStorageDevice_PTElectroRed",
+          "ArchiveOrnament": "None"
+        },
+        {
+          "WeaponPartID": "None",
+          "WeaponPartSkinID": "None",
+          "WeaponPartSpecialSkinID": "None",
+          "WeaponPartSkinPaintingID": "None",
+          "ArchiveOrnament": "None"
+        }
+      ]
+    },
+    "LeftLauncherData": {
+      "ID": "PROBE_MISSILE-SPARROW"
+    },
+    "RightLauncherData": {
+      "ID": "PROBE_INFO-PROBE"
+    },
+    "MobilityModuleData": {
+      "MobilityModuleID": "PROBE_FCM-GRAPPLE"
+    },
+    "MeleeWeaponData": {
+      "ID": "MELEE-KNIFE"
+    }
+  }
+}

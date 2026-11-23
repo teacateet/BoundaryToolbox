@@ -1,0 +1,29 @@
+import { Caption, Command, Divider, Value } from "../components/workbench.slint";
+import { I18n } from "../i18n.slint";
+
+export component PortLine inherits Rectangle {
+    in property <string> label;
+    in property <string> detail;
+    in property <int> pid;
+    in property <bool> busy;
+    in property <bool> occupied;
+    in property <bool> expected;
+    callback close_clicked();
+
+    height: max(48px, row.preferred-height + 8px);
+    Divider { y: parent.height - 1px; }
+    row := HorizontalLayout {
+        spacing: 10px;
+        Rectangle { width: 3px; height: 26px; background: root.occupied ? (root.expected ? #89c9dd : #f7a89b) : #84c7a3; }
+        Caption { width: 108px; text: root.label; }
+        Value { text: root.detail; }
+        if root.occupied && root.pid > 0: Command {
+            label: I18n.tr("关闭进程", "Stop process", "プロセス停止"); enabled: !root.busy; accent: #ffa69a;
+            clicked => { root.close_clicked(); }
+        }
+        if !root.occupied || root.pid <= 0: Caption {
+            text: root.occupied ? I18n.tr("占用", "Busy", "使用中") : I18n.tr("空闲", "Free", "空き");
+            color: root.occupied ? #f7a89b : #84c7a3;
+        }
+    }
+}

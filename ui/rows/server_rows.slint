@@ -1,0 +1,39 @@
+import { Txt } from "../components/foundation.slint";
+import { Caption, Command, Divider } from "../components/workbench.slint";
+import { I18n } from "../i18n.slint";
+
+export component ServerLine inherits Rectangle {
+    in property <string> name;
+    in property <string> address;
+    in property <string> meta;
+    in property <string> state;
+    in property <string> players;
+    in property <bool> active;
+    in property <bool> joinable;
+    callback join_clicked(string);
+    callback copy_clicked(string);
+
+    height: 62px;
+    Divider { y: parent.height - 1px; }
+    HorizontalLayout {
+        spacing: root.width < 520px ? 6px : 12px;
+        Rectangle { width: 3px; height: 30px; background: root.active ? #81d8b0 : #728480; }
+        VerticalLayout {
+            alignment: center; horizontal-stretch: 1; min-width: 0px; spacing: 4px;
+            Caption { text: root.name; min-width: 0px; overflow: elide; }
+            Txt { text: root.address + (root.meta == "" ? "" : "   " + root.meta); color: #a6b7b0; font-size: 12px; min-width: 0px; overflow: elide; }
+        }
+        VerticalLayout {
+            alignment: center; width: root.width < 520px ? 60px : 88px;
+            Caption { text: root.players; horizontal-alignment: right; overflow: elide; }
+            Txt { text: root.state; color: #9bc9b1; font-size: 11px; horizontal-alignment: right; overflow: elide; }
+        }
+        if root.joinable : Command {
+            label: I18n.tr("加入", "Join", "参加"); clicked => { root.join_clicked(root.address); }
+        }
+        Command {
+            label: I18n.tr("复制", "Copy", "コピー"); enabled: root.address != "" && root.address != "-";
+            clicked => { root.copy_clicked(root.address); }
+        }
+    }
+}

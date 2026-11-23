@@ -1,0 +1,57 @@
+diff --git a/index.js b/index.js
+--- a/index.js
++++ b/index.js
+@@ -461,8 +461,7 @@
+           const index = getDefinitionIndex();
+           const playerId = socket.playerId || TEMP_USER_ID;
+           const data = store.load(playerId) || { playerId, roles: {} };
+-          if (!data.roles[roleId]) data.roles[roleId] = {};
+-          const role = data.roles[roleId];
++          const role = store.getRoleForNativeUpdate(data.roles, roleId);
+ 
+           // 原版 0x14178c360 将角色槽位转换为以下 RPC 操作编号。
+           const SLOT_MAP = {
+@@ -928,9 +927,7 @@
+           const store = getLoadoutStore();
+           const playerId = socket.playerId || TEMP_USER_ID;
+           const data = store.load(playerId) || { playerId, roles: {} };
+-          if (!data.roles[weaponRoleId]) data.roles[weaponRoleId] = {};
+-
+-          const role = data.roles[weaponRoleId];
++          const role = store.getRoleForNativeUpdate(data.roles, weaponRoleId);
+           const rawHex = MessageBytes ? MessageBytes.toString('hex') : '';
+           const archiveWeaponId = waParsed && waParsed.WeaponArchive && waParsed.WeaponArchive.WeaponId
+             ? waParsed.WeaponArchive.WeaponId
+diff --git a/game/loadoutStore.js b/game/loadoutStore.js
+--- a/game/loadoutStore.js
++++ b/game/loadoutStore.js
+@@ -340,12 +340,25 @@
+-    getSavedRoleForQuery(roles, roleId) {
+-        if (Object.prototype.hasOwnProperty.call(roles, roleId)) return roles[roleId] || {};
++    getSavedRoleKey(roles, roleId) {
++        if (Object.prototype.hasOwnProperty.call(roles, roleId)) return roleId;
+         const { canonicalRoleId, role } = this.getRoleDefinition(roleId);
+-        if (!role) return {};
++        if (!role) return null;
+ 
+         // 只接受唯一的大小写别名，避免合并两个分别保存的角色。
+         const foldedId = canonicalRoleId.toLowerCase();
+         const keys = Object.keys(roles).filter((key) => key.toLowerCase() === foldedId);
+-        return keys.length === 1 ? roles[keys[0]] || {} : {};
++        return keys.length === 1 ? keys[0] : null;
++    }
++
++    getSavedRoleForQuery(roles, roleId) {
++        const key = this.getSavedRoleKey(roles, roleId);
++        return key === null ? {} : roles[key] || {};
++    }
++
++    getRoleForNativeUpdate(roles, roleId) {
++        const key = this.getSavedRoleKey(roles, roleId) ?? roleId;
++        if (!Object.prototype.hasOwnProperty.call(roles, key) || !roles[key]) {
++            Object.defineProperty(roles, key, { value: {}, enumerable: true, writable: true, configurable: true });
++        }
++        return roles[key];
+     }
+ 
+     getNativeRoleSkinConfig(roleId, roleData = {}) {

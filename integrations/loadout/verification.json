@@ -1,0 +1,87 @@
+{
+  "status": "PASS",
+  "utc": "2026-11-20T12:14:41.269Z",
+  "node": "v24.22.1",
+  "source": "C:\\BrtWork\\SteamLibrary\\steamapps\\common\\Boundary\\ProjectBoundary\\Binaries\\Win64\\BoundaryMetaServer-main",
+  "service": {
+    "state": "ready",
+    "compatible": true,
+    "target": "C:\\BrtWork\\SteamLibrary\\steamapps\\common\\Boundary\\ProjectBoundary\\Binaries\\Win64\\BoundaryMetaServer-main\\game\\loadoutStore.js",
+    "sha256": "c85d1cc7a0426b8c42a22ef4c6fe60562ce58e3fdb3c41debebbd987bfae866e",
+    "candidateSha256": "76f0a64ddc6ce588b0df2b01778810d0b13050124599d94285dd5ec50a4a4620"
+  },
+  "baseline": {
+    "observations": {
+      "explicitWeaponOrder": false,
+      "nativePrimaryPart": false,
+      "nativeSecondaryPart": false,
+      "roleLeftUnequipped": false,
+      "fullRightEquipped": false,
+      "nativeEditInBothRestReads": false,
+      "inventoryLeftAndRight": false
+    },
+    "readings": {
+      "firstPrimary": "PEACE_RU-AKM",
+      "firstSecondary": "PEACE_GSW-AR",
+      "firstPrimaryMag": "GSW-AR_MAG-AR-STD",
+      "firstSecondaryMag": "RU-AKM_MAG-AK-STD",
+      "nextNativeMag": "GSW-AR_MAG-AR-STD",
+      "nextRestMag": "GSW-AR_MAG-AR-EXT",
+      "nextNativePods": [
+        "None",
+        "PEACE_ATK-HE"
+      ],
+      "nextRestPods": [
+        "PEACE_ATK-HE",
+        "PEACE_TAC-EMP"
+      ]
+    }
+  },
+  "repaired": {
+    "observations": {
+      "explicitWeaponOrder": true,
+      "nativePrimaryPart": true,
+      "nativeSecondaryPart": true,
+      "roleLeftUnequipped": true,
+      "fullRightEquipped": true,
+      "nativeEditInBothRestReads": true,
+      "inventoryLeftAndRight": true
+    },
+    "readings": {
+      "firstPrimary": "PEACE_GSW-AR",
+      "firstSecondary": "PEACE_RU-AKM",
+      "firstPrimaryMag": "GSW-AR_MAG-AR-EXT",
+      "firstSecondaryMag": "RU-AKM_MAG-AK-DRUM",
+      "nextNativeMag": "GSW-AR_MAG-AR-STD",
+      "nextRestMag": "GSW-AR_MAG-AR-STD",
+      "nextNativePods": [
+        "None",
+        "PEACE_ATK-HE"
+      ],
+      "nextRestPods": [
+        "None",
+        "PEACE_ATK-HE"
+      ]
+    },
+    "checks": [
+      "native equip operations 1 and 2 select the same weapons in whole REST",
+      "partial structured part and flat pylon writes preserve other slots and snapshot fields",
+      "reads leave isolated JSON byte-identical",
+      "rejected wrong-slot part changes neither cache nor disk for either role",
+      "editing one parked weapon on a fresh profile preserves the default equipped pair",
+      "second player writes an independent save",
+      "fresh process and new gate session return identical native and both REST views",
+      "GET to PUT retains explicit unequip and parked per-weapon bytes"
+    ],
+    "fixtureDiskSha256": "0dbb83adf99da310e545c0577bed4c797ed174800428242dce7491d7f0da1b66"
+  },
+  "deployment": {
+    "legacyNativeRead": true,
+    "legacyReadIsByteIdentical": true,
+    "legacyReequip": true,
+    "idempotentInstallAndRollback": true,
+    "restoredStoreSha256": "c85d1cc7a0426b8c42a22ef4c6fe60562ce58e3fdb3c41debebbd987bfae866e",
+    "isolatedSaveSurvivesRollback": true,
+    "driftedCodePreserved": true
+  }
+}

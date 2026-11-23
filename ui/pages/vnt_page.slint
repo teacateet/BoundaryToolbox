@@ -1,0 +1,110 @@
+import { CheckBox } from "std-widgets.slint";
+import { VntPeerRow } from "../models.slint";
+import { ServerDropdown } from "../components/inputs.slint";
+import { Workbench, Divider, Caption, Value, Reading, Field, Command } from "../components/workbench.slint";
+import { VntGamePort, VntPeerLine } from "../rows/vnt_rows.slint";
+import { I18n } from "../i18n.slint";
+import { OnlineTabs } from "../header.slint";
+
+export component VntPage inherits Workbench {
+    in property <bool> busy;
+    callback switch-page(int);
+    in-out property <string> vnt_server_text;
+    in-out property <string> vnt_new_server_text;
+    in property <[string]> vnt_server_options;
+    in-out property <string> vnt_username;
+    in-out property <string> vnt_network_code;
+    in-out property <string> vnt_game_port: "7777";
+    in-out property <string> vnt_password;
+    in-out property <bool> vnt_no_tun;
+    in-out property <bool> vnt_no_punch;
+    in-out property <bool> vnt_compress;
+    in-out property <bool> vnt_rtx;
+    in property <bool> can_start;
+    in property <bool> vnt_busy;
+    in property <bool> vnt_running;
+    in property <string> vnt_status_text;
+    in property <string> vnt_detail_text;
+    in property <string> vnt_ip_text;
+    in property <string> vnt_server_status_text;
+    in property <string> vnt_nat_text;
+    in property <string> vnt_peer_summary_text;
+    in property <[VntPeerRow]> vnt_peer_rows;
+    property <bool> options-open: false;
+    property <bool> editable: !vnt_running && !vnt_busy;
+    callback vnt_start_clicked();
+    callback vnt_stop_clicked();
+    callback vnt_refresh_clicked();
+    callback vnt_add_server_clicked(address: string);
+    callback vnt_join_peer_clicked(address: string);
+    callback vnt_settings_changed();
+
+    OnlineTabs { network: true; busy: root.busy; switch-page(page) => { root.switch-page(page); }
+        Command { label: I18n.tr("刷新状态", "Refresh status", "状態を更新"); enabled: !root.vnt_busy; clicked => { root.vnt_refresh_clicked(); } }
+    }
+    Reading { label: I18n.tr("会话状态", "Session", "接続状態"); value: root.vnt_status_text + "   " + root.vnt_detail_text; }
+    Reading { label: "IP / NAT"; value: root.vnt_ip_text + "   /   " + root.vnt_nat_text; }
+    Reading { label: I18n.tr("联机服务器", "Network server", "接続サーバー"); value: root.vnt_running ? root.vnt_server_status_text : root.vnt_server_text; }
+    Divider {}
+    if !root.vnt_running: HorizontalLayout {
+        spacing: 12px;
+        VerticalLayout { spacing: 4px; horizontal-stretch: 1;
+            Caption { text: I18n.tr("玩家名", "Player name", "プレイヤー名"); }
+            Field { text <=> root.vnt_username; enabled: root.editable; edited(_) => { root.vnt_settings_changed(); } }
+        }
+        VerticalLayout { spacing: 4px; horizontal-stretch: 1;
+            Caption { text: I18n.tr("房间号", "Room code", "ルーム番号"); }
+            Field { text <=> root.vnt_network_code; enabled: root.editable; edited(_) => { root.vnt_settings_changed(); } }
+        }
+    }
+    if root.vnt_running : Reading { label: I18n.tr("房间号", "Room code", "ルーム番号"); value: root.vnt_network_code; }
+    HorizontalLayout { spacing: 8px; alignment: start;
+        if !root.vnt_running: Command {
+            label: root.can_start ? I18n.tr("启动联机", "Start network", "接続開始") : I18n.tr("启动需管理员", "Start (admin only)", "開始には管理者権限が必要");
+            emphasis: true; accent: #7bdbba; enabled: root.can_start && root.editable; clicked => { root.vnt_start_clicked(); }
+        }
+        if root.vnt_running: Command { label: I18n.tr("停止联机", "Stop network", "接続を停止"); enabled: !root.vnt_busy; clicked => { root.vnt_stop_clicked(); } }
+        Command { label: root.options-open ? I18n.tr("收起配置", "Hide options", "設定を閉じる") : I18n.tr("连接配置", "Connection options", "接続設定");
+            clicked => { root.options-open = !root.options-open; } }
+    }
+    if root.options-open : VerticalLayout {
+        spacing: 8px;
+        Caption { text: I18n.tr("服务器地址", "Server address", "サーバーアドレス"); }
+        ServerDropdown { value <=> root.vnt_server_text; options: root.vnt_server_options; enabled: root.editable;
+            selected(value) => { root.vnt_server_text = value; root.vnt_settings_changed(); } }
+        HorizontalLayout { spacing: 8px;
+            Field { text <=> root.vnt_new_server_text; placeholder: I18n.tr("自定义地址", "Custom address", "カスタムアドレス"); enabled: root.editable;
+                accepted => { if root.editable && self.text != "" { root.vnt_add_server_clicked(self.text); } } }
+            Command { label: I18n.tr("添加地址", "Add address", "追加"); enabled: root.editable && root.vnt_new_server_text != "";
+                clicked => { root.vnt_add_server_clicked(root.vnt_new_server_text); } }
+        }
+        Caption { text: I18n.tr("房间密码", "Room password", "ルームパスワード"); }
+        Field { text <=> root.vnt_password; enabled: root.editable; input-type: InputType.password; edited(_) => { root.vnt_settings_changed(); } }
+        HorizontalLayout { spacing: 12px;
+            CheckBox { text: I18n.tr("无网卡模式", "No adapter", "アダプターなし"); enabled: root.editable;
+                checked <=> root.vnt_no_tun; toggled => { root.vnt_settings_changed(); } }
+            CheckBox { text: I18n.tr("仅中转", "Relay only", "中継のみ"); enabled: root.editable;
+                checked <=> root.vnt_no_punch; toggled => { root.vnt_settings_changed(); } }
+        }
+        HorizontalLayout { spacing: 12px;
+            CheckBox { text: I18n.tr("压缩传输", "Compression", "圧縮"); enabled: root.editable;
+                checked <=> root.vnt_compress; toggled => { root.vnt_settings_changed(); } }
+            CheckBox { text: "QUIC"; enabled: root.editable; checked <=> root.vnt_rtx; toggled => { root.vnt_settings_changed(); } }
+        }
+    }
+    Divider {}
+    HorizontalLayout { height: 32px;
+        Caption { text: I18n.tr("房间节点", "Room peers", "ルームのノード"); horizontal-stretch: 1; }
+        Value { text: root.vnt_peer_summary_text; horizontal-alignment: right; }
+    }
+    VntGamePort { value <=> root.vnt_game_port; editable: !root.vnt_busy; }
+    if !root.vnt_running || root.vnt_peer_rows.length == 0 : Value {
+        text: root.vnt_running ? I18n.tr("等待其他节点上线", "Waiting for other peers", "他のノードを待機中") : I18n.tr("当前未连接", "Not connected", "未接続");
+    }
+    if root.vnt_running : VerticalLayout {
+        for peer in root.vnt_peer_rows: VntPeerLine {
+            name: peer.name; address: peer.address; detail: peer.detail; online: peer.online; can-join: !root.vnt_busy;
+            join_clicked(address) => { root.vnt_join_peer_clicked(address); }
+        }
+    }
+}

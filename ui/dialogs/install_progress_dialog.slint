@@ -1,0 +1,77 @@
+import { Action } from "../components/controls.slint";
+import { Panel, ProgressBox, TitleBlock } from "../components/surfaces.slint";
+import { I18n } from "../i18n.slint";
+
+// 安装、更新等长任务使用的进度弹窗。
+export component InstallProgressDialog inherits Rectangle {
+    in property <bool> busy;
+    in property <bool> cancelable: true;
+    in property <string> dialog_title: I18n.tr("任务进度", "Task Progress", "タスク進捗");
+    in property <float> progress: 0.0;
+    in property <string> percent: "0%";
+    in property <string> title: "";
+    in property <string> detail: "";
+    in property <int> detail_lines: 1;
+    callback close_clicked();
+    callback cancel_clicked();
+
+    Rectangle {
+        width: parent.width;
+        height: parent.height;
+        background: #05070bd9;
+
+        dialog := Panel {
+            property <length> max-panel-width: root.width > 64px ? root.width - 64px : root.width;
+            property <length> max-panel-height: root.height > 64px ? root.height - 64px : root.height;
+            property <length> progress-height: 78px + min(detail_lines <= 1 ? 18px : detail_lines * 18px, 88px);
+            property <length> natural-height: 166px + progress-height;
+
+            width: min(560px, max-panel-width);
+            height: min(max-panel-height, natural-height);
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            radius: 24px;
+
+            VerticalLayout {
+                padding: 24px;
+                spacing: 14px;
+
+                TitleBlock {
+                    title: root.dialog_title;
+                    sub: "";
+                }
+
+                ProgressBox {
+                    shown: true;
+                    progress: root.progress;
+                    percent: root.percent;
+                    title: root.title;
+                    detail: root.detail;
+                    detail-lines: root.detail_lines;
+                }
+
+                HorizontalLayout {
+                    height: 58px;
+                    spacing: 12px;
+
+                    Rectangle { horizontal-stretch: 1; background: #00000000; }
+
+                    Action {
+                        width: 156px;
+                        label: busy ? (cancelable ? I18n.tr("取消", "Cancel", "キャンセル") : I18n.tr("处理中", "Working", "処理中")) : I18n.tr("完成", "Done", "完了");
+                        sub: "";
+                        enabled: !busy || cancelable;
+                        accent: busy ? #ffb4ab : #62e2c1;
+                        clicked => {
+                            if busy && cancelable {
+                                root.cancel_clicked();
+                            } else if !busy {
+                                root.close_clicked();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

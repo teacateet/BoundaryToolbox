@@ -1,0 +1,310 @@
+diff --git a/ProjectReboundMainDLL/BrtInventory/Birth.cpp b/ProjectReboundMainDLL/BrtInventory/Birth.cpp
+index 955933b..44202a2 100644
+--- a/ProjectReboundMainDLL/BrtInventory/Birth.cpp
++++ b/ProjectReboundMainDLL/BrtInventory/Birth.cpp
+@@ -3,10 +3,16 @@
+ #include "BoundaryInventory.hpp"
+ #include "RolePaths.hpp"
+ #include "OwnerBirthGate.hpp"
++#include "NativeArchive.hpp"
++#include "NativeRoleTable.hpp"
+ #include <chrono>
+ #include "RoomHttp.hpp"
+ #include "SDK/ProjectBoundary_classes.hpp"
++#include "SDK/ProjectBoundary_parameters.hpp"
++#include <cstdarg>
+ #include <cstdio>
++#include <filesystem>
++#include <fstream>
+ #include <memory>
+ #include <objbase.h>
+ #pragma comment(lib, "ole32.lib")
+@@ -38,6 +44,7 @@ struct Watched {
+     std::optional<Selection> fetchedSelection;
+     std::string fetchedReply;
+     std::array<APBWeapon*, 2> fetchedActors{};
++    std::uint64_t archiveRequests{};
+ };
+ std::shared_ptr<Watched> watched;
+ 
+@@ -47,6 +54,33 @@ void Skipped(std::uint64_t life, const char* reason) {
+     std::fflush(stdout);
+ }
+ 
++// 专服进程自己的档案写入记录；物品 ID 是游戏内名称，不含账号。
++void ArchiveLog(const char* format, ...) noexcept {
++    try {
++        static unsigned lines{};
++        if (lines >= 400) return;
++        ++lines;
++        char text[420]{};
++        va_list arguments;
++        va_start(arguments, format);
++        std::vsnprintf(text, sizeof(text), format, arguments);
++        va_end(arguments);
++        std::printf("[BRT-ARCHIVE] %s\n", text);
++        std::fflush(stdout);
++        static std::ofstream file = [] {
++            std::error_code error;
++            std::filesystem::create_directory("logs", error);
++            return std::ofstream("logs/BRT-archive-" + std::to_string(GetCurrentProcessId()) + ".log", std::ios::app);
++        }();
++        if (file.is_open()) { file << "[BRT-ARCHIVE] " << text << '\n'; file.flush(); }
++    } catch (...) {}
++}
++
++bool ReadGame(std::uintptr_t source, void* destination, std::size_t bytes) {
++    SIZE_T copied{};
++    return ReadProcessMemory(GetCurrentProcess(), reinterpret_cast<const void*>(source), destination, bytes, &copied) && copied == bytes;
++}
++
+ FName Intern(const Name& value) {
+     if (value.empty() || value.size() > 256 ||
+         value.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-") != Name::npos)
+@@ -73,14 +107,6 @@ brt::owner_birth::Verdict BirthStatus(const Watched& s, APBPlayerController& pc,
+     });
+ }
+ 
+-bool UnusedWeapon(APBWeapon* weapon, APBCharacter& pawn) {
+-    if (!weapon || !weapon->HasAuthority()) return false;
+-    const auto state = weapon->GetCurrentState();
+-    return brt::birth::FreshWeapon(weapon->GetGameTimeSinceCreation(), weapon->GetPawnOwner() == &pawn,
+-        weapon->IsDeployed(), weapon->IsInReloadState(), weapon->IsStartADS(),
+-        state == EPBWeaponState::Idle, state == EPBWeaponState::Equipping, pawn.GetGameTimeSinceCreation());
+-}
+-
+ struct Guns {
+     const SavedMenuRole* row{};
+     std::array<APBWeapon*, 2> actors{};
+@@ -163,6 +189,27 @@ bool SameParts(const FPBWeaponNetworkConfig& actual, const FPBWeaponNetworkConfi
+     return true;
+ }
+ 
++// 读回与期望的第一处差异，供同场日志定位。
++std::string FirstDifference(const FPBWeaponNetworkConfig& actual, const FPBWeaponNetworkConfig& desired) {
++    if (actual.WeaponID != desired.WeaponID) return "weapon-id";
++    if (actual.WeaponClassID != desired.WeaponClassID) return "class-id";
++    if (actual.OrnamentID != desired.OrnamentID) return "ornament";
++    if (actual.WeaponPartConfigs.Num() != actual.WeaponPartSlotTypeArray.Num()) return "actual-arrays";
++    for (int j = 0; j < desired.WeaponPartSlotTypeArray.Num() && j < desired.WeaponPartConfigs.Num(); ++j) {
++        const auto slot = static_cast<int>(desired.WeaponPartSlotTypeArray[j]);
++        int i = 0;
++        while (i < actual.WeaponPartSlotTypeArray.Num() && actual.WeaponPartSlotTypeArray[i] != desired.WeaponPartSlotTypeArray[j]) ++i;
++        if (i >= actual.WeaponPartConfigs.Num()) return "slot-missing-" + std::to_string(slot);
++        const auto& a = actual.WeaponPartConfigs[i];
++        const auto& b = desired.WeaponPartConfigs[j];
++        if (a.WeaponPartID != b.WeaponPartID) return "part-" + std::to_string(slot);
++        if (a.WeaponPartSkinID != b.WeaponPartSkinID) return "skin-" + std::to_string(slot);
++        if (a.WeaponPartSkinPaintingID != b.WeaponPartSkinPaintingID) return "paint-" + std::to_string(slot);
++        if (a.WeaponPartSpecialSkinID != b.WeaponPartSpecialSkinID) return "special-" + std::to_string(slot);
++    }
++    return actual.WeaponPartConfigs.Num() != desired.WeaponPartConfigs.Num() ? "count" : "none";
++}
++
+ enum class BirthStep { Waiting, Finished };
+ BirthStep ApplyAtBirth(Watched& session, APBPlayerController& pc, APBPlayerState& state, APBCharacter& pawn, bool first) {
+     if (first) {
+@@ -216,20 +263,14 @@ BirthStep ApplyAtBirth(Watched& session, APBPlayerController& pc, APBPlayerState
+             }
+             FPBWeaponNetworkConfig config{};
+             if (!Build(*plans[i], *weapon, config)) { Skipped(session.life, "weapon-config-incompatible"); return false; }
+-            const bool already = SameParts(weapon->GetPBWeaponPartSaveConfig(), config);
+-            if (!already) {
+-                // 主枪已进入手中时保留它，同时继续处理尚未使用的副枪。
+-                if (pawn.GetCurrentWeapon() == weapon || !UnusedWeapon(weapon, pawn)) {
+-                    std::printf("[BRT-INVENTORY] newborn-slot-skipped life=%llu slot=%u reason=weapon-in-use\n",
+-                        static_cast<unsigned long long>(session.life), i + 1);
+-                    std::fflush(stdout);
+-                    return false;
+-                }
+-                weapon->InitWeapon(config, false);
+-            }
+-            const bool readback = SameParts(weapon->GetPBWeaponPartSaveConfig(), config);
+-            std::printf("[BRT-INVENTORY] newborn-weapon life=%llu slot=%u submitted=%d parts-readback=%d\n",
+-                static_cast<unsigned long long>(session.life), i + 1, !already, readback);
++            // 配件由确认干员前写入的原生档案带出；这里只读回新生实体，不再对已创建的枪调用 InitWeapon。
++            const auto actual = weapon->GetPBWeaponPartSaveConfig();
++            const bool readback = SameParts(actual, config);
++            ArchiveLog("event=born-weapon life=%llu slot=%u gun=%s actual-parts=%d desired-parts=%d same=%d first-difference=%s",
++                static_cast<unsigned long long>(session.life), i + 1, weapon->GetWeaponId().ToString().c_str(),
++                actual.WeaponPartConfigs.Num(), config.WeaponPartConfigs.Num(), readback, FirstDifference(actual, config).c_str());
++            std::printf("[BRT-INVENTORY] newborn-weapon life=%llu slot=%u submitted=0 parts-readback=%d\n",
++                static_cast<unsigned long long>(session.life), i + 1, readback);
+             std::fflush(stdout);
+             return readback;
+         });
+@@ -239,6 +280,137 @@ BirthStep ApplyAtBirth(Watched& session, APBPlayerController& pc, APBPlayerState
+ }
+ }
+ 
++namespace {
++struct GunPair {
++    std::uint64_t first{}, second{};
++    bool operator==(const GunPair& other) const { return first == other.first && second == other.second; }
++};
++FName NameOf(std::uint64_t raw) {
++    FName name{};
++    std::memcpy(&name, &raw, sizeof(raw));
++    return name;
++}
++std::uint64_t RawOf(const FName& name) {
++    std::uint64_t raw{};
++    std::memcpy(&raw, &name, sizeof(raw));
++    return raw;
++}
++
++// 只读取该角色在原生预订表中的主副枪；表不可读或没有该角色时返回空。
++std::optional<GunPair> TableGuns(const APBPlayerState* state, std::uint64_t role, std::uintptr_t offset) {
++    using namespace brt::preorder::native;
++    RawTable table;
++    if (!Value(ReadGame, reinterpret_cast<std::uintptr_t>(state) + offset, table) || !Valid(table.roles) ||
++        !Valid(table.inventories) || table.roles.count != table.inventories.count) return {};
++    for (std::int32_t index = 0; index < table.roles.count; ++index) {
++        std::uint64_t key{};
++        RawInventory inventory;
++        if (!Value(ReadGame, table.roles.data + std::uintptr_t(index) * 8, key)) return {};
++        if (key != role) continue;
++        if (!Value(ReadGame, table.inventories.data + std::uintptr_t(index) * sizeof(RawInventory), inventory) ||
++            !Valid(inventory.slots) || !Valid(inventory.items) || inventory.slots.count != inventory.items.count) return {};
++        GunPair guns;
++        for (std::int32_t item = 0; item < inventory.slots.count; ++item) {
++            std::uint8_t slot{};
++            std::uint64_t id{};
++            if (!Value(ReadGame, inventory.slots.data + std::uintptr_t(item), slot) ||
++                !Value(ReadGame, inventory.items.data + std::uintptr_t(item) * 8, id)) return {};
++            if (slot == 1) guns.first = id;
++            else if (slot == 2) guns.second = id;
++        }
++        return guns;
++    }
++    return {};
++}
++
++std::optional<Loadout> ReadPlan(const std::string& reply, const Selection& chosen) {
++    const Json document = Json::parse(reply.begin(), reply.end(), nullptr, false);
++    if (!document.is_object()) return {};
++    try {
++        const auto& data = document.at("loadout");
++        Loadout plan{chosen.role, ReadName(data.at("LeftLauncherData"), "ID"), ReadName(data.at("RightLauncherData"), "ID"),
++            ReadName(data.at("MobilityModuleData"), "MobilityModuleID"), ReadName(data.at("MeleeWeaponData"), "ID"),
++            ReadWeapon(data.at("FirstWeaponPartData"), chosen.primary), ReadWeapon(data.at("SecondWeaponPartData"), chosen.secondary), {}};
++        if (data.contains("CharacterData")) {
++            const auto& fields = data.at("CharacterData");
++            CharacterAppearance look;
++            if (fields.contains("SpacesuitID")) look.suit = ReadName(fields, "SpacesuitID");
++            if (fields.contains("SpacesuitSkinPaintingID")) look.painting = ReadName(fields, "SpacesuitSkinPaintingID");
++            if (fields.contains("ArmBadgeID")) look.badge = ReadName(fields, "ArmBadgeID");
++            if (fields.contains("HeadAccessoryID")) look.head = ReadName(fields, "HeadAccessoryID");
++            if (look.suit && *look.suit == None) return {};
++            plan.character = std::move(look);
++        }
++        return plan;
++    } catch (const std::exception&) { return {}; }
++}
++}
++
++// 原版专服在档案完成回调里把玩家的枪械配件与角色外观写入 PlayerState 的逐角色档案；本机专服没有那次回调。
++// 在原生确认干员之前，对已核验的本机房主补上这名干员当前主副枪的保存配置，随后由原生出生流程自己建枪和复制。
++void BrtArchiveBeforeConfirm(SDK::UObject* controller, void* params) noexcept {
++    try {
++        const auto session = watched;
++        if (!session || !controller || !params || controller != session->identity ||
++            UKismetSystemLibrary::Conv_SoftObjectReferenceToObject(session->owner) != controller ||
++            !controller->IsA(APBPlayerController::StaticClass())) return;
++        auto& pc = *static_cast<APBPlayerController*>(controller);
++        auto* state = pc.PBPlayerState;
++        if (!pc.HasAuthority() || !state || state != session->loginState || pc.PlayerState != state ||
++            !pc.NetConnection || pc.NetConnection != session->loginTransport ||
++            state->GetDefaultIDStr().ToString() != session->member.steam) { ArchiveLog("event=skipped reason=owner-changed"); return; }
++        const auto image = reinterpret_cast<std::uintptr_t>(GetModuleHandleW(nullptr));
++        static const bool supported = brt::preorder::native::SupportedImage(image, ReadGame);
++        if (!supported) { ArchiveLog("event=skipped reason=unsupported-game-image"); return; }
++        const FName role = static_cast<Params::PBPlayerController_ServerConfirmRoleSelection*>(params)->InRoleID;
++        const auto row = std::find_if(session->rows.begin(), session->rows.end(),
++            [&](const auto& candidate) { return Intern(candidate.id) == role; });
++        if (row == session->rows.end()) { ArchiveLog("event=skipped reason=role-outside-owner-menu"); return; }
++        auto* value = brt::native_archive::RoleValue(image, state, RawOf(role));
++        if (!value) { ArchiveLog("event=skipped role=%s reason=native-role-entry-missing", row->id.c_str()); return; }
++        const int before = brt::native_archive::WeaponCount(value);
++        // 档案条目与两张预订表通常一致；不一致时各自的主副枪都补上，由原生按最终选择取用。
++        std::vector<GunPair> wanted{{brt::native_archive::NameAt(value, brt::native_archive::FirstWeapon),
++                                     brt::native_archive::NameAt(value, brt::native_archive::SecondWeapon)}};
++        for (const std::uintptr_t offset : {std::uintptr_t{0x6C0}, std::uintptr_t{0x6E0}})
++            if (const auto guns = TableGuns(state, RawOf(role), offset);
++                guns && std::find(wanted.begin(), wanted.end(), *guns) == wanted.end()) wanted.push_back(*guns);
++        ArchiveLog("event=confirm role=%s weapons-before=%d selections=%d", row->id.c_str(), before, static_cast<int>(wanted.size()));
++        int guns = 0, look = -1;
++        for (const auto& pair : wanted) {
++            // 与本人保存的枪同名时沿用档案服务的写法，其余取引擎名称。
++            const auto gun = [&](std::uint64_t raw) {
++                for (unsigned slot = 0; slot < 2; ++slot)
++                    if (row->items[slot] != None && RawOf(Intern(row->items[slot])) == raw) return Name(row->items[slot]);
++                return Name(NameOf(raw).ToString());
++            };
++            const Selection chosen{row->id, gun(pair.first), gun(pair.second)};
++            std::string reply;
++            try { reply = session->room.OwnerBirthPlan(session->member, 1000000 + ++session->archiveRequests, chosen); }
++            catch (const std::exception&) {
++                ArchiveLog("event=plan-unavailable role=%s first=%s second=%s", row->id.c_str(), chosen.primary.c_str(), chosen.secondary.c_str());
++                continue;
++            }
++            const auto plan = ReadPlan(reply, chosen);
++            if (!plan) { ArchiveLog("event=plan-invalid role=%s first=%s second=%s", row->id.c_str(), chosen.primary.c_str(), chosen.secondary.c_str()); continue; }
++            for (const Weapon* weapon : {&plan->primary, &plan->secondary}) {
++                if (!brt::native_archive::ApplyWeapon(image, value, *weapon, Intern)) continue;
++                ++guns;
++                int fitted = 0;
++                for (const auto& part : weapon->parts) fitted += part.id != None;
++                ArchiveLog("event=weapon role=%s gun=%s fitted-slots=%d skin=%s paint=%s ornament=%s", row->id.c_str(), weapon->id.c_str(),
++                    fitted, weapon->appearance.skin.c_str(), weapon->appearance.paint.c_str(), weapon->ornament.c_str());
++            }
++            if (look < 0 && plan->character) {
++                look = brt::native_archive::ApplyCharacter(value, *plan->character, Intern);
++                ArchiveLog("event=character role=%s fields=%d suit=%s paint=%s", row->id.c_str(), look,
++                    plan->character->suit.value_or(None).c_str(), plan->character->painting.value_or(None).c_str());
++            }
++        }
++        ArchiveLog("event=written role=%s guns=%d weapons-after=%d", row->id.c_str(), guns, brt::native_archive::WeaponCount(value));
++    } catch (const std::exception&) { ArchiveLog("event=skipped reason=local-error"); }
++}
++
+ bool BrtWatchOwnerBirth(SDK::APBPlayerController* pc, const brt::spawn::RoomHttp& room,
+                         const std::string& steam, const std::vector<brt::spawn::SavedMenuRole>& rows) noexcept {
+     try {
+diff --git a/ProjectReboundMainDLL/BrtInventory/Birth.hpp b/ProjectReboundMainDLL/BrtInventory/Birth.hpp
+index 7096e73..89063b4 100644
+--- a/ProjectReboundMainDLL/BrtInventory/Birth.hpp
++++ b/ProjectReboundMainDLL/BrtInventory/Birth.hpp
+@@ -1,8 +1,10 @@
+ #pragma once
+ #include "OwnerRoleMenu.hpp"
+ 
+-namespace SDK { class APBPlayerController; }
++namespace SDK { class APBPlayerController; class UObject; }
+ namespace brt::spawn { class RoomHttp; }
+ bool BrtWatchOwnerBirth(SDK::APBPlayerController* pc, const brt::spawn::RoomHttp& room,
+                         const std::string& steam, const std::vector<brt::spawn::SavedMenuRole>& rows) noexcept;
+ void BrtTickOwnerBirth() noexcept;
++// 在原生确认干员之前调用；只处理已核验的本机房主。
++void BrtArchiveBeforeConfirm(SDK::UObject* controller, void* params) noexcept;
+diff --git a/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp b/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp
+index d75caeb..8e310f8 100644
+--- a/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp
++++ b/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp
+@@ -12,6 +12,7 @@
+ #include "../Server/SideMountFixServer.h"
+ #include "../BrtInventory/BirthTrace.hpp"
+ #include "../BrtInventory/OwnerFieldMenu.hpp"
++#include "../BrtInventory/Birth.hpp"
+ #include "../SDK/Engine_parameters.hpp"
+ 
+ extern uintptr_t BaseAddress;
+@@ -38,6 +39,8 @@ void ProcessEventHook(UObject *Object, UFunction *Function, void *Parms)
+             return;
+         }
+     }
++    if (EventInfo.FullName == "Function ProjectBoundary.PBPlayerController.ServerConfirmRoleSelection")
++        BrtArchiveBeforeConfirm(Object, Parms);
+     brt::field_menu::ControllerEvent(Object, EventInfo.FullName);
+     if (EventInfo.ServerKind == EServerProcessEventKind::MatchHasEnded)
+     {

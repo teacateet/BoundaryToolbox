@@ -1,0 +1,57 @@
+import { ComboBox } from "std-widgets.slint";
+import { Workbench, Heading, Divider, Caption, Value, Field, Command } from "../components/workbench.slint";
+import { I18n } from "../i18n.slint";
+
+export component SettingsPage inherits Workbench {
+    in property <bool> busy;
+    in property <bool> has_target;
+    in property <bool> update_checking;
+    in property <string> update_status_text;
+    in-out property <string> github_proxy_text;
+    in property <bool> github_proxy_loading;
+    in property <string> github_proxy_status_text;
+    in property <string> feedback_group;
+    in property <bool> feedback_copied;
+    in property <int> language_mode;
+    callback language_changed(int);
+    callback copy_feedback_clicked();
+    callback open_logs_clicked();
+    callback check_updates_clicked();
+    callback github_proxy_changed(proxy: string);
+    callback open_github_proxy_dialog_clicked();
+    callback refresh_github_proxies_clicked();
+
+    Heading { title: I18n.tr("设置", "Settings", "設定"); accent: #baabd9; }
+    HorizontalLayout { spacing: 10px; height: 38px;
+        Caption { text: I18n.tr("界面语言", "Language", "表示言語"); horizontal-stretch: 1; }
+        ComboBox { width: 168px; model: ["Auto", "中文", "English", "日本語"];
+            current-index: root.language_mode + 1;
+            selected(_) => { root.language_changed(self.current-index - 1); }
+        }
+    }
+    Divider {}
+    Caption { text: I18n.tr("问题反馈", "Feedback", "フィードバック"); }
+    HorizontalLayout { spacing: 10px; height: 38px;
+        Value { text: I18n.tr("QQ 群", "QQ group", "QQ グループ") + "   " + root.feedback_group; color: #f2e2c7; font-weight: 700; font-size: 16px; }
+        Command { label: root.feedback_copied ? I18n.tr("已复制", "Copied", "コピー済み") : I18n.tr("复制群号", "Copy number", "番号をコピー");
+            clicked => { root.copy_feedback_clicked(); } }
+    }
+    Divider {}
+    Caption { text: I18n.tr("更新与日志", "Updates and logs", "更新とログ"); }
+    Value { text: root.update_status_text; }
+    HorizontalLayout { spacing: 8px; alignment: start;
+        Command { label: root.update_checking ? I18n.tr("检查中", "Checking", "確認中") : I18n.tr("检查更新", "Check for updates", "更新を確認");
+            enabled: !root.busy && !root.update_checking; clicked => { root.check_updates_clicked(); } }
+        Command { label: I18n.tr("打开日志目录", "Open logs", "ログを開く"); enabled: !root.busy; clicked => { root.open_logs_clicked(); } }
+    }
+    Divider {}
+    Caption { text: I18n.tr("下载代理", "Download proxy", "ダウンロードプロキシ"); }
+    Field { text <=> root.github_proxy_text; placeholder: I18n.tr("直连 GitHub", "Direct to GitHub", "GitHub に直接接続");
+        enabled: !root.busy; edited(value) => { root.github_proxy_changed(value); } }
+    HorizontalLayout { spacing: 8px; alignment: start;
+        Command { label: I18n.tr("选择节点", "Select node", "ノードを選択"); enabled: !root.busy && !root.github_proxy_loading; clicked => { root.open_github_proxy_dialog_clicked(); } }
+        Command { label: root.github_proxy_loading ? I18n.tr("测速中", "Testing", "測定中") : I18n.tr("刷新并测速", "Refresh and test", "更新して測定");
+            enabled: !root.busy && !root.github_proxy_loading; clicked => { root.refresh_github_proxies_clicked(); } }
+    }
+    if root.github_proxy_status_text != "" : Value { text: root.github_proxy_status_text; }
+}

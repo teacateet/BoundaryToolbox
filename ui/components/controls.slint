@@ -1,0 +1,249 @@
+import { Txt } from "foundation.slint";
+
+// 所有顶级页面共用的顶部导航按钮。
+export component NavTab inherits Rectangle {
+    in property <string> label;
+    in property <bool> selected: false;
+    in property <bool> enabled: true;
+    callback clicked;
+
+    height: 42px;
+    border-radius: 14px;
+    border-width: 1px;
+    border-color: enabled
+        ? (selected ? #62e2c1 : (touch.has-hover ? #54617a : #273041))
+        : #273041;
+    background: enabled
+        ? (selected ? #103b34 : (touch.has-hover ? #1d2531 : #0f131a))
+        : (selected ? #102620 : #0f131a88);
+
+    animate background { duration: 120ms; }
+    animate border-color { duration: 120ms; }
+
+    Txt {
+        text: label;
+        color: enabled ? (selected ? #c7fff2 : #c7d1df) : #687589;
+        font-size: 14px;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    touch := TouchArea {
+        enabled: parent.enabled;
+        clicked => { parent.clicked(); }
+    }
+}
+
+// 无原生边框窗口使用的标题栏按钮。
+export component WindowButton inherits Rectangle {
+    in property <string> label;
+    in property <bool> danger: false;
+    callback clicked;
+
+    width: 46px;
+    height: 30px;
+    border-radius: 8px;
+    background: touch.pressed
+        ? (danger ? #7a1f1f : #202a38)
+        : (touch.has-hover ? (danger ? #c23a3a : #1d2531) : #00000000);
+
+    animate background { duration: 120ms; }
+
+    Txt {
+        text: label;
+        color: touch.has-hover && danger ? #ffffff : #c7d1df;
+        font-family: "Maple Mono CN";
+        font-size: label == "×" ? 20px : 18px;
+        font-weight: 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+// 主页右下角的悬浮彩蛋按钮。
+export component MamaButton inherits Rectangle {
+    callback clicked;
+
+    width: 78px;
+    height: 42px;
+    border-radius: 16px;
+    border-width: 1px;
+    border-color: touch.has-hover ? #ffb6d4 : #72445b;
+    background: touch.pressed ? #c95a91 : (touch.has-hover ? #9f3f72 : #5a2945);
+
+    animate background { duration: 140ms; }
+    animate border-color { duration: 140ms; }
+
+    Txt {
+        text: "妈妈";
+        color: #fff2f8;
+        font-size: 15px;
+        font-weight: 800;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+// 带竖向强调条的主/次操作按钮。
+export component Action inherits Rectangle {
+    in property <string> label;
+    in property <string> sub: "";
+    in property <bool> enabled: true;
+    in property <bool> primary: false;
+    in property <brush> accent: #62e2c1;
+    callback clicked;
+
+    height: primary ? 88px : 54px;
+    border-radius: 3px;
+    border-width: primary ? 0px : 1px;
+    border-color: enabled ? (touch.has-hover ? accent : #344056) : #273041;
+    background: enabled
+        ? (primary
+            ? (touch.pressed ? accent.darker(15%) : (touch.has-hover ? accent.brighter(10%) : accent))
+            : (touch.pressed ? #202a38 : (touch.has-hover ? #1d2531 : #0f131a)))
+        : #0f131a88;
+    clip: true;
+
+    animate background { duration: 140ms; }
+    animate border-color { duration: 140ms; }
+
+    HorizontalLayout {
+        padding-left: primary ? 22px : 14px;
+        padding-right: primary ? 22px : 14px;
+        spacing: 12px;
+
+        Rectangle {
+            width: primary ? 10px : 6px;
+            background: #00000000;
+
+            Rectangle {
+                width: parent.width;
+                height: primary ? 54px : 28px;
+                y: (parent.height - self.height) / 2;
+                border-radius: 4px;
+                background: enabled ? (primary ? #08231d : accent) : #657285;
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+            spacing: 2px;
+            horizontal-stretch: 1;
+
+            Txt {
+                text: label;
+                color: enabled ? (primary ? #08231d : #eef4fb) : #687589;
+                font-size: primary ? 23px : 14px;
+                font-weight: 700;
+                horizontal-stretch: 1;
+            }
+
+            if sub != "" : Txt {
+                text: sub;
+                color: enabled ? (primary ? #08231d : #95a3b8) : #687589;
+                font-size: 12px;
+                font-weight: 500;
+                horizontal-stretch: 1;
+            }
+        }
+    }
+
+    touch := TouchArea {
+        enabled: parent.enabled;
+        clicked => { parent.clicked(); }
+    }
+}
+
+// 供 VNT 页面使用的紧凑双状态选项。
+export component OptionSwitch inherits Rectangle {
+    in property <bool> checked: false;
+    in property <bool> enabled: true;
+    in property <string> on-label;
+    in property <string> off-label;
+    in property <string> sub;
+    callback toggled(value: bool);
+
+    height: 48px;
+    border-radius: 14px;
+    border-width: 1px;
+    border-color: enabled ? (checked ? #62e2c1 : (touch.has-hover ? #54617a : #344056)) : #273041;
+    background: enabled ? (checked ? #10241f : (touch.has-hover ? #151c27 : #0f131a)) : #0f131a88;
+
+    animate background { duration: 140ms; }
+    animate border-color { duration: 140ms; }
+
+    HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 12px;
+        spacing: 12px;
+
+        VerticalLayout {
+            alignment: center;
+            spacing: 2px;
+            horizontal-stretch: 1;
+
+            Txt {
+                text: checked ? on-label : off-label;
+                color: enabled ? (checked ? #c7fff2 : #eef4fb) : #687589;
+                font-size: 14px;
+                font-weight: 800;
+                horizontal-stretch: 1;
+                wrap: no-wrap;
+            }
+
+            Txt {
+                text: sub;
+                color: enabled ? (checked ? #8ddfc8 : #8793a6) : #54617a;
+                font-size: 10px;
+                font-weight: 600;
+                horizontal-stretch: 1;
+                wrap: no-wrap;
+            }
+        }
+
+        Rectangle {
+            width: 44px;
+            background: #00000000;
+
+            Rectangle {
+                width: 42px;
+                height: 22px;
+                x: 1px;
+                y: (parent.height - self.height) / 2;
+                border-radius: 11px;
+                border-width: 1px;
+                border-color: enabled ? (checked ? #62e2c1 : #54617a) : #273041;
+                background: enabled ? (checked ? #62e2c1 : #263145) : #1a202b;
+
+                animate background { duration: 140ms; }
+                animate border-color { duration: 140ms; }
+
+                Rectangle {
+                    width: 16px;
+                    height: 16px;
+                    x: checked ? 22px : 3px;
+                    y: 2px;
+                    border-radius: 8px;
+                    background: enabled ? (checked ? #08231d : #c7d1df) : #657285;
+
+                    animate x { duration: 120ms; easing: ease-out; }
+                    animate background { duration: 120ms; }
+                }
+            }
+        }
+    }
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        clicked => { root.toggled(!root.checked); }
+    }
+}

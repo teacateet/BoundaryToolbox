@@ -1,0 +1,8 @@
+diff --git a/Payload/Payload.vcxproj b/Payload/Payload.vcxproj
+index ae80fa8..cafb88c 100644
+--- a/Payload/Payload.vcxproj
++++ b/Payload/Payload.vcxproj
+@@ -173,2 +173,3 @@
+     <ClCompile Include="SDK\UMG_MainMenuLayout_functions.cpp" />
++    <ClCompile Include="SDK\UMG_Prompt_functions.cpp" />
+     <ClCompile Include="ServerLogic\LateJoinManager.cpp" />

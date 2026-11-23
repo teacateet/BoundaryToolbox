@@ -1,0 +1,65 @@
+--- a/game/loadoutStore.js
++++ b/game/loadoutStore.js
+@@ -597,8 +597,11 @@
+-    nativePodId(roleId, id) {
+-        const { index, role } = this.getRoleDefinition(roleId);
+-        if (!role || !id) return null;
+-        if (role.podScope.has(id)) return id;
+-        if (index.getItemType(id) !== "EPBItemType::Pod") return null;
+-        const matches = (index.baseToRoleWeapon.get(id) || []).filter(key => role.podScope.has(key));
+-        return matches.length === 1 ? matches[0] : null;
+-    }
++    scopedEquipmentId(roleId, slot, id) {
++        const { index, role } = this.getRoleDefinition(roleId);
++        if (!role || !id) return null;
++        const mobility = slot === "mobilityModule";
++        const allowed = mobility ? role.mobilityScope : role.podScope;
++        if (allowed.has(id)) return id;
++        const type = mobility ? "EPBItemType::Mobility" : "EPBItemType::Pod";
++        if (index.getItemType(id) !== type) return null;
++        const matches = (index.baseToRoleWeapon.get(id) || []).filter(key => allowed.has(key));
++        return matches.length === 1 ? matches[0] : null;
++    }
+@@ -653,3 +653,5 @@
+-        const id = !item || item === "None" ? "None" :
+-            (op === 1 || op === 2 ? this.nativeWeaponId(roleId, item) :
+-                op === 5 || op === 6 ? this.nativePodId(roleId, item) : item);
++        let id = item || "None";
++        if (id !== "None") {
++            if (op === 1 || op === 2) id = this.nativeWeaponId(roleId, id);
++            if (op === 4 || op === 5 || op === 6) id = this.scopedEquipmentId(roleId, slot[0], id);
++        }
+@@ -740,3 +740,1 @@
+-            leftPylon: this.firstFromSet(role.podScope, 0),
+-            rightPylon: this.firstFromSet(role.podScope, 1),
+-            mobilityModule: this.firstFromSet(role.mobilityScope, 0),
++            ...this.getDefaultFieldEquipment(roleId, role),
+@@ -747,1 +747,17 @@
+-    isNoneish(value) {
++    getDefaultFieldEquipment(roleId, role) {
++        const key = roleId.toUpperCase();
++        // 六名可玩干员的左挂载和机动来自正式角色数据资产。
++        const leftPod = {
++            PEACE: "PEACE_TAC-EMP", PROBE: "PROBE_MISSILE-HIVE", SNIPER: "SNIPER_INFO-SNAPSHOT",
++            FORT: "FORT_TAC-ADS", SPIKE: "SPIKE_SMK-SQUID", FIXER: "FIXER_TAC-MED",
++        }[key];
++        const grapple = key + "_FCM-GRAPPLE";
++        // 奥兰的出生 HUD 只有左电磁。其他角色沿用已有的右槽兼容值。
++        return {
++            leftPylon: role.podScope.has(leftPod) ? leftPod : this.firstFromSet(role.podScope, 0),
++            rightPylon: key === "PEACE" ? "None" : this.firstFromSet(role.podScope, 1),
++            mobilityModule: leftPod && role.mobilityScope.has(grapple) ? grapple : this.firstFromSet(role.mobilityScope, 0),
++        };
++    }
++
++    isNoneish(value) {
+@@ -809,3 +809,6 @@
+-            const itemId = (slot === "primaryWeapon" || slot === "secondaryWeapon")
+-                ? this.nativeWeaponId(roleId, stored) || stored
+-                : (slot === "leftPylon" || slot === "rightPylon") ? this.nativePodId(roleId, stored) || stored : stored;
++            let itemId = stored;
++            if (slot === "primaryWeapon" || slot === "secondaryWeapon") {
++                itemId = this.nativeWeaponId(roleId, stored) || stored;
++            } else if (slot === "leftPylon" || slot === "rightPylon" || slot === "mobilityModule") {
++                itemId = this.scopedEquipmentId(roleId, slot, stored) || stored;
++            }

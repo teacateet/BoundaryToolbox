@@ -1,0 +1,52 @@
+import { Txt } from "foundation.slint";
+
+// 应用内图片预览遮罩，不使用系统原生弹窗。
+export component ImageLightbox inherits Rectangle {
+    in property <image> image;
+    callback closed;
+
+    background: #05070bdd;
+
+    panel := Rectangle {
+        width: parent.width > 980px ? 920px : parent.width - 60px;
+        height: parent.height > 690px ? 620px : parent.height - 60px;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        border-radius: 22px;
+        border-width: 1px;
+        border-color: #3c4961;
+        background: #111722;
+        clip: true;
+
+        Image {
+            x: 24px;
+            y: 24px;
+            width: parent.width - 48px;
+            height: parent.height - 48px;
+            source: root.image;
+            image-fit: contain;
+        }
+    }
+
+    Rectangle {
+        width: 44px;
+        height: 36px;
+        x: panel.x + panel.width - self.width - 14px;
+        y: panel.y + 14px;
+        border-radius: 10px;
+        background: close-touch.has-hover ? #c23a3a : #1d2531cc;
+
+        Txt {
+            text: "×";
+            color: #ffffff;
+            font-size: 21px;
+            font-weight: 700;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+
+        close-touch := TouchArea {
+            clicked => { root.closed(); }
+        }
+    }
+}

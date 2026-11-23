@@ -1,0 +1,22 @@
+diff --git a/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp b/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp
+--- a/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp
++++ b/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp
+@@ -12,2 +12,3 @@
+ #include "../Server/SideMountFixServer.h"
++#include "../BrtInventory/BirthTrace.hpp"
+ #include "../SDK/Engine_parameters.hpp"
+@@ -26,3 +27,3 @@
+     const FCachedProcessEventInfo& EventInfo = GetProcessEventInfo(Function);
+-
++    brt::birth_trace::Scope birthTrace(Object, EventInfo.FullName, Parms);
+     if (EventInfo.ServerKind == EServerProcessEventKind::MatchHasEnded)
+@@ -78,3 +80,4 @@
+             // Execute original function first
+             ProcessEvent.call(Object, Function, Parms);
++            birthTrace.OriginalReturned();
+             // Advance LateJoin state to RoleConfirmed
+@@ -124,2 +127,3 @@
+-    return ProcessEvent.call(Object, Function, Parms);
++    ProcessEvent.call(Object, Function, Parms);
++    birthTrace.OriginalReturned();
+ }

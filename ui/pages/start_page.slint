@@ -1,0 +1,100 @@
+import { ComboBox, ScrollView } from "std-widgets.slint";
+import { Caption, Command } from "../components/workbench.slint";
+import { Txt } from "../components/foundation.slint";
+import { Action, OptionSwitch } from "../components/controls.slint";
+import { I18n } from "../i18n.slint";
+
+export component StartPage inherits Rectangle {
+    in property <image> artwork;
+    in property <bool> has-target;
+    in property <bool> busy;
+    in property <bool> vnt-no-tun;
+    in-out property <bool> launch-pve-server;
+    callback open-guide();
+    in property <int> language-mode;
+    in property <string> feedback-group;
+    in property <bool> feedback-copied;
+    callback language-changed(int);
+    callback copy-feedback();
+    in property <string> status-text;
+    in property <string> target-text;
+    callback launch-client-clicked();
+    callback install-clicked();
+    callback community-source-clicked();
+    callback launch-pve-server-changed(bool);
+    callback browse-clicked();
+    callback redetect-clicked();
+    scroll := ScrollView {
+    viewport-width: self.visible-width;
+    viewport-height: max(self.visible-height, 338px);
+    horizontal-scrollbar-policy: always-off;
+    VerticalLayout {
+        width: scroll.visible-width; height: scroll.viewport-height;
+        spacing: 10px;
+        Rectangle {
+            min-height: 92px;
+            vertical-stretch: 2;
+            background: #20292b;
+            clip: true;
+            if root.artwork.width > 0: Image { source: root.artwork; image-fit: cover; }
+            Rectangle {
+                width: parent.width; height: 82px; y: parent.height - self.height;
+                background: #121819e8;
+                HorizontalLayout {
+                    padding-left: 20px; padding-right: 20px; spacing: 18px;
+                    Image { width: 56px; source: @image-url("../../assets/brt-mark.svg"); image-fit: contain; }
+                    Txt { text: "Boundary Resurrection Toolkit"; color: #eceee8; font-size: 21px; font-weight: 700; vertical-alignment: center; wrap: word-wrap; }
+                }
+            }
+        }
+        HorizontalLayout {
+            spacing: root.width < 740px ? 10px : 24px;
+            VerticalLayout {
+                spacing: 8px;
+                Action {
+                    label: I18n.tr("进入原版大厅", "Launch game lobby", "ロビーを起動");
+                    sub: root.status-text;
+                    primary: true; accent: #ffb765;
+                    enabled: root.has-target && !root.busy && !(root.launch-pve-server && root.vnt-no-tun);
+                    clicked => { root.launch-client-clicked(); }
+                }
+                OptionSwitch {
+                    checked: root.launch-pve-server; enabled: !root.busy;
+                    on-label: I18n.tr("本机人机匹配", "Local PvE matchmaking", "ローカル PvE マッチ");
+                    off-label: self.on-label;
+                    sub: I18n.tr("游戏内选择难度 · 地图自动轮换", "Choose difficulty in game · Maps rotate", "難易度はゲーム内で選択 · マップは自動切替");
+                    toggled(value) => { root.launch-pve-server = value; root.launch-pve-server-changed(value); }
+                }
+            }
+            VerticalLayout {
+                spacing: 7px;
+                Txt { text: I18n.tr("游戏安装目录", "Game installation", "ゲームパス"); color: #afd5cc; font-size: 14px; height: 21px; }
+                Txt { text: root.target-text; color: #e0e5e0; font-size: 13px; wrap: char-wrap; min-height: 32px; }
+                HorizontalLayout {
+                    spacing: 8px;
+                    Command { label: I18n.tr("选择目录", "Browse", "選択"); enabled: !root.busy; clicked => { root.browse-clicked(); } }
+                    Command { label: I18n.tr("重新检测", "Detect", "再検出"); enabled: !root.busy; clicked => { root.redetect-clicked(); } }
+                    Command { label: "GitHub"; clicked => { root.community-source-clicked(); } }
+                }
+                HorizontalLayout {
+                    spacing: 8px;
+                    Command { label: I18n.tr("安装社区环境", "Install components", "環境を導入"); emphasis: true; enabled: root.has-target && !root.busy; clicked => { root.install-clicked(); } }
+                    Command { label: I18n.tr("安装向导", "Setup guide", "導入ガイド"); enabled: !root.busy; clicked => { root.open-guide(); } }
+                }
+            }
+        }
+        HorizontalLayout { height: 36px; spacing: 10px;
+            Caption { text: I18n.tr("界面语言", "Language", "表示言語"); }
+            ComboBox { width: 120px; model: ["Auto", "中文", "English", "日本語"];
+                current-index: root.language-mode + 1;
+                selected(_) => { root.language-changed(self.current-index - 1); }
+            }
+            Rectangle { horizontal-stretch: 1; }
+            Command { label: root.feedback-copied ? I18n.tr("已复制", "Copied", "コピー済み") :
+                I18n.tr("反馈 QQ 群", "Feedback QQ", "サポート QQ") + "  " + root.feedback-group;
+                clicked => { root.copy-feedback(); }
+            }
+        }
+    }
+    }
+}

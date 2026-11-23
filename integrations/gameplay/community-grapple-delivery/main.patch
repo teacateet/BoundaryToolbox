@@ -1,0 +1,28 @@
+--- a/ProjectReboundMainDLL/BrtGrapple/Observer.hpp
++++ b/ProjectReboundMainDLL/BrtGrapple/Observer.hpp
+@@ -1,4 +1,5 @@
+ #pragma once
+ #include "Timeline.hpp"
++#include "../BrtInventory/OwnerCooldown.hpp"
+ #include "SDK/ProjectBoundary_classes.hpp"
+ #include <algorithm>
+@@ -179,4 +180,5 @@
+         if (delivery == Delivery::NotifyOwner) {
+             grapple->ClientEndHookLockCoolDown();
++            brt::hook_delivery::Send(current, deaths);
+             LogDelivery("owner-rpc-called", age);
+         } else if (delivery == Delivery::WaitForOwner) {
+--- a/ProjectReboundMainDLL/Hooking/ClientHooks.cpp
++++ b/ProjectReboundMainDLL/Hooking/ClientHooks.cpp
+@@ -5,4 +5,5 @@
+ #include "HookCore.h"
+ #include "../BrtInventory/Airlock.hpp"
++#include "../BrtInventory/OwnerCooldown.hpp"
+ #include "../Logging/LogManager.h"
+ #include "../Client/SideMountFixClient.h"
+@@ -25,4 +26,5 @@
+     const FCachedProcessEventInfo& EventInfo = GetProcessEventInfo(Function);
+     if (brt::airlock::Receive(Object, EventInfo.FullName, Parms)) return;
++    if (brt::hook_delivery::Receive(Object, EventInfo.FullName, Parms)) return;
+ 
+     // Froce space to login

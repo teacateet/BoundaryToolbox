@@ -1,0 +1,97 @@
+{
+  "scope": "normal C++ source in an interface fixture; real client and PIE unavailable",
+  "sourceSHA256": "22b4ff5fd200922d2a2b133c49852468efcb2e0ac6dd027265ad639271ece5ef",
+  "retailReadOnly": {
+    "gameTypeMembers": {
+      "APBAttachables": [
+        "GetOwnerPawn"
+      ],
+      "APBCharacter": [
+        "CurrentLauncher",
+        "CurrentLeftLauncher",
+        "CurrentRightLauncher",
+        "CurrentHandsState",
+        "IsAlive"
+      ],
+      "APBLauncher": [
+        "ArmMesh1P",
+        "ArmMesh3P",
+        "Mesh1P",
+        "Mesh3P",
+        "IsStandby",
+        "IsUndeploying",
+        "CrossHairWidget"
+      ],
+      "UPBLauncherWidget": [
+        "OwningLauncher"
+      ],
+      "APBCatchingModule": [
+        "CurrentHookStatus",
+        "bIsInCoolDown",
+        "ServerStartHookLockCoolDown",
+        "ClientEndHookLockCoolDown"
+      ]
+    },
+    "widgets": [
+      "UMG_CrossHair_Sensor",
+      "UMG_CrossHair_Missile"
+    ],
+    "grappleNativeCooldownSeconds": 8.0,
+    "grappleServerEntry": 1528,
+    "grappleMulticastEntry": 1558,
+    "restoreCalls": [
+      "CatchingModule_BP_C:RestoreGrapple",
+      "KismetSystemLibrary:IsValid",
+      "SkinnedMeshComponent:UnHideBoneByName"
+    ]
+  },
+  "fixture": {
+    "sourcePatchApplies": true,
+    "grappleSourcePatchApplies": true,
+    "duplicateGenerationRefused": true,
+    "compiler": "cl.exe",
+    "scenarioCount": 18,
+    "scenarios": [
+      "real target wraps original widget and preserves pre-existing override",
+      "red warning and unrelated same-name package keep original UI",
+      "holstered two pods hide local geometry while preserving third-person, deployed actor and original filter",
+      "deploy Sparrow shows own ring, keeps probe stowed",
+      "repair closes ring and former first-person model",
+      "DMR or FOP with stale CurrentLauncher still close ring and model",
+      "switch to probe releases only its reticle and first-person model",
+      "undeploy closes before hands replication catches up",
+      "standby hides independently of hand state",
+      "widget created before local player assignment uses owned launcher pawn",
+      "remote controller cannot show local overlay",
+      "unchanged active reticle does not churn cached layout",
+      "final death closes both stale reticles and first-person meshes",
+      "death camera without a pawn still hides previous first-person models",
+      "new life cannot inherit dead character reticle",
+      "new owner's own re-equipped probe wakes next view",
+      "former local pod transferred to another player is released",
+      "destroyed launcher invalidates surviving widget and drops weak handle"
+    ],
+    "grappleScenarios": [
+      "first press reaches original valid launch",
+      "duplicate validated launch cannot run twice",
+      "first lock pulls once using original host physics",
+      "first recycle starts once",
+      "one native return starts configured cooldown",
+      "early timer and early press cannot advance cooldown",
+      "eight server seconds unlock once and notify original owner",
+      "held key cannot fire automatically at expiry",
+      "second fresh press launches in the same life",
+      "second solid lock produces separate forward displacement",
+      "previous shot return cannot finish second shot",
+      "old timer cannot shorten second cooldown",
+      "death clears authoritative timer",
+      "previous-life request has no effect after respawn",
+      "late previous-life cooldown callback cannot act on respawn",
+      "original target range validation survives",
+      "original solid target validation survives",
+      "unequipping retires outstanding input",
+      "tagged owner RPC retains the game's original server validation"
+    ],
+    "grappleMotion": "sameLife=1 attempts=1,2 launch=2 pull=2 positionsCm=0,200,400 cooldownSeconds=8"
+  }
+}

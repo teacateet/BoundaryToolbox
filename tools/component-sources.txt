@@ -1,0 +1,22 @@
+Boundary Resurrection Toolkit (BRT) preview
+
+ProjectRebound and BoundaryMetaServer
+https://github.com/STanJK/ProjectRebound/releases/tag/Stable
+https://github.com/STanJK/ProjectRebound/releases/tag/V0.8.4
+https://github.com/STanJK/BoundaryMetaServer/tree/007850d0fd07c688d0a1ec1ff2a8771726c3463c
+The profile component includes the upstream GNU AGPL v3 license, the public
+server source used for the supported release, and BRT's transformation scripts
+and patches. Decompress profile-runtime/release-084-code.json.gz to read the
+UTF-8 JSON mapping of original relative paths to their source text. The
+pack-release.cjs script lists the original release inputs. No player data,
+game definitions, game executable or Steam credentials are included here.
+
+VNT, Apache License 2.0
+https://github.com/vnt-dev/vnt/tree/e088d305b1246086c3c16d54edf764effc68db6d
+See vnt-LICENSE.txt. The local integration uses the vendored v2 source.
+
+Community installer: game files and Windows Node.js are not distributed in
+this preview. On player request BRT downloads the pinned author releases above
+and the Windows x64 runtime at https://nodejs.org/dist/v24.22.3/ using HTTPS.
+The runtime license is installed alongside node.exe. The BRT mark and launch
+page are original to this project; any Steam library art is read at runtime.

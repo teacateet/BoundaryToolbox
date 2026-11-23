@@ -1,0 +1,10 @@
+            case 'birth-plan': {
+                shape(body, ['connectionId', 'authenticatedSteamId', 'life', 'selection']);
+                if (!room.owner || room.owner !== body.authenticatedSteamId) fail(403, 'wrong-local-player');
+                if (!uuid.test(body.connectionId) || !Number.isSafeInteger(body.life) || body.life < 1)
+                    fail(400, 'invalid-birth-request');
+                shape(body.selection, ['role', 'primary', 'secondary']);
+                const loadout = selectedLoadout(getStore(), type(), room.owner, body.selection, room.owner);
+                return res.json({ version:1, roomId:room.id, connectionId:body.connectionId,
+                    authenticatedSteamId:room.owner, life:body.life, loadout });
+            }

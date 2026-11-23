@@ -1,0 +1,63 @@
+diff --git a/index.js b/index.js
+--- a/index.js
++++ b/index.js
+@@ -385,5 +385,8 @@
+ const { createMenuSession } = require('./session-progress.cjs');
+ const { createReadyRoomSession, roomReader, lobbyRoomReader } = require('./ready-room.cjs');
++const localTicketProtocol = require('./ready-room.cjs').nativeTicketProtocol(protobuf);
++const localAssignmentDelayMs = 16;
+ const readModes = () => require('./game/definitions/DT_GameModeDefinition.json');
+ const readRoom = MatchmakingHost === '127.0.0.1' ? roomReader(__dirname) : () => undefined;
+ const server = net.createServer((socket) => {
++  socket.once('close', () => roomSession.reset());
+@@ -431,4 +434,5 @@
+       if(gateSessions.has(RPCPath)){
+         menuSession.reset();
+         roomSession.reset();
++        socket.joinAuthenticated = RPCPath !== LEGACY_GATE_TOKEN;
+         socket.playerId = gateSessions.get(RPCPath);
+@@ -779,5 +783,6 @@
+         let ticketId = generateTicketId();
+         let matchFound = false;
+-        const localRoom = roomSession.start(socket.playerId, requestedBy, requestedMode, ticketId, attempt.seq);
++        const localRoom = roomSession.start(socket.playerId, requestedBy, requestedMode, ticketId, attempt.seq,
++          { ids: localTicketProtocol.regions(MessageBytes), published: menuRegionCatalog?.regions });
+         try {
+           const result = localRoom || await matchServerRequest('POST', '/matchmaking/enqueue', {
+@@ -802,6 +807,36 @@
+         let Resp = RespType.create({StatusCode: 0});
+         let ResponseBytes = RespType.encode(Resp).finish();
+         socket.write(WrapMessageAndSerialize(MessageId, RPCPath, ResponseBytes));
++        const feedback = roomSession.ticketPublisher(socket.playerId, ticketId,
++          written => socket.write(WrapMessageAndSerialize(-1, 'StartCreateTicketServerCall', Buffer.alloc(0)), written),
++          create => {
++            if (!socket.destroyed && !socket.writableEnded)
++              socket.write(WrapJSONMessageAndSerialize(-1, 'CreateTicketServerCall', create.body), create.written);
++          });
++        if (localRoom?.status === 'found') {
++          feedback.start();
++          feedback.ready();
++        } else if (localRoom && socket.joinAuthenticated)
++          roomSession.prepare(socket.playerId, ticketId, socket, feedback.ready, feedback.start, feedback.admitted);
++      }
++      else if (roomSession.handlesTicket(socket.playerId) && MessageBytes?.length &&
++               (RPCPath === "/matchmaking.Matchmaking/QueryUnityMatchmaking" ||
++                RPCPath === "/matchmaking.Matchmaking/StopUnityMatchmaking")) {
++        const cancel = RPCPath === "/matchmaking.Matchmaking/StopUnityMatchmaking";
++        const request = localTicketProtocol.request(MessageBytes);
++        const result = roomSession.handleTicket(socket.playerId, request, cancel,
++          socket.joinAuthenticated ? socket : null);
++        if (result?.cancelled) menuSession.reset();
++        socket.write(WrapMessageAndSerialize(MessageId, RPCPath, Buffer.alloc(0)), result?.assignment && (error => {
++          if (error) return;
++          setTimeout(() => {
++            if (socket.destroyed || socket.writableEnded) return;
++            result.dispatch(delivery => {
++              if (socket.destroyed || socket.writableEnded) return;
++              socket.write(WrapJSONMessageAndSerialize(-1, 'QueryTicketServerCall', delivery.body), delivery.written);
++            });
++          }, localAssignmentDelayMs);
++        }));
+       }
+       else if(RPCPath === "/matchmaking.Matchmaking/QueryUnityMatchmaking"){
+         // Parse ticketId from request

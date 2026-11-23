@@ -1,0 +1,47 @@
+import { Txt } from "components/foundation.slint";
+import { I18n } from "i18n.slint";
+
+component Tab inherits Rectangle {
+    in property <string> label;
+    in property <bool> selected;
+    in property <bool> enabled: true;
+    callback activated;
+    horizontal-stretch: 1;
+    min-width: 70px;
+    background: touch.has-hover && enabled ? #263131 : transparent;
+    accessible-role: button;
+    accessible-label: label;
+    accessible-action-default => { if enabled { root.activated(); } }
+    Txt {
+        text: root.label; color: !root.enabled ? #727977 : root.selected ? #ffffff : #afbbb7;
+        font-size: 15px; font-weight: root.selected ? 750 : 500;
+        horizontal-alignment: center; vertical-alignment: center;
+    }
+    if selected : Rectangle { height: 3px; y: parent.height - self.height; background: #ffb763; }
+    touch := TouchArea { enabled: root.enabled; clicked => { root.activated(); } }
+}
+
+export component ShellHeader inherits Rectangle {
+    in-out property <int> page;
+    in property <int> online-page: 2;
+    in property <bool> busy;
+    background: #181f20;
+    HorizontalLayout {
+        spacing: 1px;
+        Tab { label: I18n.tr("出发", "Play", "出撃"); selected: page == 0; enabled: !busy; activated => { root.page = 0; } }
+        Tab { label: I18n.tr("联机", "Multiplayer", "マルチプレイ"); selected: page == 2 || page == 3; enabled: !busy; activated => { root.page = root.online-page; } }
+        Tab { label: I18n.tr("诊断", "Diagnostics", "診断"); selected: page == 1; enabled: !busy; activated => { root.page = 1; } }
+        Tab { label: I18n.tr("设置", "Settings", "設定"); selected: page == 4; enabled: !busy; activated => { root.page = 4; } }
+    }
+}
+
+export component OnlineTabs inherits HorizontalLayout {
+    in property <bool> network;
+    in property <bool> busy;
+    callback switch-page(int);
+    height: 36px; spacing: 1px;
+    Tab { width: 94px; label: I18n.tr("房间", "Rooms", "ルーム"); selected: !root.network; enabled: !root.busy; activated => { root.switch-page(2); } }
+    Tab { width: 94px; label: I18n.tr("网络", "Network", "ネットワーク"); selected: root.network; enabled: !root.busy; activated => { root.switch-page(3); } }
+    Rectangle { horizontal-stretch: 1; }
+    @children
+}

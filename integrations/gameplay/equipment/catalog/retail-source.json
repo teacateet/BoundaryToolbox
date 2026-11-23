@@ -1,0 +1,1978 @@
+{
+  "podTable": "ProjectBoundary/Content/GameData/CSVConfig/Item/DT_PodDefinition.uasset",
+  "characterTable": "ProjectBoundary/Content/GameData/CSVConfig/Item/DT_CharacterDefinition.uasset",
+  "roles": {
+    "PEACE": [
+      "PEACE_ATK-HE",
+      "PEACE_TAC-EMP"
+    ],
+    "PROBE": [
+      "PROBE_MISSILE-HIVE",
+      "PROBE_INFO-PROBE",
+      "PROBE_MISSILE-SPARROW",
+      "PROBE_TAC-EMP",
+      "PROBE_ATK-HE",
+      "PROBE_INFO-MOTION"
+    ],
+    "SNIPER": [
+      "SNIPER_TAC-EMP",
+      "SNIPER_SMK-TRI",
+      "SNIPER_INFO-SNAPSHOT",
+      "SNIPER_INFO-MOTION",
+      "SNIPER_ATK-HE"
+    ],
+    "FORT": [
+      "FORT_TAC-ADS",
+      "FORT_TAC-EMP",
+      "FORT_SMK-TRI",
+      "FORT_TAC-MINE",
+      "FORT_ATK-HE",
+      "FORT_ATK-40CANNON"
+    ],
+    "SPIKE": [
+      "SPIKE_TAC-IMPLUSE",
+      "SPIKE_TAC-EMP",
+      "SPIKE_SMK-SQUID"
+    ],
+    "FIXER": [
+      "FIXER_TAC-IMPLUSE",
+      "FIXER_TAC-EMP",
+      "FIXER_TAC-MED",
+      "FIXER_ATK-HE"
+    ]
+  },
+  "pods": {
+    "ATK-HE": {
+      "class": "/Game/Blueprints/PackModules/Grenade/PBGrenadeLauncher_CQB_BP.PBGrenadeLauncher_CQB_BP_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/Grenade/PBGrenadeLauncher_CQB_BP.uasset",
+      "description": "High explosive grenade with a proximity fuse."
+    },
+    "ATK-40CANNON": {
+      "class": "/Game/Blueprints/PackModules/AutoCanon/PBAutoCanonLauncher_BP.PBAutoCanonLauncher_BP_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/AutoCanon/PBAutoCanonLauncher_BP.uasset",
+      "description": "A heavy cannon capable of dealing high damage."
+    },
+    "ATK-TRIDENT": {
+      "class": "/Game/Blueprints/PackModules/MiniGun/APBMiniGunLauncher_BP.APBMiniGunLauncher_BP_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/MiniGun/APBMiniGunLauncher_BP.uasset",
+      "description": "Multi-barrel machine gun with extremely high rate of fire"
+    },
+    "ATK-HE-DRUM": {
+      "class": "/Game/Blueprints/PackModules/Grenade/PBGrenadeLauncher_Auto_BP.PBGrenadeLauncher_Auto_BP_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/Grenade/PBGrenadeLauncher_Auto_BP.uasset",
+      "description": "Drum magazine allows more small HE grenades to be loaded."
+    },
+    "ATK-HE-HIVEL": {
+      "class": "/Game/Blueprints/PackModules/Grenade/PBGrenadeLauncher_Longrange_BP.PBGrenadeLauncher_Longrange_BP_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/Grenade/PBGrenadeLauncher_Longrange_BP.uasset",
+      "description": "Fire faster-flying high explosive grenades at slower rates of fire"
+    },
+    "ATK-BFG": {
+      "class": "/Game/Blueprints/PackModules/Grenade/BP_PBGrenadeLauncher_Expel.BP_PBGrenadeLauncher_Expel_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/Grenade/BP_PBGrenadeLauncher_Expel.uasset",
+      "description": "Big fearsome grenade that deals immense damage with one shot."
+    },
+    "MISSILE-SPARROW": {
+      "class": "/Game/Blueprints/PackModules/Missile/APBHomingMissileLauncher_BP.APBHomingMissileLauncher_BP_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/Missile/APBHomingMissileLauncher_BP.uasset",
+      "description": "Two mode guided missile."
+    },
+    "MISSILE-HIVE": {
+      "class": "/Game/Blueprints/PackModules/Missile/APBAutoMissileLauncher_BP.APBAutoMissileLauncher_BP_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/Missile/APBAutoMissileLauncher_BP.uasset",
+      "description": "When an enemy is marked it will automatically activate and when activated the use will fire 5 infra-red guided missiles to automatically track the marked enemy."
+    },
+    "SMK-TRI": {
+      "class": "/Game/Blueprints/PackModules/SmokeGrenade/APBSmokeGrenadeLauncher_BP.APBSmokeGrenadeLauncher_BP_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/SmokeGrenade/APBSmokeGrenadeLauncher_BP.uasset",
+      "description": "Deploy 3 Electro-static smoke screen grenades. Can effectively obscure the enemy's line of sight and recon device."
+    },
+    "SMK-SQUID": {
+      "class": "/Game/Blueprints/PackModules/SmokeGrenade/APBSmokeGrenadeLauncher_BP_Squid.APBSmokeGrenadeLauncher_BP_Squid_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/SmokeGrenade/APBSmokeGrenadeLauncher_BP_Squid.uasset",
+      "description": "Immediately deploy a smoke grenade around player."
+    },
+    "TAC-EMP": {
+      "class": "/Game/Blueprints/PackModules/EMP/PBEMPGrenadeLauncher_BP.PBEMPGrenadeLauncher_BP_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/EMP/PBEMPGrenadeLauncher_BP.uasset",
+      "description": "EMP grenade with a proximity fuse. able to temporarily paralyze the enemy within range."
+    },
+    "TAC-EMP-DELAY": {
+      "class": "/Game/Blueprints/PackModules/EMP/PBEMPGrenadeLauncher_BP_Delay.PBEMPGrenadeLauncher_BP_Delay_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/EMP/PBEMPGrenadeLauncher_BP_Delay.uasset",
+      "description": "EMP grenade with a proximity fuse. able to temporarily paralyze the enemy within range."
+    },
+    "TAC-MINE": {
+      "class": "/Game/Blueprints/PackModules/Grenade/PBTrapGrenadeLauncher_BP.PBTrapGrenadeLauncher_BP_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/Grenade/PBTrapGrenadeLauncher_BP.uasset",
+      "description": "Automatically detonates when the enemy approaches, and can paralyze the enemy for a period of time"
+    },
+    "TAC-EMP-DRUM": {
+      "class": "/Game/Blueprints/PackModules/EMP/PBEMPGrenadeLauncher_Auto_BP.PBEMPGrenadeLauncher_Auto_BP_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/EMP/PBEMPGrenadeLauncher_Auto_BP.uasset",
+      "description": "EMP grenade with a proximity fuse. able to temporarily paralyze the enemy within range."
+    },
+    "TAC-IMPLUSE": {
+      "class": "/Game/Blueprints/PackModules/ImpulseGrenade/BP_PBImpulseGrenadeLauncher.BP_PBImpulseGrenadeLauncher_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/ImpulseGrenade/BP_PBImpulseGrenadeLauncher.uasset",
+      "description": "Applies an impact to players within range of the explosion, causing them to move"
+    },
+    "TAC-ADS": {
+      "class": "/Game/Blueprints/PackModules/ADS/PBDeployableADSLauncher_BP.PBDeployableADSLauncher_BP_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/ADS/PBDeployableADSLauncher_BP.uasset",
+      "description": "Active-Defence System will intercept any hostile flying object within range."
+    },
+    "TAC-MED": {
+      "class": "/Game/Blueprints/PackModules/MED/PBMedStationLauncher_BP.PBMedStationLauncher_BP_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/MED/PBMedStationLauncher_BP.uasset",
+      "description": "The MED is able to automatically repair the spacesuits of the teammates nearby."
+    },
+    "INFO-PROBE": {
+      "class": "/Game/Blueprints/PackModules/Sensor/PBSensorLauncher_BP.PBSensorLauncher_BP_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/Sensor/PBSensorLauncher_BP.uasset",
+      "description": "Probes will mark enemies nearby after deployed."
+    },
+    "INFO-SNAPSHOT": {
+      "class": "/Game/Blueprints/PackModules/SnapshotGrenade/PBSnapshotGrenadeLauncher_BP.PBSnapshotGrenadeLauncher_BP_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/SnapshotGrenade/PBSnapshotGrenadeLauncher_BP.uasset",
+      "description": "Activated by pressing the right button (LT), activation will mark all enemies within visible range."
+    },
+    "INFO-MOTION": {
+      "class": "/Game/Blueprints/PackModules/Sensor/PBMotionSensorLauncher_BP.PBMotionSensorLauncher_BP_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/Sensor/PBMotionSensorLauncher_BP.uasset",
+      "description": "When an enemy passes near the motion sensor, the sensor will sound an alarm."
+    },
+    "LotsNades": {
+      "class": "/Game/Blueprints/PackModules/Grenade/Meme/BP_PBGrenadeLauncher_MADNESS.BP_PBGrenadeLauncher_MADNESS_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/Grenade/Meme/BP_PBGrenadeLauncher_MADNESS.uasset",
+      "description": "Continuous firing multiple HE greandes."
+    },
+    "EMP-INF": {
+      "class": "/Game/Blueprints/PackModules/EMP/BP_PBEMPGrenadeLauncher_BP_Delay_INF.BP_PBEMPGrenadeLauncher_BP_Delay_INF_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/EMP/BP_PBEMPGrenadeLauncher_BP_Delay_INF.uasset",
+      "description": "Fire faster-flying high explosive grenades at slower rates of fire"
+    },
+    "IMPULSE-INF": {
+      "class": "/Game/Blueprints/PackModules/ImpulseGrenade/BP_PBImpulseGrenadeLauncher_INF.BP_PBImpulseGrenadeLauncher_INF_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/ImpulseGrenade/BP_PBImpulseGrenadeLauncher_INF.uasset",
+      "description": "Applies an impact to players within range of the explosion, causing them to move"
+    },
+    "EVENT-SQUID-INF": {
+      "class": "/Game/Blueprints/PackModules/SmokeGrenade/BP_APBSmokeGrenadeLauncher_BP_Squid_INF.BP_APBSmokeGrenadeLauncher_BP_Squid_INF_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/SmokeGrenade/BP_APBSmokeGrenadeLauncher_BP_Squid_INF.uasset",
+      "description": "Immediately deploy a smoke grenade around player."
+    },
+    "MISSILE-HIVE-DIRECT": {
+      "class": "/Game/Blueprints/PackModules/Missile/APBAutoMissileLauncher_Direct_BP.APBAutoMissileLauncher_Direct_BP_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/Missile/APBAutoMissileLauncher_Direct_BP.uasset",
+      "description": "When an enemy is marked it will automatically activate and when activated the use will fire 5 infra-red guided missiles to automatically track the marked enemy."
+    },
+    "MISSILE-SHIELDHOVER": {
+      "class": "/Game/Blueprints/PackModules/ShieldHover/PBShiledHoverLauncher_BP.PBShiledHoverLauncher_BP_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/ShieldHover/PBShiledHoverLauncher_BP.uasset",
+      "description": null
+    },
+    "MINIGUN-SHIELD": {
+      "class": "/Game/Blueprints/PackModules/MiniGun/BP_PBMiniGunWithShieldLauncher.BP_PBMiniGunWithShieldLauncher_C",
+      "asset": "ProjectBoundary/Content/Blueprints/PackModules/MiniGun/BP_PBMiniGunWithShieldLauncher.uasset",
+      "description": null
+    }
+  },
+  "assets": {
+    "ProjectBoundary/Content/Blueprints/PackModules/Grenade/PBGrenadeLauncher_CQB_BP.uasset": {
+      "super": {
+        "ObjectName": "BlueprintGeneratedClass'PBLauncher_Delay_BP_C'",
+        "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Delay_BP.12"
+      },
+      "properties": {
+        "ProjectileClass": {
+          "ObjectName": "BlueprintGeneratedClass'PBGrenade_CQB_BP_C'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Grenade/PBGrenade_CQB_BP.0"
+        },
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBGrenadeLauncher_CQB_BP_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Grenade/PBGrenadeLauncher_CQB_BP.10"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBGrenadeLauncher_CQB_BP_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Grenade/PBGrenadeLauncher_CQB_BP.11"
+        },
+        "FireConfig": {
+          "TimeBetweenFire": 0.7,
+          "TimeBetweenBurst": 0.25,
+          "TimeCanRetirggerFire": 0.25,
+          "BurstCount": 3
+        },
+        "EnableFireControlTime": 0.2,
+        "MagazineConfig": {
+          "InitAmmoPerClip": 1,
+          "InitClips": 3
+        }
+      },
+      "functions": [
+        "ExecuteUbergraph_PBGrenadeLauncher_CQB_BP",
+        "K2_SimuilateFire"
+      ]
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Delay_BP.uasset": {
+      "super": {
+        "ObjectName": "Class'PBLauncher_Delay'",
+        "ObjectPath": "/Script/ProjectBoundary"
+      },
+      "properties": {
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBLauncher_Delay_BP_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Delay_BP.21"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBLauncher_Delay_BP_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Delay_BP.22"
+        },
+        "LeftArmMesh": {
+          "ObjectName": "SkeletalMesh'Mach_Arm_RigL'",
+          "ObjectPath": "ProjectBoundary/Content/Characters/ANM/TP/Gaget/MachineArm/Mach_Arm_RigL.0"
+        },
+        "RightArmMesh": {
+          "ObjectName": "SkeletalMesh'Mach_Arm_RigR'",
+          "ObjectPath": "ProjectBoundary/Content/Characters/ANM/TP/Gaget/MachineArm/Mach_Arm_RigR.0"
+        }
+      },
+      "functions": [
+        "ExecuteUbergraph_PBLauncher_Delay_BP",
+        "Fired",
+        "GetProjectClass",
+        "K2_DeployFailed",
+        "K2_Deploying",
+        "K2_Fired",
+        "K2_OnEquip",
+        "K2_Ready",
+        "K2_SimuilateFire",
+        "K2_Standby",
+        "K2_Undeploying",
+        "ProjectileLine"
+      ]
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/AutoCanon/PBAutoCanonLauncher_BP.uasset": {
+      "super": {
+        "ObjectName": "BlueprintGeneratedClass'PBLauncher_Deploy_BP_C'",
+        "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Deploy_BP.10"
+      },
+      "properties": {
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBAutoCanonLauncher_BP_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/AutoCanon/PBAutoCanonLauncher_BP.34"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBAutoCanonLauncher_BP_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/AutoCanon/PBAutoCanonLauncher_BP.35"
+        },
+        "FireConfig": {
+          "TimeBetweenFire": 0.1,
+          "TimeBetweenBurst": 0.25,
+          "PostFireDuration": 0.3,
+          "BurstCount": 5,
+          "bEnableBurst": true
+        },
+        "EnableFireControlTime": 0.6,
+        "MagazineConfig": {
+          "InitAmmoPerClip": 15,
+          "InitClips": 3
+        },
+        "CrossHairWidgetClass": {
+          "ObjectName": "WidgetBlueprintGeneratedClass'UMG_CrossHair_AGL_C'",
+          "ObjectPath": "ProjectBoundary/Content/UI/Launcher/CrossHair/UMG_CrossHair_AGL.10"
+        }
+      },
+      "functions": [
+        "AddReciolForce",
+        "AddTubeForce",
+        "CanonSpring",
+        "DestoryShell",
+        "ExecuteUbergraph_PBAutoCanonLauncher_BP",
+        "GetForce",
+        "Initialization",
+        "K2_ClipReloaded",
+        "K2_Deploying",
+        "K2_OnEquip",
+        "K2_SimuilateFire",
+        "K2_Undeploying",
+        "MuzzleFlash",
+        "OpenFired",
+        "PlayEffect",
+        "ReceiveBeginPlay",
+        "ReceiveDestroyed",
+        "ReceiveTick",
+        "ReciolSpring",
+        "SetSpring",
+        "ShellEject"
+      ]
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Deploy_BP.uasset": {
+      "super": {
+        "ObjectName": "Class'PBLauncher_Deploy'",
+        "ObjectPath": "/Script/ProjectBoundary"
+      },
+      "properties": {
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBLauncher_Deploy_BP_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Deploy_BP.19"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBLauncher_Deploy_BP_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Deploy_BP.20"
+        },
+        "LeftArmMesh": {
+          "ObjectName": "SkeletalMesh'Mach_Arm_RigL'",
+          "ObjectPath": "ProjectBoundary/Content/Characters/ANM/TP/Gaget/MachineArm/Mach_Arm_RigL.0"
+        },
+        "RightArmMesh": {
+          "ObjectName": "SkeletalMesh'Mach_Arm_RigR'",
+          "ObjectPath": "ProjectBoundary/Content/Characters/ANM/TP/Gaget/MachineArm/Mach_Arm_RigR.0"
+        }
+      },
+      "functions": [
+        "ExecuteUbergraph_PBLauncher_Deploy_BP",
+        "Fired",
+        "K2_DeployFailed",
+        "K2_Deploying",
+        "K2_Fired",
+        "K2_OnEquip",
+        "K2_Ready",
+        "K2_SimuilateFire",
+        "K2_Standby",
+        "K2_Undeploying"
+      ]
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/MiniGun/APBMiniGunLauncher_BP.uasset": {
+      "super": {
+        "ObjectName": "BlueprintGeneratedClass'PBLauncher_Deploy_BP_C'",
+        "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Deploy_BP.10"
+      },
+      "properties": {
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__APBMiniGunLauncher_BP_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/MiniGun/APBMiniGunLauncher_BP.24"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__APBMiniGunLauncher_BP_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/MiniGun/APBMiniGunLauncher_BP.25"
+        },
+        "FireConfig": {
+          "TimeBetweenFire": 0.05,
+          "TimeBetweenBurst": 0.05,
+          "bEnableAutoFire": true
+        },
+        "EnableFireControlTime": 1.0,
+        "MagazineConfig": {
+          "InitAmmoPerClip": 100,
+          "InitClips": 3
+        },
+        "CrossHairWidgetClass": {
+          "ObjectName": "WidgetBlueprintGeneratedClass'UMG_CrossHair_AGL_C'",
+          "ObjectPath": "ProjectBoundary/Content/UI/Launcher/CrossHair/UMG_CrossHair_AGL.10"
+        }
+      },
+      "functions": [
+        "ExecuteUbergraph_APBMiniGunLauncher_BP",
+        "K2_AdjustedAim",
+        "K2_Deploying",
+        "K2_SimuilateFire",
+        "K2_SimulateStartFire",
+        "K2_SimulateStopFire",
+        "K2_Undeploying",
+        "ReceiveDestroyed",
+        "StartFire",
+        "StopFire",
+        "Timeline_2__FinishedFunc",
+        "Timeline_2__UpdateFunc"
+      ]
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/Grenade/PBGrenadeLauncher_Auto_BP.uasset": {
+      "super": {
+        "ObjectName": "BlueprintGeneratedClass'PBLauncher_Deploy_BP_C'",
+        "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Deploy_BP.10"
+      },
+      "properties": {
+        "ProjectileClass": {
+          "ObjectName": "BlueprintGeneratedClass'PBGrenade_Auto_BP_C'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Grenade/PBGrenade_Auto_BP.0"
+        },
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBGrenadeLauncher_Auto_BP_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Grenade/PBGrenadeLauncher_Auto_BP.11"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBGrenadeLauncher_Auto_BP_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Grenade/PBGrenadeLauncher_Auto_BP.12"
+        },
+        "FireConfig": {
+          "TimeBetweenFire": 0.1,
+          "TimeBetweenBurst": 0.25,
+          "TimeCanRetirggerFire": 0.25,
+          "BurstCount": 3,
+          "bEnableAutoFire": true
+        },
+        "EnableFireControlTime": 2.0,
+        "MagazineConfig": {
+          "InitAmmoPerClip": 6,
+          "InitClips": 2
+        }
+      },
+      "functions": [
+        "ExecuteUbergraph_PBGrenadeLauncher_Auto_BP",
+        "K2_SimuilateFire"
+      ]
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/Grenade/PBGrenadeLauncher_Longrange_BP.uasset": {
+      "super": {
+        "ObjectName": "BlueprintGeneratedClass'PBLauncher_Deploy_BP_C'",
+        "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Deploy_BP.10"
+      },
+      "properties": {
+        "ProjectileClass": {
+          "ObjectName": "BlueprintGeneratedClass'PBGrenade_Longrange_BP_C'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Grenade/PBGrenade_Longrange_BP.0"
+        },
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBGrenadeLauncher_Longrange_BP_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Grenade/PBGrenadeLauncher_Longrange_BP.11"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBGrenadeLauncher_Longrange_BP_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Grenade/PBGrenadeLauncher_Longrange_BP.12"
+        },
+        "FireConfig": {
+          "TimeBetweenFire": 0.7,
+          "TimeBetweenBurst": 0.25,
+          "TimeCanRetirggerFire": 0.25,
+          "BurstCount": 3
+        },
+        "EnableFireControlTime": 2.0,
+        "MagazineConfig": {
+          "InitAmmoPerClip": 3,
+          "InitClips": 2
+        }
+      },
+      "functions": [
+        "ExecuteUbergraph_PBGrenadeLauncher_Longrange_BP",
+        "K2_SimuilateFire"
+      ]
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/Grenade/BP_PBGrenadeLauncher_Expel.uasset": {
+      "super": {
+        "ObjectName": "BlueprintGeneratedClass'PBLauncher_Deploy_BP_C'",
+        "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Deploy_BP.10"
+      },
+      "properties": {
+        "ProjectileClass": {
+          "ObjectName": "BlueprintGeneratedClass'BP_PBGrenade_Expel_C'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Grenade/BP_PBGrenade_Expel.3"
+        },
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__BP_PBGrenadeLauncher_Expel_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Grenade/BP_PBGrenadeLauncher_Expel.11"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__BP_PBGrenadeLauncher_Expel_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Grenade/BP_PBGrenadeLauncher_Expel.12"
+        },
+        "FireConfig": {
+          "TimeBetweenFire": 0.7,
+          "TimeBetweenBurst": 0.25,
+          "TimeCanRetirggerFire": 0.25,
+          "BurstCount": 3
+        },
+        "EnableFireControlTime": 1.6,
+        "MagazineConfig": {
+          "InitAmmoPerClip": 1,
+          "InitClips": 2
+        }
+      },
+      "functions": [
+        "ExecuteUbergraph_BP_PBGrenadeLauncher_Expel",
+        "K2_SimuilateFire"
+      ]
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/Missile/APBHomingMissileLauncher_BP.uasset": {
+      "super": {
+        "ObjectName": "Class'PBHomingMissileLauncher'",
+        "ObjectPath": "/Script/ProjectBoundary"
+      },
+      "properties": {
+        "ProjectileClass": {
+          "ObjectName": "BlueprintGeneratedClass'APBLGM_TargetMissile_BP_C'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Missile/APBLGM_TargetMissile_BP.0"
+        },
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__APBHomingMissileLauncher_BP_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Missile/APBHomingMissileLauncher_BP.21"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__APBHomingMissileLauncher_BP_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Missile/APBHomingMissileLauncher_BP.22"
+        },
+        "LeftArmMesh": {
+          "ObjectName": "SkeletalMesh'Mach_Arm_RigL'",
+          "ObjectPath": "ProjectBoundary/Content/Characters/ANM/TP/Gaget/MachineArm/Mach_Arm_RigL.0"
+        },
+        "RightArmMesh": {
+          "ObjectName": "SkeletalMesh'Mach_Arm_RigR'",
+          "ObjectPath": "ProjectBoundary/Content/Characters/ANM/TP/Gaget/MachineArm/Mach_Arm_RigR.0"
+        },
+        "FireConfig": {
+          "TimeBetweenFire": 0.5,
+          "TimeCanRetirggerFire": 0.4,
+          "bEnableAutoFire": true
+        },
+        "EnableFireControlTime": 0.8,
+        "MagazineConfig": {
+          "InitAmmoPerClip": 3,
+          "InitClips": 2
+        },
+        "CrossHairWidgetClass": {
+          "ObjectName": "WidgetBlueprintGeneratedClass'UMG_CrossHair_Missile_C'",
+          "ObjectPath": "ProjectBoundary/Content/UI/Launcher/CrossHair/UMG_CrossHair_Missile.7"
+        }
+      },
+      "functions": [
+        "ExecuteUbergraph_APBHomingMissileLauncher_BP",
+        "Fired",
+        "K2_AdjustedAim",
+        "K2_Deploying",
+        "K2_OnEquip",
+        "K2_Ready",
+        "K2_SimuilateFire",
+        "K2_Standby",
+        "K2_Undeploying",
+        "NotifyNoMissileTarget_1"
+      ]
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/Missile/APBAutoMissileLauncher_BP.uasset": {
+      "super": {
+        "ObjectName": "Class'PBAutoMissileLauncher'",
+        "ObjectPath": "/Script/ProjectBoundary"
+      },
+      "properties": {
+        "ProjectileClass": {
+          "ObjectName": "BlueprintGeneratedClass'APBLGM_SmallMissile_BP_C'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Missile/APBLGM_SmallMissile_BP.0"
+        },
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__APBAutoMissileLauncher_BP_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Missile/APBAutoMissileLauncher_BP.19"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__APBAutoMissileLauncher_BP_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Missile/APBAutoMissileLauncher_BP.20"
+        },
+        "LeftArmMesh": {
+          "ObjectName": "SkeletalMesh'Mach_Arm_RigL'",
+          "ObjectPath": "ProjectBoundary/Content/Characters/ANM/TP/Gaget/MachineArm/Mach_Arm_RigL.0"
+        },
+        "RightArmMesh": {
+          "ObjectName": "SkeletalMesh'Mach_Arm_RigR'",
+          "ObjectPath": "ProjectBoundary/Content/Characters/ANM/TP/Gaget/MachineArm/Mach_Arm_RigR.0"
+        },
+        "FireConfig": {
+          "TimeBetweenFire": 0.5,
+          "TimeBetweenBurst": 0.25,
+          "PostFireDuration": 0.3,
+          "BurstCount": 5,
+          "bEnableBurst": true
+        },
+        "EnableFireControlTime": 0.8,
+        "MagazineConfig": {
+          "InitAmmoPerClip": 25,
+          "InitClips": 1
+        }
+      },
+      "functions": [
+        "AttachMissile1P",
+        "AttachMissile3P",
+        "ExecuteUbergraph_APBAutoMissileLauncher_BP",
+        "Fired",
+        "HiddenMissle1P",
+        "HiddenMissle3P",
+        "K2_Deploying",
+        "K2_OnEquip",
+        "K2_Ready",
+        "K2_SimuilateFire",
+        "K2_Standby",
+        "K2_Undeploying",
+        "K2_UpdateMagazine",
+        "ReceiveBeginPlay"
+      ]
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/SmokeGrenade/APBSmokeGrenadeLauncher_BP.uasset": {
+      "super": {
+        "ObjectName": "BlueprintGeneratedClass'PBLauncher_Delay_BP_C'",
+        "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Delay_BP.12"
+      },
+      "properties": {
+        "ProjectileClass": {
+          "ObjectName": "BlueprintGeneratedClass'APBSmokeGrenade_BP_C'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/SmokeGrenade/APBSmokeGrenade_BP.3"
+        },
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__APBSmokeGrenadeLauncher_BP_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/SmokeGrenade/APBSmokeGrenadeLauncher_BP.30"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__APBSmokeGrenadeLauncher_BP_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/SmokeGrenade/APBSmokeGrenadeLauncher_BP.31"
+        },
+        "FireConfig": {
+          "TimeBetweenFire": 0.5,
+          "TimeBetweenBurst": 0.2,
+          "TimeCanRetirggerFire": 0.5,
+          "BurstCount": 3,
+          "bEnableBurst": true
+        },
+        "EnableFireControlTime": 0.6,
+        "MagazineConfig": {
+          "InitAmmoPerClip": 1,
+          "InitClips": 4
+        }
+      },
+      "functions": [
+        "ExecuteUbergraph_APBSmokeGrenadeLauncher_BP",
+        "K2_Deploying",
+        "K2_SimuilateFire",
+        "K2_Undeploying",
+        "NotifySmokeTriggedByPlayer_1",
+        "OnBlendOut_1FD7BB1E49E7F34F91E856834DDE14FA",
+        "OnBlendOut_3FDC6E784E7003F8C82041BC6FFBB978",
+        "OnCompleted_1FD7BB1E49E7F34F91E856834DDE14FA",
+        "OnCompleted_3FDC6E784E7003F8C82041BC6FFBB978",
+        "OnInterrupted_1FD7BB1E49E7F34F91E856834DDE14FA",
+        "OnInterrupted_3FDC6E784E7003F8C82041BC6FFBB978",
+        "OnNotifyBegin_1FD7BB1E49E7F34F91E856834DDE14FA",
+        "OnNotifyBegin_3FDC6E784E7003F8C82041BC6FFBB978",
+        "OnNotifyEnd_1FD7BB1E49E7F34F91E856834DDE14FA",
+        "OnNotifyEnd_3FDC6E784E7003F8C82041BC6FFBB978"
+      ]
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/SmokeGrenade/APBSmokeGrenadeLauncher_BP_Squid.uasset": {
+      "super": {
+        "ObjectName": "BlueprintGeneratedClass'PBLauncher_Delay_BP_C'",
+        "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Delay_BP.12"
+      },
+      "properties": {
+        "ProjectileClass": {
+          "ObjectName": "BlueprintGeneratedClass'APBSmokeGrenade_BP_squid_C'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/SmokeGrenade/APBSmokeGrenade_BP_squid.4"
+        },
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__APBSmokeGrenadeLauncher_BP_Squid_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/SmokeGrenade/APBSmokeGrenadeLauncher_BP_Squid.30"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__APBSmokeGrenadeLauncher_BP_Squid_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/SmokeGrenade/APBSmokeGrenadeLauncher_BP_Squid.31"
+        },
+        "FireConfig": {
+          "TimeBetweenFire": 0.3,
+          "TimeBetweenBurst": 0.5,
+          "TimeCanRetirggerFire": 0.1,
+          "BurstCount": 3
+        },
+        "EnableFireControlTime": 0.45,
+        "MagazineConfig": {
+          "InitAmmoPerClip": 1,
+          "InitClips": 3
+        }
+      },
+      "functions": [
+        "ExecuteUbergraph_APBSmokeGrenadeLauncher_BP_Squid",
+        "K2_Deploying",
+        "K2_SimuilateFire",
+        "K2_Undeploying",
+        "NotifySmokeTriggedByPlayer_1",
+        "OnBlendOut_8A661CF54E35C6A71FA57C9549DCCCD2",
+        "OnBlendOut_D30D7A4244000F7E4C9961BC049B8902",
+        "OnCompleted_8A661CF54E35C6A71FA57C9549DCCCD2",
+        "OnCompleted_D30D7A4244000F7E4C9961BC049B8902",
+        "OnInterrupted_8A661CF54E35C6A71FA57C9549DCCCD2",
+        "OnInterrupted_D30D7A4244000F7E4C9961BC049B8902",
+        "OnNotifyBegin_8A661CF54E35C6A71FA57C9549DCCCD2",
+        "OnNotifyBegin_D30D7A4244000F7E4C9961BC049B8902",
+        "OnNotifyEnd_8A661CF54E35C6A71FA57C9549DCCCD2",
+        "OnNotifyEnd_D30D7A4244000F7E4C9961BC049B8902"
+      ]
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/EMP/PBEMPGrenadeLauncher_BP.uasset": {
+      "super": {
+        "ObjectName": "BlueprintGeneratedClass'PBLauncher_Delay_BP_C'",
+        "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Delay_BP.12"
+      },
+      "properties": {
+        "ProjectileClass": {
+          "ObjectName": "BlueprintGeneratedClass'PBEMPGrenade_BP_C'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/EMP/PBEMPGrenade_BP.0"
+        },
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBEMPGrenadeLauncher_BP_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/EMP/PBEMPGrenadeLauncher_BP.10"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBEMPGrenadeLauncher_BP_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/EMP/PBEMPGrenadeLauncher_BP.11"
+        },
+        "FireConfig": {
+          "TimeBetweenFire": 0.5,
+          "TimeBetweenBurst": 0.2,
+          "TimeCanRetirggerFire": 0.25,
+          "PostFireDuration": 0.5,
+          "BurstCount": 3
+        },
+        "EnableFireControlTime": 0.2,
+        "MagazineConfig": {
+          "InitAmmoPerClip": 1,
+          "InitClips": 3
+        }
+      },
+      "functions": [
+        "ExecuteUbergraph_PBEMPGrenadeLauncher_BP",
+        "K2_SimuilateFire"
+      ]
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/EMP/PBEMPGrenadeLauncher_BP_Delay.uasset": {
+      "super": {
+        "ObjectName": "BlueprintGeneratedClass'PBLauncher_Delay_BP_C'",
+        "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Delay_BP.12"
+      },
+      "properties": {
+        "ProjectileClass": {
+          "ObjectName": "BlueprintGeneratedClass'PBEMPGrenade_BP_C'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/EMP/PBEMPGrenade_BP.0"
+        },
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBEMPGrenadeLauncher_BP_Delay_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/EMP/PBEMPGrenadeLauncher_BP_Delay.10"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBEMPGrenadeLauncher_BP_Delay_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/EMP/PBEMPGrenadeLauncher_BP_Delay.11"
+        },
+        "FireConfig": {
+          "TimeBetweenFire": 0.5,
+          "TimeBetweenBurst": 0.2,
+          "TimeCanRetirggerFire": 0.25,
+          "PostFireDuration": 0.5,
+          "BurstCount": 3,
+          "bEnableBurst": true
+        },
+        "EnableFireControlTime": 0.7,
+        "MagazineConfig": {
+          "InitAmmoPerClip": 3,
+          "InitClips": 2
+        }
+      },
+      "functions": [
+        "ExecuteUbergraph_PBEMPGrenadeLauncher_BP_Delay",
+        "K2_SimuilateFire"
+      ]
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/Grenade/PBTrapGrenadeLauncher_BP.uasset": {
+      "super": {
+        "ObjectName": "BlueprintGeneratedClass'PBLauncher_Deploy_BP_C'",
+        "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Deploy_BP.10"
+      },
+      "properties": {
+        "ProjectileClass": {
+          "ObjectName": "BlueprintGeneratedClass'PBTrapGrenade_C'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Test/PBTrapGrenade.6"
+        },
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBTrapGrenadeLauncher_BP_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Grenade/PBTrapGrenadeLauncher_BP.13"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBTrapGrenadeLauncher_BP_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Grenade/PBTrapGrenadeLauncher_BP.14"
+        },
+        "FireConfig": {
+          "TimeBetweenFire": 0.1,
+          "TimeBetweenBurst": 0.25,
+          "TimeCanRetirggerFire": 0.25,
+          "BurstCount": 3
+        },
+        "EnableFireControlTime": 0.6,
+        "MagazineConfig": {
+          "InitAmmoPerClip": 1,
+          "InitClips": 2
+        }
+      },
+      "functions": [
+        "ExecuteUbergraph_PBTrapGrenadeLauncher_BP",
+        "K2_ASingleAmmoReloaded",
+        "K2_SimuilateFire"
+      ]
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/EMP/PBEMPGrenadeLauncher_Auto_BP.uasset": {
+      "super": {
+        "ObjectName": "BlueprintGeneratedClass'PBLauncher_Deploy_BP_C'",
+        "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Deploy_BP.10"
+      },
+      "properties": {
+        "ProjectileClass": {
+          "ObjectName": "BlueprintGeneratedClass'PBEMPGrenade_BP_C'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/EMP/PBEMPGrenade_BP.0"
+        },
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBEMPGrenadeLauncher_Auto_BP_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/EMP/PBEMPGrenadeLauncher_Auto_BP.10"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBEMPGrenadeLauncher_Auto_BP_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/EMP/PBEMPGrenadeLauncher_Auto_BP.11"
+        },
+        "FireConfig": {
+          "TimeBetweenFire": 0.5,
+          "TimeBetweenBurst": 0.25,
+          "TimeCanRetirggerFire": 0.25,
+          "PostFireDuration": 0.5,
+          "BurstCount": 3,
+          "bEnableBurst": true
+        },
+        "EnableFireControlTime": 0.7,
+        "MagazineConfig": {
+          "InitAmmoPerClip": 6,
+          "InitClips": 2
+        }
+      },
+      "functions": [
+        "ExecuteUbergraph_PBEMPGrenadeLauncher_Auto_BP",
+        "K2_SimuilateFire"
+      ]
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/ImpulseGrenade/BP_PBImpulseGrenadeLauncher.uasset": {
+      "super": {
+        "ObjectName": "BlueprintGeneratedClass'PBLauncher_Delay_BP_C'",
+        "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Delay_BP.12"
+      },
+      "properties": {
+        "ProjectileClass": {
+          "ObjectName": "BlueprintGeneratedClass'BP_PBImpulseGrenade_C'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/ImpulseGrenade/BP_PBImpulseGrenade.3"
+        },
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__BP_PBImpulseGrenadeLauncher_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/ImpulseGrenade/BP_PBImpulseGrenadeLauncher.10"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__BP_PBImpulseGrenadeLauncher_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/ImpulseGrenade/BP_PBImpulseGrenadeLauncher.11"
+        },
+        "FireConfig": {
+          "TimeBetweenFire": 0.4,
+          "TimeBetweenBurst": 0.25,
+          "TimeCanRetirggerFire": 0.25,
+          "BurstCount": 3
+        },
+        "EnableFireControlTime": 0.6,
+        "MagazineConfig": {
+          "InitAmmoPerClip": 1,
+          "InitClips": 2
+        }
+      },
+      "functions": [
+        "ExecuteUbergraph_BP_PBImpulseGrenadeLauncher",
+        "K2_SimuilateFire"
+      ]
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/ADS/PBDeployableADSLauncher_BP.uasset": {
+      "super": {
+        "ObjectName": "BlueprintGeneratedClass'PBLauncher_Deploy_BP_C'",
+        "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Deploy_BP.10"
+      },
+      "properties": {
+        "ProjectileClass": {
+          "ObjectName": "BlueprintGeneratedClass'PBDeployableADS_BP_C'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/ADS/PBDeployableADS_BP.15"
+        },
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBDeployableADSLauncher_BP_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/ADS/PBDeployableADSLauncher_BP.11"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBDeployableADSLauncher_BP_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/ADS/PBDeployableADSLauncher_BP.12"
+        },
+        "FireConfig": {
+          "TimeBetweenFire": 0.3,
+          "TimeBetweenBurst": 0.5,
+          "TimeCanRetirggerFire": 0.1,
+          "BurstCount": 3
+        },
+        "EnableFireControlTime": 0.6,
+        "MagazineConfig": {
+          "InitAmmoPerClip": 1,
+          "InitClips": 2
+        }
+      },
+      "functions": [
+        "ExecuteUbergraph_PBDeployableADSLauncher_BP",
+        "K2_ASingleAmmoReloaded",
+        "K2_SimuilateFire"
+      ]
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/MED/PBMedStationLauncher_BP.uasset": {
+      "super": {
+        "ObjectName": "BlueprintGeneratedClass'PBLauncher_Deploy_BP_C'",
+        "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Deploy_BP.10"
+      },
+      "properties": {
+        "ProjectileClass": {
+          "ObjectName": "BlueprintGeneratedClass'PBMedicine_BP_C'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/MED/PBMedicine_BP.5"
+        },
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBMedStationLauncher_BP_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/MED/PBMedStationLauncher_BP.9"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBMedStationLauncher_BP_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/MED/PBMedStationLauncher_BP.10"
+        },
+        "FireConfig": {
+          "TimeBetweenFire": 0.5,
+          "TimeBetweenBurst": 0.5,
+          "TimeCanRetirggerFire": 0.25,
+          "BurstCount": 3
+        },
+        "EnableFireControlTime": 0.8,
+        "MagazineConfig": {
+          "InitAmmoPerClip": 1,
+          "InitClips": 2
+        }
+      },
+      "functions": [
+        "GetProjectClass"
+      ]
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/Sensor/PBSensorLauncher_BP.uasset": {
+      "super": {
+        "ObjectName": "BlueprintGeneratedClass'PBLauncher_Deploy_BP_C'",
+        "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Deploy_BP.10"
+      },
+      "properties": {
+        "ProjectileClass": {
+          "ObjectName": "BlueprintGeneratedClass'PBSensor_BP_C'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Sensor/PBSensor_BP.5"
+        },
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBSensorLauncher_BP_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Sensor/PBSensorLauncher_BP.11"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBSensorLauncher_BP_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Sensor/PBSensorLauncher_BP.12"
+        },
+        "FireConfig": {
+          "TimeBetweenFire": 0.3,
+          "TimeBetweenBurst": 0.5,
+          "TimeCanRetirggerFire": 0.1,
+          "BurstCount": 3
+        },
+        "EnableFireControlTime": 0.6,
+        "MagazineConfig": {
+          "InitAmmoPerClip": 1,
+          "InitClips": 3
+        }
+      },
+      "functions": [
+        "ExecuteUbergraph_PBSensorLauncher_BP",
+        "K2_Deploying",
+        "K2_Undeploying"
+      ]
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/SnapshotGrenade/PBSnapshotGrenadeLauncher_BP.uasset": {
+      "super": {
+        "ObjectName": "BlueprintGeneratedClass'PBLauncher_Delay_BP_C'",
+        "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Delay_BP.12"
+      },
+      "properties": {
+        "ProjectileClass": {
+          "ObjectName": "BlueprintGeneratedClass'PBSnapshorGrenade_BP_C'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/SnapshotGrenade/PBSnapshorGrenade_BP.2"
+        },
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBSnapshotGrenadeLauncher_BP_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/SnapshotGrenade/PBSnapshotGrenadeLauncher_BP.12"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBSnapshotGrenadeLauncher_BP_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/SnapshotGrenade/PBSnapshotGrenadeLauncher_BP.13"
+        },
+        "FireConfig": {
+          "TimeBetweenFire": 0.7,
+          "TimeBetweenBurst": 0.25,
+          "TimeCanRetirggerFire": 0.25,
+          "BurstCount": 3
+        },
+        "EnableFireControlTime": 0.5,
+        "MagazineConfig": {
+          "InitAmmoPerClip": 1,
+          "InitClips": 2
+        }
+      },
+      "functions": [
+        "ExecuteUbergraph_PBSnapshotGrenadeLauncher_BP",
+        "K2_ASingleAmmoReloaded",
+        "K2_SimuilateFire"
+      ]
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/Sensor/PBMotionSensorLauncher_BP.uasset": {
+      "super": {
+        "ObjectName": "BlueprintGeneratedClass'PBLauncher_Deploy_BP_C'",
+        "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Deploy_BP.10"
+      },
+      "properties": {
+        "ProjectileClass": {
+          "ObjectName": "BlueprintGeneratedClass'PBMotionSensor_BP_C'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Sensor/PBMotionSensor_BP.7"
+        },
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBMotionSensorLauncher_BP_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Sensor/PBMotionSensorLauncher_BP.12"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBMotionSensorLauncher_BP_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Sensor/PBMotionSensorLauncher_BP.13"
+        },
+        "FireConfig": {
+          "TimeBetweenFire": 0.3,
+          "TimeBetweenBurst": 0.5,
+          "TimeCanRetirggerFire": 0.1,
+          "BurstCount": 3
+        },
+        "EnableFireControlTime": 0.6,
+        "MagazineConfig": {
+          "InitAmmoPerClip": 1,
+          "InitClips": 2
+        }
+      },
+      "functions": [
+        "ExecuteUbergraph_PBMotionSensorLauncher_BP",
+        "K2_ASingleAmmoReloaded",
+        "K2_SimuilateFire"
+      ]
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/Grenade/Meme/BP_PBGrenadeLauncher_MADNESS.uasset": {
+      "super": {
+        "ObjectName": "BlueprintGeneratedClass'PBLauncher_Deploy_BP_C'",
+        "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Deploy_BP.10"
+      },
+      "properties": {
+        "ProjectileClass": {
+          "ObjectName": "BlueprintGeneratedClass'PBGrenade_Auto_BP_C'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Grenade/PBGrenade_Auto_BP.0"
+        },
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__BP_PBGrenadeLauncher_MADNESS_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Grenade/Meme/BP_PBGrenadeLauncher_MADNESS.11"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__BP_PBGrenadeLauncher_MADNESS_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Grenade/Meme/BP_PBGrenadeLauncher_MADNESS.12"
+        },
+        "FireConfig": {
+          "TimeBetweenFire": 0.15,
+          "TimeBetweenBurst": 0.25,
+          "TimeCanRetirggerFire": 0.25,
+          "BurstCount": 3,
+          "bEnableAutoFire": true
+        },
+        "EnableFireControlTime": 0.7,
+        "MagazineConfig": {
+          "InitAmmoPerClip": 100,
+          "InitClips": 2,
+          "bInfiniteClips": true
+        }
+      },
+      "functions": [
+        "ExecuteUbergraph_BP_PBGrenadeLauncher_MADNESS",
+        "K2_SimuilateFire"
+      ]
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/EMP/BP_PBEMPGrenadeLauncher_BP_Delay_INF.uasset": {
+      "super": {
+        "ObjectName": "BlueprintGeneratedClass'PBEMPGrenadeLauncher_BP_Delay_C'",
+        "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/EMP/PBEMPGrenadeLauncher_BP_Delay.2"
+      },
+      "properties": {
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__BP_PBEMPGrenadeLauncher_BP_Delay_INF_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/EMP/BP_PBEMPGrenadeLauncher_BP_Delay_INF.7"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__BP_PBEMPGrenadeLauncher_BP_Delay_INF_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/EMP/BP_PBEMPGrenadeLauncher_BP_Delay_INF.8"
+        },
+        "EnableFireControlTime": 0.55,
+        "MagazineConfig": {
+          "InitClips": 11
+        }
+      },
+      "functions": []
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/ImpulseGrenade/BP_PBImpulseGrenadeLauncher_INF.uasset": {
+      "super": {
+        "ObjectName": "BlueprintGeneratedClass'BP_PBImpulseGrenadeLauncher_C'",
+        "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/ImpulseGrenade/BP_PBImpulseGrenadeLauncher.2"
+      },
+      "properties": {
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__BP_PBImpulseGrenadeLauncher_INF_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/ImpulseGrenade/BP_PBImpulseGrenadeLauncher_INF.6"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__BP_PBImpulseGrenadeLauncher_INF_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/ImpulseGrenade/BP_PBImpulseGrenadeLauncher_INF.7"
+        },
+        "EnableFireControlTime": 0.4,
+        "MagazineConfig": {
+          "bInfiniteClips": true
+        }
+      },
+      "functions": []
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/SmokeGrenade/BP_APBSmokeGrenadeLauncher_BP_Squid_INF.uasset": {
+      "super": {
+        "ObjectName": "BlueprintGeneratedClass'APBSmokeGrenadeLauncher_BP_Squid_C'",
+        "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/SmokeGrenade/APBSmokeGrenadeLauncher_BP_Squid.15"
+      },
+      "properties": {
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__BP_APBSmokeGrenadeLauncher_BP_Squid_INF_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/SmokeGrenade/BP_APBSmokeGrenadeLauncher_BP_Squid_INF.6"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__BP_APBSmokeGrenadeLauncher_BP_Squid_INF_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/SmokeGrenade/BP_APBSmokeGrenadeLauncher_BP_Squid_INF.7"
+        },
+        "MagazineConfig": {
+          "InitClips": 11
+        }
+      },
+      "functions": []
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/Missile/APBAutoMissileLauncher_Direct_BP.uasset": {
+      "super": {
+        "ObjectName": "Class'PBAutoMissileLauncher'",
+        "ObjectPath": "/Script/ProjectBoundary"
+      },
+      "properties": {
+        "ProjectileClass": {
+          "ObjectName": "BlueprintGeneratedClass'APBLGM_SmallMissile_Mode_Direct_BP_C'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Missile/APBLGM_SmallMissile_Mode_Direct_BP.0"
+        },
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__APBAutoMissileLauncher_Direct_BP_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Missile/APBAutoMissileLauncher_Direct_BP.19"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__APBAutoMissileLauncher_Direct_BP_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/Missile/APBAutoMissileLauncher_Direct_BP.20"
+        },
+        "LeftArmMesh": {
+          "ObjectName": "SkeletalMesh'Mach_Arm_RigL'",
+          "ObjectPath": "ProjectBoundary/Content/Characters/ANM/TP/Gaget/MachineArm/Mach_Arm_RigL.0"
+        },
+        "RightArmMesh": {
+          "ObjectName": "SkeletalMesh'Mach_Arm_RigR'",
+          "ObjectPath": "ProjectBoundary/Content/Characters/ANM/TP/Gaget/MachineArm/Mach_Arm_RigR.0"
+        },
+        "FireConfig": {
+          "TimeBetweenFire": 0.5,
+          "TimeBetweenBurst": 0.25,
+          "PostFireDuration": 0.3,
+          "BurstCount": 5,
+          "bEnableBurst": true
+        },
+        "EnableFireControlTime": 0.8,
+        "MagazineConfig": {
+          "InitAmmoPerClip": 25,
+          "InitClips": 1
+        }
+      },
+      "functions": [
+        "AttachMissile1P",
+        "AttachMissile3P",
+        "ExecuteUbergraph_APBAutoMissileLauncher_Direct_BP",
+        "Fired",
+        "HiddenMissle1P",
+        "HiddenMissle3P",
+        "K2_Deploying",
+        "K2_OnEquip",
+        "K2_Ready",
+        "K2_SimuilateFire",
+        "K2_Standby",
+        "K2_Undeploying",
+        "K2_UpdateMagazine",
+        "ReceiveBeginPlay"
+      ]
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/ShieldHover/PBShiledHoverLauncher_BP.uasset": {
+      "super": {
+        "ObjectName": "BlueprintGeneratedClass'PBLauncher_Deploy_BP_C'",
+        "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/PBLauncher_Deploy_BP.10"
+      },
+      "properties": {
+        "ProjectileClass": {
+          "ObjectName": "BlueprintGeneratedClass'PBShieldHover_BP_C'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/ShieldHover/PBShieldHover_BP.4"
+        },
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBShiledHoverLauncher_BP_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/ShieldHover/PBShiledHoverLauncher_BP.8"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__PBShiledHoverLauncher_BP_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/ShieldHover/PBShiledHoverLauncher_BP.9"
+        },
+        "FireConfig": {
+          "TimeBetweenFire": 0.3,
+          "TimeBetweenBurst": 0.5,
+          "TimeCanRetirggerFire": 0.1,
+          "BurstCount": 3
+        },
+        "EnableFireControlTime": 0.6,
+        "MagazineConfig": {
+          "InitAmmoPerClip": 1,
+          "InitClips": 1
+        }
+      },
+      "functions": []
+    },
+    "ProjectBoundary/Content/Blueprints/PackModules/MiniGun/BP_PBMiniGunWithShieldLauncher.uasset": {
+      "super": {
+        "ObjectName": "BlueprintGeneratedClass'APBMiniGunLauncher_BP_C'",
+        "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/MiniGun/APBMiniGunLauncher_BP.12"
+      },
+      "properties": {
+        "ArmMesh1P": {
+          "ObjectName": "SkeletalMeshComponent'Default__BP_PBMiniGunWithShieldLauncher_C:ArmMesh1P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/MiniGun/BP_PBMiniGunWithShieldLauncher.18"
+        },
+        "ArmMesh3P": {
+          "ObjectName": "SkeletalMeshComponent'Default__BP_PBMiniGunWithShieldLauncher_C:ArmMesh3P'",
+          "ObjectPath": "ProjectBoundary/Content/Blueprints/PackModules/MiniGun/BP_PBMiniGunWithShieldLauncher.19"
+        },
+        "MagazineConfig": {
+          "InitAmmoPerClip": 200,
+          "InitClips": 1
+        }
+      },
+      "functions": [
+        "DeployShield",
+        "ExecuteUbergraph_BP_PBMiniGunWithShieldLauncher",
+        "InstallShield",
+        "K2_Deploying",
+        "K2_OnEquip",
+        "K2_Standby",
+        "K2_Undeploying",
+        "OnRep_ShieldHealth",
+        "ReceiveAnyDamage",
+        "UndeployShield"
+      ]
+    }
+  },
+  "crosshairDirectory": [
+    "ProjectBoundary/Content/UI/Launcher/CrossHair/UMG_CrossHair_AGL.uasset",
+    "ProjectBoundary/Content/UI/Launcher/CrossHair/UMG_CrossHair_AmmoCount.uasset",
+    "ProjectBoundary/Content/UI/Launcher/CrossHair/UMG_CrossHair_EMP.uasset",
+    "ProjectBoundary/Content/UI/Launcher/CrossHair/UMG_CrossHair_Mine.uasset",
+    "ProjectBoundary/Content/UI/Launcher/CrossHair/UMG_CrossHair_Missile.uasset",
+    "ProjectBoundary/Content/UI/Launcher/CrossHair/UMG_CrossHair_PFG.uasset",
+    "ProjectBoundary/Content/UI/Launcher/CrossHair/UMG_CrossHair_Sensor.uasset",
+    "ProjectBoundary/Content/UI/Launcher/CrossHair/UMG_CrossHair_Smoke.uasset",
+    "ProjectBoundary/Content/UI/Launcher/CrossHair/UMG_Launcher_LauncherLandDistance.uasset",
+    "ProjectBoundary/Content/UI/Launcher/CrossHair/UMG_Missile_Count.uasset"
+  ],
+  "controllerDirectory": [
+    "ProjectBoundary/Content/Blueprints/PackModules/LauncherController/LauncherController_M.uasset",
+    "ProjectBoundary/Content/Blueprints/PackModules/LauncherController/SkeletonMesh/Mesh_Sk_Eqpm_MechArmsControler_PhysicsAsset.uasset",
+    "ProjectBoundary/Content/Blueprints/PackModules/LauncherController/SkeletonMesh/Mesh_Sk_Eqpm_MechArmsControler_Skeleton.uasset",
+    "ProjectBoundary/Content/Blueprints/PackModules/LauncherController/SkeletonMesh/Mesh_Sk_Eqpm_MechArmsControler.uasset",
+    "ProjectBoundary/Content/Blueprints/PackModules/LauncherController/Tex_DIF_Eqpm_MechArmsControler.uasset",
+    "ProjectBoundary/Content/Blueprints/PackModules/LauncherController/Tex_NRM_Eqpm_MechArmsControler.uasset",
+    "ProjectBoundary/Content/Blueprints/PackModules/LauncherController/Tex_ORME_Eqpm_MechArmsControler.uasset",
+    "ProjectBoundary/Content/L10N/zh/Blueprints/PackModules/LauncherController/Tex_DIF_Eqpm_MechArmsControler.uasset",
+    "ProjectBoundary/Content/L10N/zh/Blueprints/PackModules/LauncherController/Tex_NRM_Eqpm_MechArmsControler.uasset"
+  ],
+  "crosshairClasses": {
+    "ProjectBoundary/Content/UI/Launcher/UMG_Launcher_CrossHair.uasset": {
+      "super": {
+        "ObjectName": "Class'PBLauncherWidget'",
+        "ObjectPath": "/Script/ProjectBoundary"
+      },
+      "declaredFunctions": [
+        "AimSightOffset",
+        "ExecuteUbergraph_UMG_Launcher_CrossHair",
+        "K2_Equiped",
+        "NoAmmo",
+        "NotifyEquippedRadar",
+        "ReloadLauncher",
+        "SetRenderTrans",
+        "Tick",
+        "UseAmmo"
+      ]
+    },
+    "ProjectBoundary/Content/UI/Launcher/CrossHair/UMG_CrossHair_AGL.uasset": {
+      "super": {
+        "ObjectName": "WidgetBlueprintGeneratedClass'UMG_Launcher_CrossHair_C'",
+        "ObjectPath": "ProjectBoundary/Content/UI/Launcher/UMG_Launcher_CrossHair.9"
+      },
+      "declaredFunctions": [
+        "Construct",
+        "DefaultLauncherSetting",
+        "ExecuteUbergraph_UMG_CrossHair_AGL",
+        "GetLauncherAmmoPercentage",
+        "LeftLauncherSetting",
+        "NoAmmo",
+        "ReloadLauncher",
+        "RightLauncherSetting",
+        "Tick",
+        "UseAmmo"
+      ]
+    },
+    "ProjectBoundary/Content/UI/Launcher/CrossHair/UMG_CrossHair_AmmoCount.uasset": {
+      "super": {
+        "ObjectName": "Class'PBUserWidget'",
+        "ObjectPath": "/Script/ProjectBoundary"
+      },
+      "declaredFunctions": [
+        "GiveAmmo",
+        "UseAmmo"
+      ]
+    },
+    "ProjectBoundary/Content/UI/Launcher/CrossHair/UMG_CrossHair_Missile.uasset": {
+      "super": {
+        "ObjectName": "WidgetBlueprintGeneratedClass'UMG_Launcher_CrossHair_C'",
+        "ObjectPath": "ProjectBoundary/Content/UI/Launcher/UMG_Launcher_CrossHair.9"
+      },
+      "declaredFunctions": [
+        "Destruct",
+        "ExecuteUbergraph_UMG_CrossHair_Missile",
+        "K2_Equiped",
+        "NotifyEquippedRadar",
+        "Tick",
+        "UpdateMissileCount",
+        "UseAmmo"
+      ]
+    },
+    "ProjectBoundary/Content/UI/Launcher/CrossHair/UMG_CrossHair_PFG.uasset": {
+      "super": {
+        "ObjectName": "WidgetBlueprintGeneratedClass'UMG_Launcher_CrossHair_C'",
+        "ObjectPath": "ProjectBoundary/Content/UI/Launcher/UMG_Launcher_CrossHair.9"
+      },
+      "declaredFunctions": [
+        "Construct",
+        "ExecuteUbergraph_UMG_CrossHair_PFG",
+        "NoAmmo",
+        "ReloadLauncher",
+        "ReloadPlay",
+        "Tick",
+        "WidgetAnimationEvt_Reload_K2Node_WidgetAnimationEvent_0"
+      ]
+    },
+    "ProjectBoundary/Content/UI/Launcher/CrossHair/UMG_Launcher_LauncherLandDistance.uasset": {
+      "super": {
+        "ObjectName": "WidgetBlueprintGeneratedClass'UMG_Launcher_CrossHair_C'",
+        "ObjectPath": "ProjectBoundary/Content/UI/Launcher/UMG_Launcher_CrossHair.9"
+      },
+      "declaredFunctions": [
+        "Construct",
+        "ExecuteUbergraph_UMG_Launcher_LauncherLandDistance",
+        "GetDistanceText",
+        "Tick"
+      ]
+    },
+    "ProjectBoundary/Content/UI/Launcher/CrossHair/UMG_Missile_Count.uasset": {
+      "super": {
+        "ObjectName": "Class'PBUserWidget'",
+        "ObjectPath": "/Script/ProjectBoundary"
+      },
+      "declaredFunctions": [
+        "GiveAmmo",
+        "UseAmmo"
+      ]
+    },
+    "ProjectBoundary/Content/UI/Launcher/CrossHair/UMG_CrossHair_EMP.uasset": {
+      "super": {
+        "ObjectName": "WidgetBlueprintGeneratedClass'UMG_Launcher_CrossHair_C'",
+        "ObjectPath": "ProjectBoundary/Content/UI/Launcher/UMG_Launcher_CrossHair.9"
+      },
+      "declaredFunctions": [
+        "ExecuteUbergraph_UMG_CrossHair_EMP",
+        "NoAmmo",
+        "Tick"
+      ]
+    },
+    "ProjectBoundary/Content/UI/Launcher/CrossHair/UMG_CrossHair_Mine.uasset": {
+      "super": {
+        "ObjectName": "WidgetBlueprintGeneratedClass'UMG_Launcher_CrossHair_C'",
+        "ObjectPath": "ProjectBoundary/Content/UI/Launcher/UMG_Launcher_CrossHair.9"
+      },
+      "declaredFunctions": [
+        "Construct",
+        "ExecuteUbergraph_UMG_CrossHair_Mine",
+        "NoAmmo",
+        "ReloadLauncher",
+        "ReloadPlay",
+        "Tick",
+        "WidgetAnimationEvt_Reload_K2Node_WidgetAnimationEvent_0"
+      ]
+    },
+    "ProjectBoundary/Content/UI/Launcher/CrossHair/UMG_CrossHair_Sensor.uasset": {
+      "super": {
+        "ObjectName": "WidgetBlueprintGeneratedClass'UMG_Launcher_CrossHair_C'",
+        "ObjectPath": "ProjectBoundary/Content/UI/Launcher/UMG_Launcher_CrossHair.9"
+      },
+      "declaredFunctions": [
+        "Construct",
+        "ExecuteUbergraph_UMG_CrossHair_Sensor",
+        "NoAmmo",
+        "ReloadLauncher",
+        "ReloadPlay",
+        "Tick",
+        "WidgetAnimationEvt_Reload_K2Node_WidgetAnimationEvent_0"
+      ]
+    },
+    "ProjectBoundary/Content/UI/Launcher/CrossHair/UMG_CrossHair_Smoke.uasset": {
+      "super": {
+        "ObjectName": "WidgetBlueprintGeneratedClass'UMG_Launcher_CrossHair_C'",
+        "ObjectPath": "ProjectBoundary/Content/UI/Launcher/UMG_Launcher_CrossHair.9"
+      },
+      "declaredFunctions": [
+        "ExecuteUbergraph_UMG_CrossHair_Smoke",
+        "NoAmmo",
+        "Tick"
+      ]
+    }
+  },
+  "roleVariantScopes": {
+    "ProjectBoundary/Content/GameData/CSVConfig/Item/PAX/DT_CharacterDefinition_FixRole.uasset": {
+      "SPIDER": [
+        "SPIDER_EMP-INF",
+        "SPIDER_EVENT-SQUID-INF"
+      ],
+      "BILL": []
+    },
+    "ProjectBoundary/Content/GameData/CSVConfig/Item/Release/DT_CharacterDefinition_EarlyAccess.uasset": {
+      "PEACE": [
+        "PEACE_ATK-HE",
+        "PEACE_TAC-EMP"
+      ],
+      "PROBE": [
+        "PROBE_MISSILE-HIVE",
+        "PROBE_INFO-PROBE",
+        "PROBE_MISSILE-SPARROW",
+        "PROBE_TAC-EMP",
+        "PROBE_ATK-HE",
+        "PROBE_INFO-MOTION"
+      ],
+      "SNIPER": [
+        "SNIPER_TAC-EMP",
+        "SNIPER_SMK-TRI",
+        "SNIPER_INFO-SNAPSHOT",
+        "SNIPER_INFO-MOTION",
+        "SNIPER_ATK-HE"
+      ],
+      "FORT": [
+        "FORT_TAC-ADS",
+        "FORT_TAC-EMP",
+        "FORT_SMK-TRI",
+        "FORT_TAC-MINE",
+        "FORT_ATK-HE",
+        "FORT_ATK-40CANNON"
+      ],
+      "SPIKE": [
+        "SPIKE_TAC-IMPLUSE",
+        "SPIKE_TAC-EMP",
+        "SPIKE_SMK-SQUID"
+      ],
+      "FIXER": [
+        "FIXER_TAC-IMPLUSE",
+        "FIXER_TAC-EMP",
+        "FIXER_TAC-MED",
+        "FIXER_ATK-HE"
+      ]
+    },
+    "ProjectBoundary/Content/GameData/CSVConfig/Item/Release/DT_CharacterDefinition_Release.uasset": {
+      "2001001": [
+        "10001001",
+        "10004003",
+        "10004005",
+        "10001005",
+        "10004001",
+        "10003001",
+        "10005002",
+        "10005003",
+        "10004004"
+      ],
+      "2001002": [
+        "10002002",
+        "10005001",
+        "10002001",
+        "10004001",
+        "10003001"
+      ],
+      "2001003": [
+        "10001001",
+        "10004001",
+        "10003001"
+      ],
+      "2001004": [
+        "10001001",
+        "10004002",
+        "10001004",
+        "10001005"
+      ],
+      "2001005": [
+        "10001001"
+      ],
+      "2001006": [
+        "10001001",
+        "10005002",
+        "10004001",
+        "10003001"
+      ]
+    },
+    "ProjectBoundary/Content/GameData/CSVConfig/Item/Release/Hardcore/DT_CharacterDefinition_AI.uasset": {
+      "AI_PEACE": [
+        "PEACE_ATK-HE",
+        "PEACE_TAC-EMP"
+      ],
+      "AI_PROBE": [
+        "PROBE_MISSILE-HIVE",
+        "PROBE_INFO-PROBE",
+        "PROBE_MISSILE-SPARROW",
+        "PROBE_TAC-EMP",
+        "PROBE_ATK-HE",
+        "PROBE_INFO-MOTION"
+      ],
+      "AI_SNIPER": [
+        "SNIPER_TAC-EMP",
+        "SNIPER_SMK-TRI",
+        "SNIPER_INFO-SNAPSHOT",
+        "SNIPER_INFO-MOTION",
+        "SNIPER_ATK-HE"
+      ],
+      "AI_FORT": [
+        "FORT_TAC-ADS",
+        "FORT_TAC-EMP",
+        "FORT_SMK-TRI",
+        "FORT_TAC-MINE",
+        "FORT_ATK-HE",
+        "FORT_ATK-40CANNON"
+      ],
+      "AI_SPIKE": [
+        "SPIKE_TAC-IMPLUSE",
+        "SPIKE_TAC-EMP",
+        "SPIKE_SMK-SQUID"
+      ],
+      "AI_FIXER": [
+        "FIXER_TAC-IMPLUSE",
+        "FIXER_TAC-EMP",
+        "FIXER_TAC-MED",
+        "FIXER_ATK-HE"
+      ]
+    },
+    "ProjectBoundary/Content/GameData/CSVConfig/Item/Release/Hardcore/DT_CharacterDefinition_Hardcore_02.uasset": {
+      "SPIDER_HC": [
+        "FIXER_TAC-IMPLUSE",
+        "FIXER_TAC-EMP",
+        "FIXER_TAC-MED",
+        "FIXER_ATK-HE"
+      ],
+      "RECON-HC": [
+        "SNIPER_INFO-SNAPSHOT",
+        "PROBE_INFO-PROBE",
+        "PROBE_MISSILE-HIVE-DIRECT",
+        "PROBE_MISSILE-SPARROW"
+      ],
+      "ASSAULT-HC": [
+        "PEACE_ATK-HE",
+        "PEACE_TAC-EMP",
+        "PEACE_SMK-TRI",
+        "SPIKE_SMK-SQUID"
+      ],
+      "SUPPORT-HC": [
+        "FORT_TAC-ADS",
+        "FIXER_TAC-MED",
+        "FORT_MINIGUN-SHIELD",
+        "FORT_MISSILE-SHIELDHOVER"
+      ]
+    },
+    "ProjectBoundary/Content/GameData/CSVConfig/Item/PAX/DT_CharacterDefinition_PAX.uasset": {
+      "2001001": [
+        "10001001",
+        "10004001",
+        "10005002"
+      ],
+      "2001004": [
+        "10004004",
+        "10003001",
+        "10001003",
+        "10004005",
+        "10005001",
+        "10001005",
+        "TAC-MINE",
+        "ATK-BFG"
+      ],
+      "2001005": [
+        "10004003",
+        "TAC-EMP-DELAY",
+        "10005002",
+        "SMK-SQUID"
+      ]
+    },
+    "ProjectBoundary/Content/GameData/CSVConfig/Item/PAX/DT_CharacterDefinition_TTKtest.uasset": {
+      "2001001-TTK": [
+        "10001001",
+        "10004001",
+        "10005002"
+      ],
+      "2001004-TTK": [
+        "10004004",
+        "10003001",
+        "10001003",
+        "10004005",
+        "10005001",
+        "10001005",
+        "TAC-MINE",
+        "ATK-BFG",
+        "None"
+      ],
+      "2001005-TTK": [
+        "10004003",
+        "TAC-EMP-DELAY",
+        "10005002",
+        "SMK-SQUID"
+      ]
+    },
+    "ProjectBoundary/Content/GameData/CSVConfig/Item/Release/DT_CharacterDefinition_CloseTest0113.uasset": {
+      "PEACE": [
+        "PEACE_ATK-HE",
+        "PEACE_TAC-EMP"
+      ],
+      "SNIPER": [
+        "SNIPER_TAC-EMP",
+        "SNIPER_SMK-TRI",
+        "SNIPER_INFO-SNAPSHOT",
+        "SNIPER_INFO-MOTION",
+        "SNIPER_ATK-HE"
+      ],
+      "SPIKE": [
+        "SPIKE_TAC-IMPLUSE",
+        "SPIKE_TAC-EMP",
+        "SPIKE_SMK-SQUID"
+      ]
+    },
+    "ProjectBoundary/Content/GameData/CSVConfig/Item/Release/DT_CharacterDefinition_KOL.uasset": {
+      "PEACE": [
+        "PEACE_ATK-HE",
+        "PEACE_TAC-EMP"
+      ],
+      "PROBE": [
+        "PROBE_MISSILE-HIVE",
+        "PROBE_INFO-PROBE",
+        "PROBE_MISSILE-SPARROW",
+        "PROBE_TAC-EMP",
+        "PROBE_ATK-HE",
+        "PROBE_INFO-MOTION"
+      ],
+      "SNIPER": [
+        "SNIPER_TAC-EMP",
+        "SNIPER_SMK-TRI",
+        "SNIPER_INFO-SNAPSHOT",
+        "SNIPER_INFO-MOTION",
+        "SNIPER_ATK-HE"
+      ],
+      "FORT": [
+        "FORT_TAC-ADS",
+        "FORT_TAC-EMP",
+        "FORT_SMK-TRI",
+        "FORT_TAC-MINE",
+        "FORT_ATK-HE",
+        "FORT_ATK-40CANNON"
+      ],
+      "SPIKE": [
+        "SPIKE_TAC-IMPLUSE",
+        "SPIKE_TAC-EMP",
+        "SPIKE_SMK-SQUID"
+      ],
+      "FIXER": [
+        "FIXER_TAC-IMPLUSE",
+        "FIXER_TAC-EMP",
+        "FIXER_TAC-MED",
+        "FIXER_ATK-HE"
+      ]
+    },
+    "ProjectBoundary/Content/GameData/CSVConfig/Item/Release/DT_CharacterDefinition_Release_Launch.uasset": {
+      "PEACE": [
+        "PEACE_ATK-HE",
+        "PEACE_TAC-EMP",
+        "PEACE_INFO-SNAPSHOT",
+        "PEACE_SMK-TRI"
+      ],
+      "PROBE": [
+        "PROBE_MISSILE-HIVE",
+        "PROBE_INFO-PROBE",
+        "PROBE_MISSILE-SPARROW",
+        "PROBE_TAC-EMP",
+        "PROBE_ATK-HE-HIVEL",
+        "PROBE_INFO-SNAPSHOT"
+      ],
+      "SNIPER": [
+        "SNIPER_TAC-EMP",
+        "SNIPER_SMK-TRI",
+        "SNIPER_INFO-SNAPSHOT"
+      ],
+      "FORT": [
+        "FORT_TAC-ADS",
+        "FORT_TAC-EMP",
+        "FORT_SMK-TRI",
+        "FORT_TAC-MINE",
+        "FORT_ATK-BFG"
+      ],
+      "SPIKE": [
+        "SPIKE_TAC-IMPLUSE",
+        "SPIKE_TAC-EMP",
+        "SPIKE_SMK-SQUID"
+      ],
+      "FIXER": [
+        "FIXER_TAC-ADS",
+        "FIXER_TAC-EMP",
+        "FIXER_TAC-MED"
+      ]
+    }
+  },
+  "variantRows": {
+    "ProjectBoundary/Content/GameData/CSVConfig/Item/Release/DT_PodDefinition_Release.uasset": {
+      "ATK-HE": {
+        "class": "/Game/Blueprints/PackModules/Grenade/PBGrenadeLauncher_CQB_BP.PBGrenadeLauncher_CQB_BP_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      },
+      "ATK-40CANNON": {
+        "class": "/Game/Blueprints/PackModules/AutoCanon/PBAutoCanonLauncher_BP.PBAutoCanonLauncher_BP_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      },
+      "ATK-TRIDENT": {
+        "class": "/Game/Blueprints/PackModules/MiniGun/APBMiniGunLauncher_BP.APBMiniGunLauncher_BP_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      },
+      "ATK-HE-DRUM": {
+        "class": "/Game/Blueprints/PackModules/Grenade/PBGrenadeLauncher_Auto_BP.PBGrenadeLauncher_Auto_BP_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      },
+      "ATK-HE-HIVEL": {
+        "class": "/Game/Blueprints/PackModules/Grenade/PBGrenadeLauncher_Longrange_BP.PBGrenadeLauncher_Longrange_BP_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      },
+      "ATK-BFG": {
+        "class": "/Game/Blueprints/PackModules/Grenade/BP_PBGrenadeLauncher_Expel.BP_PBGrenadeLauncher_Expel_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      },
+      "MISSILE-SPARROW": {
+        "class": "/Game/Blueprints/PackModules/Missile/APBHomingMissileLauncher_BP.APBHomingMissileLauncher_BP_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      },
+      "MISSILE-HIVE": {
+        "class": "/Game/Blueprints/PackModules/Missile/APBAutoMissileLauncher_BP.APBAutoMissileLauncher_BP_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      },
+      "SMK-TRI": {
+        "class": "/Game/Blueprints/PackModules/SmokeGrenade/APBSmokeGrenadeLauncher_BP.APBSmokeGrenadeLauncher_BP_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      },
+      "SMK-SQUID": {
+        "class": "/Game/Blueprints/PackModules/SmokeGrenade/APBSmokeGrenadeLauncher_BP_Squid.APBSmokeGrenadeLauncher_BP_Squid_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      },
+      "TAC-EMP": {
+        "class": "/Game/Blueprints/PackModules/EMP/PBEMPGrenadeLauncher_BP.PBEMPGrenadeLauncher_BP_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      },
+      "TAC-EMP-DELAY": {
+        "class": "/Game/Blueprints/PackModules/EMP/PBEMPGrenadeLauncher_BP_Delay.PBEMPGrenadeLauncher_BP_Delay_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      },
+      "TAC-MINE": {
+        "class": "/Game/Blueprints/PackModules/Grenade/PBTrapGrenadeLauncher_BP.PBTrapGrenadeLauncher_BP_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      },
+      "TAC-EMP-DRUM": {
+        "class": "/Game/Blueprints/PackModules/EMP/PBEMPGrenadeLauncher_Auto_BP.PBEMPGrenadeLauncher_Auto_BP_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      },
+      "TAC-IMPLUSE": {
+        "class": "/Game/Blueprints/PackModules/ImpulseGrenade/BP_PBImpulseGrenadeLauncher.BP_PBImpulseGrenadeLauncher_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      },
+      "TAC-ADS": {
+        "class": "/Game/Blueprints/PackModules/ADS/PBDeployableADSLauncher_BP.PBDeployableADSLauncher_BP_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      },
+      "TAC-MED": {
+        "class": "/Game/Blueprints/PackModules/MED/PBMedStationLauncher_BP.PBMedStationLauncher_BP_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      },
+      "INFO-PROBE": {
+        "class": "/Game/Blueprints/PackModules/Sensor/PBSensorLauncher_BP.PBSensorLauncher_BP_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      },
+      "INFO-SNAPSHOT": {
+        "class": "/Game/Blueprints/PackModules/SnapshotGrenade/PBSnapshotGrenadeLauncher_BP.PBSnapshotGrenadeLauncher_BP_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      },
+      "INFO-MOTION": {
+        "class": "/Game/Blueprints/PackModules/Sensor/PBMotionSensorLauncher_BP.PBMotionSensorLauncher_BP_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      }
+    },
+    "ProjectBoundary/Content/GameData/CSVConfig/Item/Release/Events/DT_PodDefinition_Events.uasset": {
+      "LotsNades": {
+        "class": "/Game/Blueprints/PackModules/Grenade/Meme/BP_PBGrenadeLauncher_MADNESS.BP_PBGrenadeLauncher_MADNESS_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      },
+      "EMP-INF": {
+        "class": "/Game/Blueprints/PackModules/EMP/BP_PBEMPGrenadeLauncher_BP_Delay_INF.BP_PBEMPGrenadeLauncher_BP_Delay_INF_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      },
+      "IMPULSE-INF": {
+        "class": "/Game/Blueprints/PackModules/ImpulseGrenade/BP_PBImpulseGrenadeLauncher_INF.BP_PBImpulseGrenadeLauncher_INF_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      },
+      "EVENT-SQUID-INF": {
+        "class": "/Game/Blueprints/PackModules/SmokeGrenade/BP_APBSmokeGrenadeLauncher_BP_Squid_INF.BP_APBSmokeGrenadeLauncher_BP_Squid_INF_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      }
+    },
+    "ProjectBoundary/Content/GameData/CSVConfig/Item/Release/Hardcore/DT_PodDefinition_Hardcore.uasset": {
+      "MISSILE-HIVE-DIRECT": {
+        "class": "/Game/Blueprints/PackModules/Missile/APBAutoMissileLauncher_Direct_BP.APBAutoMissileLauncher_Direct_BP_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      },
+      "MISSILE-SHIELDHOVER": {
+        "class": "/Game/Blueprints/PackModules/ShieldHover/PBShiledHoverLauncher_BP.PBShiledHoverLauncher_BP_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      },
+      "MINIGUN-SHIELD": {
+        "class": "/Game/Blueprints/PackModules/MiniGun/BP_PBMiniGunWithShieldLauncher.BP_PBMiniGunWithShieldLauncher_C",
+        "keys": [
+          "Description",
+          "Quota",
+          "PodClass"
+        ]
+      }
+    }
+  }
+}

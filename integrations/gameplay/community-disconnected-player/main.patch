@@ -1,0 +1,80 @@
+--- a/ProjectReboundMainDLL/Hooking/ServerLogicHooks.cpp
++++ b/ProjectReboundMainDLL/Hooking/ServerLogicHooks.cpp
+@@ -45,7 +45,8 @@
+ 
+     for (UNetConnection* Connection : NetDriver->ClientConnections)
+     {
+-        if (!Connection || !Connection->OwningActor)
++        if (!Connection || !Connection->OwningActor ||
++            (Connection->PlayerController && Connection->PlayerController->Player != Connection))
+             continue;
+ 
+         Connection->ViewTarget = Connection->PlayerController
+--- a/ProjectReboundMainDLL/Server/Replication.cpp
++++ b/ProjectReboundMainDLL/Server/Replication.cpp
+@@ -105,6 +105,10 @@
+ 	}
+ 
+ 	for (auto const& PlayerControllerInfo : PlayerControllers) {
++        auto* pc = static_cast<SDK::APlayerController*>(PlayerControllerInfo.PlayerController);
++        if (!pc || !PlayerControllerInfo.OwningConnection ||
++            static_cast<void*>(pc->Player) != static_cast<void*>(PlayerControllerInfo.OwningConnection))
++            continue;
+ 		this->CallPreReplicationFuncPtr(PlayerControllerInfo.PlayerController, NetDriver);
+ 
+ 		this->SendClientAdjustmentFuncPtr(PlayerControllerInfo.PlayerController);
+@@ -145,6 +149,7 @@
+ 				}
+ 			}
+ 
++			if (!Channel) continue;
+ 			if (!(*(unsigned int*)((__int64)Channel + 0x88) & 0x2)) {
+ 				*(unsigned int*)((__int64)Channel + 0x88) |= 2;
+ 			}
+--- a/ProjectReboundMainDLL/Logging/LogManager.cpp
++++ b/ProjectReboundMainDLL/Logging/LogManager.cpp
+@@ -103,13 +103,20 @@
+ 
+     void PushEntry(const std::string &msg, bool immediate)
+     {
+-        EnsureLogThread();
+         {
+             std::lock_guard<std::mutex> lock(g_QueueMutex);
++            EnsureLogThread();
+             g_Queue.push_back({msg, immediate});
+         }
+         g_QueueCv.notify_one();
+     }
++}
++
++// Windows 进程退出时其他线程均已停止。这里只释放线程句柄，不能在加载器锁内等待工作线程。
++void ReleaseLogWorkerOnProcessExit()
++{
++    if (g_Worker.joinable())
++        g_Worker.detach();
+ }
+ 
+ // ---- timestamp helper ------------------------------------------------------
+--- a/ProjectReboundMainDLL/Logging/LogManager.h
++++ b/ProjectReboundMainDLL/Logging/LogManager.h
+@@ -14,6 +14,7 @@
+ extern std::ofstream clientLogFile;
+ 
+ std::string CurrentTimestamp();
++void ReleaseLogWorkerOnProcessExit();
+ void ServerLog(const std::string &msg);
+ void ServerDebugLog(const std::string &msg);
+ void ClientLog(const std::string &msg);
+--- a/ProjectReboundMainDLL/Core/Entry.cpp
++++ b/ProjectReboundMainDLL/Core/Entry.cpp
+@@ -95,6 +95,10 @@
+         DisableThreadLibraryCalls(hModule);
+         std::thread t(MainThread);
+         t.detach();
++    }
++    else if (ul_reason_for_call == DLL_PROCESS_DETACH && lpReserved != nullptr)
++    {
++        ReleaseLogWorkerOnProcessExit();
+     }
+ 
+     return TRUE;

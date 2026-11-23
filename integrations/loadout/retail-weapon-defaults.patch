@@ -1,0 +1,27 @@
+--- a/game/loadoutStore.js
++++ b/game/loadoutStore.js
+@@ -33,1 +33,20 @@
++// 来自同版 PBWeaponDefaultConfig.EquippedPartIDMap，经出厂属性与受支持的可选表逐槽比较后生成。
++const RETAIL_WEAPON_DEFAULT_OVERRIDES = {
++    "EVENT-TP82": {"MuzzleScope":"None"},
++    "GSW-DMR": {"SightOpticalScope":"GSW-DMR_SGT-REFLEX-3X"},
++    "GSW-DMR-HC": {"SightOpticalScope":"GSW-DMR_SGT-REFLEX-3X"},
++    "GSW-PSR-C": {"SightOpticalScope":"GSW-PSR-C_SGT-IRON-RING"},
++    "GSW-PSR-C-HC": {"SightOpticalScope":"GSW-PSR-C_SGT-IRON-RING"},
++    "GSW-SG": {"BarrelScope":"GSW-SG_BRL-SG-MID"},
++    "GSW-SG-HC": {"BarrelScope":"GSW-SG_BRL-SG-MID"},
++    "RU-APS": {"ReceiverUpperScope":"RU-APS_FRM-APS-SEMI"},
++    "RU-APS-HC": {"ReceiverUpperScope":"RU-APS_FRM-APS-SEMI"},
++    "RU-KP9": {"BarrelScope":"RU-KP9_BRL-KP9-LONG","GripScope":"RU-KP9_GRP-KP9-L"},
++    "RU-KP9-HC": {"BarrelScope":"RU-KP9_BRL-KP9-LONG","GripScope":"RU-KP9_GRP-KP9-L"},
++    "RU-PTRD": {"BarrelScope":"RU-PTRD_BRL-PTRD-STD"},
++    "RU-PTRD-HC": {"BarrelScope":"RU-PTRD_BRL-PTRD-STD"},
++    "RU-TP82": {"MuzzleScope":"None"},
++    "RU-TP82-HC": {"MuzzleScope":"None"},
++};
++
+ const WEAPON_ARCHIVE_SLOT_SCOPES = [
+@@ -498,1 +498,2 @@
+-                const partId = this.firstFromSet(weaponDef.slotScopes[scopeName], 0);
++                const partId = RETAIL_WEAPON_DEFAULT_OVERRIDES[baseWeaponId]?.[scopeName]
++                    ?? this.firstFromSet(weaponDef.slotScopes[scopeName], 0);

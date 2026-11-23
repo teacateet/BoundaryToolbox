@@ -1,0 +1,41 @@
+syntax = "proto3";
+package fixture;
+
+// 原版 GetPlayerArchiveV2 的读方字段来自 2026-11-14 交接中的 native-assets.proto。
+message Suit {
+  string SkinItem = 1;
+  string PaintItem = 2;
+}
+message Skin {
+  Suit SuitData = 1;
+  string SpecialSlot = 2;
+  string Ornament = 3;
+}
+message Part {
+  int32 SlotId = 1;
+  string PartId = 2;
+  Skin Skin = 3;
+}
+message Weapon {
+  string WeaponId = 1;
+  repeated Part Parts = 2;
+  Skin Skin = 3;
+}
+message Weapons {
+  repeated Weapon Weapons = 1;
+}
+message Role {
+  string RoleID = 1;
+  string LeftPylon = 2;
+  string RightPylon = 3;
+  string MobilityModule = 4;
+  string MeleeWeapon = 5;
+  string PrimaryWeapon = 6;
+  string SecondWeapon = 7;
+  Skin SkinConfig = 8;
+  Weapons WeaponConfig = 9;
+}
+message Archive {
+  repeated Role PlayerRoleDatas = 1;
+  int32 PlayerLevel = 2;
+}

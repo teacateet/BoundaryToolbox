@@ -1,0 +1,28 @@
+{
+  "observerSha256": "199AA787E50B9C34078366396B9EF3593CA726999E879B458A86047F5E9C3452",
+  "testedWith": "MSVC x64 C++20",
+  "sourceComparisons": [
+    {
+      "upstream": "b3d7f83f3789111d4a460b9662a8dc4e06e6a934",
+      "layout": "v084",
+      "unit": "Payload/Utility/UIFix.cpp",
+      "reticleAndRadarSourceSha256": "AC98A65096C9BE8DFC4863353E2EF2817B4E2D47ABB9AD7453B3A5ECA37E2838",
+      "beforeCompiled": true,
+      "afterCompiled": true
+    },
+    {
+      "upstream": "74c68ac3e6007c36248c442a281c2b7b831cc53a",
+      "layout": "split",
+      "unit": "ProjectReboundMainDLL/Client/UIShake.cpp",
+      "reticleAndRadarSourceSha256": "1C3EFF4A0678024C3290527797A83ABCAC11755510933803F14E06C373C112B7",
+      "beforeCompiled": true,
+      "afterCompiled": true
+    }
+  ],
+  "addedReadSymbolsBothLayouts": ["GetKeysFromActionName", "WasInputKeyJustPressed", "WasInputKeyJustReleased", "GetCurrentMobilityModule", "GetIsAllowedCatch", "GetHasCatchingCooledDown"],
+  "newLaunchOrResetCall": false,
+  "productionObserverRuntimeFixtureChecks": 27,
+  "playerLogWrittenAndCompared": true,
+  "retailSecondPressCaptured": false,
+  "gameplayRepairVerified": false
+}

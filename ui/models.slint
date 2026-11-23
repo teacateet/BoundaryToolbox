@@ -1,0 +1,49 @@
+// Rust 和 Slint 之间共享的轻量行模型。
+//
+// 这些结构只描述 UI 展示需要的字段，不包含业务状态。复杂对象先在 Rust 侧转换为
+// 行模型，再交给 Slint ListView 渲染，避免把业务判断写进 .slint 文件。
+export struct PortRow {
+    label: string,
+    detail: string,
+    protocol: string,
+    port: int,
+    pid: int,
+    occupied: bool,
+    expected: bool,
+}
+
+export struct DriveRow {
+    label: string,
+    checked: bool,
+}
+
+export struct ServerRow {
+    name: string,
+    address: string,
+    meta: string,
+    state: string,
+    players: string,
+    active: bool,
+    joinable: bool,
+}
+
+export struct ProxyRow {
+    url: string,
+    latency: string,
+    state: int,
+    current: bool,
+}
+
+export struct VntPeerRow {
+    name: string,
+    address: string,
+    detail: string,
+    online: bool,
+}
+
+export struct VntServerRow {
+    name: string,
+    address: string,
+    detail: string,
+    online: bool,
+}

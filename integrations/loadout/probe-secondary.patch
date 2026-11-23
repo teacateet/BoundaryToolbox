@@ -1,0 +1,8 @@
+--- a/game/loadoutStore.js
++++ b/game/loadoutStore.js
+@@ -723,1 +723,4 @@
+-            secondaryWeapon: this.firstFromSet(role.weaponScope, 1),
++            // DA_CharacterDefault_PROBE_EA 的副槽是 FOP，可选武器的排列不是默认装备。
++            secondaryWeapon: roleId.toUpperCase() === "PROBE" && role.weaponScope.has("PROBE_GSW-FOP")
++                ? "PROBE_GSW-FOP"
++                : this.firstFromSet(role.weaponScope, 1),

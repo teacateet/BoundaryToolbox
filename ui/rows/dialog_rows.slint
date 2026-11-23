@@ -1,0 +1,181 @@
+import { Txt } from "../components/foundation.slint";
+import { I18n } from "../i18n.slint";
+
+// 自定义全盘扫描弹窗中的单个盘符行。
+export component DriveLine inherits Rectangle {
+    in property <string> label;
+    in property <bool> checked: false;
+    callback toggled();
+
+    height: 58px;
+    background: #00000000;
+
+    card := Rectangle {
+        y: 4px;
+        width: parent.width;
+        height: 50px;
+        border-radius: 15px;
+        border-width: 1px;
+        border-color: checked ? #9ef0b5 : (touch.has-hover ? #54617a : #344056);
+        background: checked ? #103821 : (touch.has-hover ? #161f2a : #0f131a);
+
+        animate background { duration: 120ms; }
+        animate border-color { duration: 120ms; }
+
+        HorizontalLayout {
+            padding-left: 14px;
+            padding-right: 14px;
+            spacing: 12px;
+
+            Rectangle {
+                width: 22px;
+                background: #00000000;
+
+                Rectangle {
+                    width: 22px;
+                    height: 22px;
+                    y: (parent.height - self.height) / 2;
+                    border-radius: 7px;
+                    border-width: 2px;
+                    border-color: checked ? #9ef0b5 : #54617a;
+                    background: checked ? #9ef0b5 : #00000000;
+                }
+            }
+
+            VerticalLayout {
+                alignment: center;
+                spacing: 2px;
+                horizontal-stretch: 1;
+
+                Txt {
+                    text: label;
+                    color: #eef4fb;
+                    font-size: 15px;
+                    font-weight: 700;
+                    horizontal-stretch: 1;
+                }
+
+                Txt {
+                    text: checked ? I18n.tr("已选择", "Selected", "選択済み") : I18n.tr("未选择", "Not selected", "未選択");
+                    color: checked ? #9ef0b5 : #95a3b8;
+                    font-size: 11px;
+                    font-weight: 500;
+                    horizontal-stretch: 1;
+                }
+            }
+        }
+    }
+
+    touch := TouchArea {
+        clicked => { parent.toggled(); }
+    }
+}
+
+// GitHub 下载代理选择弹窗中的节点行。
+export component ProxyLine inherits Rectangle {
+    in property <string> url;
+    in property <string> latency;
+    in property <int> state: 0;
+    in property <bool> current: false;
+    callback selected();
+
+    property <bool> auto-select: url == "__boundary_toolbox_auto_select_proxy__";
+    property <bool> direct: url == "";
+    property <string> display-url: auto-select
+        ? I18n.tr("自动选择", "Auto Select", "自動選択")
+        : (direct ? I18n.tr("直连 GitHub", "Direct GitHub", "GitHub へ直接接続") : url);
+    property <string> display-sub: auto-select
+        ? I18n.tr("自动测速并使用最快节点", "Test and use the fastest node", "測定して最速ノードを使用")
+        : (direct
+        ? I18n.tr("不使用下载代理", "Do not use a download proxy", "ダウンロードプロキシを使いません")
+        : status-text);
+    property <brush> accent: auto-select ? #9be7c6 : (current ? #9ef0b5 : (state == 1 ? #a8d8ff : (state == 2 ? #ffb4ab : #f6c76d)));
+    property <brush> fill: current ? #0c2b1b : (touch.has-hover ? #161f2a : #0f131a);
+    property <string> status-text: current
+        ? I18n.tr("当前使用", "Current", "使用中")
+        : (state == 1
+            ? I18n.tr("可用", "Available", "利用可能")
+            : (state == 2 ? I18n.tr("连接失败", "Failed", "接続失敗") : I18n.tr("等待测速", "Waiting", "待機中")));
+
+    height: 68px;
+    background: #00000000;
+
+    Rectangle {
+        width: parent.width;
+        height: 62px;
+        y: 3px;
+        border-radius: 15px;
+        border-width: 1px;
+        border-color: current ? #9ef0b5 : (touch.has-hover ? accent : #344056);
+        background: fill;
+
+        animate background { duration: 120ms; }
+        animate border-color { duration: 120ms; }
+
+        HorizontalLayout {
+            padding-left: 14px;
+            padding-right: 14px;
+            spacing: 12px;
+
+            Rectangle {
+                width: 6px;
+                background: #00000000;
+
+                Rectangle {
+                    width: parent.width;
+                    height: 34px;
+                    y: (parent.height - self.height) / 2;
+                    border-radius: 3px;
+                    background: accent;
+                }
+            }
+
+            VerticalLayout {
+                alignment: center;
+                spacing: 3px;
+                horizontal-stretch: 1;
+
+                Txt {
+                    text: display-url;
+                    color: #eef4fb;
+                    font-size: 13px;
+                    font-weight: 800;
+                    horizontal-stretch: 1;
+                    wrap: no-wrap;
+                }
+
+                Txt {
+                    text: display-sub;
+                    color: current ? #b9f6c9 : #95a3b8;
+                    font-size: 11px;
+                    font-weight: 600;
+                    horizontal-stretch: 1;
+                    wrap: no-wrap;
+                }
+            }
+
+            Rectangle {
+                width: 94px;
+                height: 30px;
+                y: (parent.height - self.height) / 2;
+                border-radius: 10px;
+                border-width: 1px;
+                border-color: accent;
+                background: current ? #163b25 : #101721;
+
+                Txt {
+                    text: latency;
+                    color: accent;
+                    font-size: 12px;
+                    font-weight: 800;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+        }
+    }
+
+    touch := TouchArea {
+        clicked => { root.selected(); }
+    }
+}

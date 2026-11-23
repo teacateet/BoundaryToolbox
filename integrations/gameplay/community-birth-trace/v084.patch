@@ -1,0 +1,22 @@
+diff --git a/Payload/Hooks/Hooks.cpp b/Payload/Hooks/Hooks.cpp
+--- a/Payload/Hooks/Hooks.cpp
++++ b/Payload/Hooks/Hooks.cpp
+@@ -15,2 +15,3 @@
+ #include "../SDK/Engine_parameters.hpp"
++#include "../BrtInventory/BirthTrace.hpp"
+ #include "../SDK/ProjectBoundary_parameters.hpp"
+@@ -507,3 +508,3 @@
+     const FCachedProcessEventInfo& EventInfo = GetProcessEventInfo(Function);
+-
++    brt::birth_trace::Scope birthTrace(Object, EventInfo.FullName, Parms);
+     if (EventInfo.ServerKind == EServerProcessEventKind::MatchHasEnded)
+@@ -559,3 +561,4 @@
+             // Execute original function first
+             ProcessEvent.call(Object, Function, Parms);
++            birthTrace.OriginalReturned();
+             // Advance LateJoin state to RoleConfirmed
+@@ -605,2 +608,3 @@
+-    return ProcessEvent.call(Object, Function, Parms);
++    ProcessEvent.call(Object, Function, Parms);
++    birthTrace.OriginalReturned();
+ }

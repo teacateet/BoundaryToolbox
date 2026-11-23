@@ -1,0 +1,153 @@
+{
+  "checkedAt": "2026-11-23T04:01:25.682Z",
+  "installed": {
+    "steamBuild": "14530908",
+    "communityPayloadSha256": "acaaaf17837ac418cf1350c586ca7c06c8d62f04348e0a9dc3e4d6c77d43e455"
+  },
+  "upstream": {
+    "release": "b3d7f83f3789111d4a460b9662a8dc4e06e6a934",
+    "main": "74c68ac3e6007c36248c442a281c2b7b831cc53a"
+  },
+  "realBusinessBuilds": [
+    {
+      "version": "v084",
+      "variant": "base",
+      "tick": "ServerLogic",
+      "login": "OwnerLogin",
+      "compile": "pass",
+      "grappleMutationRefs": 0
+    },
+    {
+      "version": "v084",
+      "variant": "next",
+      "tick": "ServerLogic",
+      "login": "OwnerLogin",
+      "compile": "pass",
+      "grappleMutationRefs": 0
+    },
+    {
+      "version": "main",
+      "variant": "base",
+      "tick": "RoundManager",
+      "login": "OwnerLogin",
+      "compile": "pass",
+      "grappleMutationRefs": 0
+    },
+    {
+      "version": "main",
+      "variant": "next",
+      "tick": "RoundManager",
+      "login": "OwnerLogin",
+      "compile": "pass",
+      "grappleMutationRefs": 0
+    }
+  ],
+  "actualTranslationUnits": 8,
+  "linked": [
+    {
+      "version": "v084",
+      "retainedEntries": [
+        "BindVerified",
+        "Tick"
+      ],
+      "realSdkSources": [
+        "Basic.cpp",
+        "CoreUObject_functions.cpp",
+        "Engine_functions.cpp",
+        "ProjectBoundary_functions.cpp"
+      ],
+      "linkedProgramExit": 0
+    },
+    {
+      "version": "main",
+      "retainedEntries": [
+        "BindVerified",
+        "Tick"
+      ],
+      "realSdkSources": [
+        "Basic.cpp",
+        "CoreUObject_functions.cpp",
+        "Engine_functions.cpp",
+        "ProjectBoundary_functions.cpp"
+      ],
+      "linkedProgramExit": 0
+    }
+  ],
+  "authorizedRoomJournal": "Formal BRT roomJournal accepted every fixture row and rejected malformed, private and out-of-range rows.",
+  "controlledGameStateFixture": {
+    "captureSha256": "55503906a7270eca8d51923775f4481ab66ad8c7e07a19048d76bf0d3333e246",
+    "readOnly": true,
+    "observations": [
+      {
+        "owner": 1,
+        "life": 1,
+        "slot": 1,
+        "observedAnchorLocksMs": [
+          1500,
+          11500
+        ],
+        "coolingBeganMs": [
+          2000
+        ],
+        "coolingEndedMs": [
+          10000
+        ],
+        "closedBy": "slot-end"
+      },
+      {
+        "owner": 1,
+        "life": 1,
+        "slot": 2,
+        "observedAnchorLocksMs": [],
+        "coolingBeganMs": [],
+        "coolingEndedMs": [],
+        "closedBy": "life-end"
+      },
+      {
+        "owner": 1,
+        "life": 2,
+        "slot": 1,
+        "observedAnchorLocksMs": [],
+        "coolingBeganMs": [],
+        "coolingEndedMs": [],
+        "closedBy": "slot-end"
+      },
+      {
+        "owner": 1,
+        "life": 2,
+        "slot": 2,
+        "observedAnchorLocksMs": [],
+        "coolingBeganMs": [],
+        "coolingEndedMs": [],
+        "closedBy": "life-end"
+      },
+      {
+        "owner": 1,
+        "life": 3,
+        "slot": 1,
+        "observedAnchorLocksMs": [],
+        "coolingBeganMs": [],
+        "coolingEndedMs": [],
+        "closedBy": "life-end"
+      }
+    ]
+  },
+  "historicalRetail": {
+    "assetHeadersChecked": 30757,
+    "roomLogCount": 6,
+    "starts": 6,
+    "namedGrappleEvents": 0,
+    "recordedNetworkTraces": 0,
+    "nativeCooldownSeconds": 8,
+    "firstPullSeen": true,
+    "sameLifeSecondManualInput": "unobserved",
+    "sameLifeSecondPull": "unverified"
+  },
+  "artifacts": {
+    "Observer.hpp": "27be2a84df7def549eca8f2500bbf202bbde72b761e8a56006d4e434410a1b4a",
+    "Timeline.hpp": "ec089d6b4a4f9cae2d3bb70fa3a881221ca83a79f445832161d0889bf5d82285",
+    "v084-community.patch": "5921ea80150bc2520b0b6ae62967c99a9caf5b95e02858259cb6042019d3597c",
+    "main-community.patch": "0be0a47644b0124ab3092f53a595ba7b594558fd853798378b59b0dbd8919877",
+    "toolbox-journal.patch": "cd586c9d5af9952295d6b09d005d7786ad1209264e649149f5408b8c77e48bd4"
+  }
+}

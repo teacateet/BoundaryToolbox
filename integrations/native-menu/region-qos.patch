@@ -1,0 +1,22 @@
+diff --git a/index.js b/index.js
+--- a/index.js
++++ b/index.js
+@@ -1024,3 +1024,6 @@
+ matchmakingUDPServer.on("message", (message, info) => {
+-  if(message[0] == 0x59){
++  if (message[0] === 0x59 && message[1] === 0 && message[2] >= 2) {
++    // QoS v0: title length includes its length byte, then sequence, ID and timestamp follow.
++    const echoOffset = 2 + message[2];
++    if (message.length < echoOffset + 11 || message.length > 1500) return;
+     console.log("[MM] Recieved a new QoS message, echoing!");
+@@ -1028,8 +1031,3 @@
+-    let header = Buffer.alloc(3);
+-
+-    header[0] = 0x95;
+-    header[1] = 0x00;
+-
+-    const resp = Buffer.concat([header, message.subarray(11)]);
++    const resp = Buffer.concat([Buffer.from([0x95, 0]), message.subarray(echoOffset, echoOffset + 11)]);
+-
++
+     matchmakingUDPServer.send(resp, info.port, info.address, (error, bytesSend) => {

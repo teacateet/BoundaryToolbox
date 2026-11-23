@@ -1,0 +1,41 @@
+{
+  "appliedOn": [
+    "PASS v084 original + inventory + birth + grapple + reconnect patch at real login",
+    "PASS main original + inventory + birth + grapple + reconnect patch at real login"
+  ],
+  "compiled": [
+    "PASS pending recovery, current owner, replay, active old transport, different live PC and genuine disconnect",
+    "PASS v084 real OnPostLogin, native PC and transport identity, saved menu, native six preorders and receipt",
+    "PASS main real OnPostLogin, native PC and transport identity, saved menu, native six preorders and receipt"
+  ],
+  "runs": [
+    {
+      "variant": "baseline",
+      "firstRoles": 6,
+      "reconnectInSameRoom": 409
+    },
+    {
+      "variant": "formal",
+      "firstAndRetrySameSnapshot": true,
+      "replacedConnectedController": false,
+      "roles": 6,
+      "archiveMatchedSlots": 36,
+      "firstLeft": "PROBE_MISSILE-HIVE",
+      "reconnectedLeft": "PROBE_MISSILE-SPARROW",
+      "parallelBirths": 5,
+      "lateFirstReadRejected": true,
+      "stalePredecessorRejected": true,
+      "acksIdempotent": true,
+      "connectionHarness": {
+        "sameController": true,
+        "oldControllerBlocksReplacement": true,
+        "detachedTransportAllowsReconnect": true,
+        "overlappingLoginRecovered": true,
+        "selectedPendingPlayerPreserved": true,
+        "recycledObjectGeneration": true,
+        "rows": 6
+      },
+      "retailReconnectObserved": false
+    }
+  ]
+}

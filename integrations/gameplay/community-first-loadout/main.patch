@@ -1,0 +1,105 @@
+diff --git a/ProjectReboundMainDLL/Core/GameOffsets.h b/ProjectReboundMainDLL/Core/GameOffsets.h
+index e710651..6f5e46b 100644
+--- a/ProjectReboundMainDLL/Core/GameOffsets.h
++++ b/ProjectReboundMainDLL/Core/GameOffsets.h
+@@ -52,6 +52,7 @@ namespace GameOffsets
+         constexpr uintptr_t ActorNeedsLoad = 0x3124E70;
+         constexpr uintptr_t OnFireWeapon = 0x1610500;
+         constexpr uintptr_t PostLogin = 0x32903B0;
++        constexpr uintptr_t BuildCharacterLoadout = 0x15851A0;
+         constexpr uintptr_t IsDedicatedServer = 0x33266F0;
+         constexpr uintptr_t IsServer = 0x3326C60;
+         constexpr uintptr_t IsStandalone = 0x3326CE0;
+diff --git a/ProjectReboundMainDLL/Hooking/HookCore.cpp b/ProjectReboundMainDLL/Hooking/HookCore.cpp
+index e6a58d0..566b2a0 100644
+--- a/ProjectReboundMainDLL/Hooking/HookCore.cpp
++++ b/ProjectReboundMainDLL/Hooking/HookCore.cpp
+@@ -21,6 +21,7 @@ SafetyHookInline NotifyActorDestroyed = {};
+ SafetyHookInline NotifyAcceptingConnection = {};
+ SafetyHookInline NotifyControlMessage = {};
+ SafetyHookInline OnFireWeaponHook;
++SafetyHookInline BrtBuildLoadoutHook;
+ SafetyHookInline ClientDeathCrash;
+ SafetyHookInline ObjectNeedsLoad;
+ SafetyHookInline ActorNeedsLoad;
+@@ -190,6 +191,7 @@ bool NotifyActorDestroyedHook(SDK::UWorld* World, SDK::AActor* Actor, bool SomeS
+ __int64 NotifyAcceptingConnectionHook(SDK::UObject* obj);
+ char NotifyControlMessageHook(unsigned __int64 ScuffedShit, __int64 a2, uint8_t a3, __int64 a4);
+ void* OnFireWeapon(SDK::APBWeapon* Weapon);
++void BrtBuildLoadout(SDK::APBCharacter* Character, void* Loadout);
+ bool IsDedicatedServer(void* WorldContextOrSomething);
+ bool IsServer(void* WorldContextOrSomething);
+ bool IsStandalone(void* WorldContextOrSomething);
+@@ -213,6 +215,7 @@ void InitServerHooks()
+         { "ActorNeedsLoad", &ActorNeedsLoad, GameOffsets::Hook::ActorNeedsLoad, reinterpret_cast<void*>(ActorNeedsLoadHook) },
+         { "OnFireWeapon", &OnFireWeaponHook, GameOffsets::Hook::OnFireWeapon, reinterpret_cast<void*>(OnFireWeapon) },
+         { "PostLogin", &PostLoginHook, GameOffsets::Hook::PostLogin, reinterpret_cast<void*>(PostLogin) },
++        { "BuildCharacterLoadout", &BrtBuildLoadoutHook, GameOffsets::Hook::BuildCharacterLoadout, reinterpret_cast<void*>(BrtBuildLoadout) },
+         { "IsDedicatedServer", &IsDedicatedServerHook, GameOffsets::Hook::IsDedicatedServer, reinterpret_cast<void*>(IsDedicatedServer) },
+         { "IsServer", &IsServerHook, GameOffsets::Hook::IsServer, reinterpret_cast<void*>(IsServer) },
+         { "IsStandalone", &IsStandaloneHook, GameOffsets::Hook::IsStandalone, reinterpret_cast<void*>(IsStandalone) },
+diff --git a/ProjectReboundMainDLL/Hooking/HookCore.h b/ProjectReboundMainDLL/Hooking/HookCore.h
+index bf21a29..39450be 100644
+--- a/ProjectReboundMainDLL/Hooking/HookCore.h
++++ b/ProjectReboundMainDLL/Hooking/HookCore.h
+@@ -21,6 +21,7 @@ extern SafetyHookInline NotifyActorDestroyed;
+ extern SafetyHookInline NotifyAcceptingConnection;
+ extern SafetyHookInline NotifyControlMessage;
+ extern SafetyHookInline OnFireWeaponHook;
++extern SafetyHookInline BrtBuildLoadoutHook;
+ extern SafetyHookInline ClientDeathCrash;
+ extern SafetyHookInline ObjectNeedsLoad;
+ extern SafetyHookInline ActorNeedsLoad;
+diff --git a/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp b/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp
+index 8e310f8..4c029d7 100644
+--- a/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp
++++ b/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp
+@@ -143,6 +143,21 @@ void ProcessEventHook(UObject *Object, UFunction *Function, void *Parms)
+     birthTrace.OriginalReturned();
+ }
+ 
++// ======================================================
++//  BuildCharacterLoadout — 同一角色只发一次装备
++// ======================================================
++
++// 原生在角色被占有时按配装生成武器、挂载、机动和近战，且不清理旧件。回合倒计时会
++// 对开赛时已出生的同一角色再占有一次，首命因此带着两套装备，后一套的机动装备没有归属。
++void BrtBuildLoadout(APBCharacter *Character, void *Loadout)
++{
++    if (Character && (Character->Inventory.Num() > 0 || Character->CurrentMobilityModule ||
++                      Character->CurrentLeftLauncher || Character->CurrentRightLauncher ||
++                      Character->CurrentMeleeWeapon))
++        return;
++    BrtBuildLoadoutHook.call<void>(Character, Loadout);
++}
++
+ // ======================================================
+ //  NotifyActorDestroyed
+ // ======================================================
+diff --git a/ProjectReboundMainDLL/Client/AutoConnect.cpp b/ProjectReboundMainDLL/Client/AutoConnect.cpp
+--- a/ProjectReboundMainDLL/Client/AutoConnect.cpp
++++ b/ProjectReboundMainDLL/Client/AutoConnect.cpp
+@@ -9,6 +9,7 @@
+ #include "../SDK/ProjectBoundary_parameters.hpp"
+ #include "../Libs/json.hpp"
+ #include "DeathMenu.sdk.hpp"
++#include "../BrtInventory/FirstEquip.hpp"
+ 
+ #include <Windows.h>
+ 
+@@ -148,6 +149,7 @@ void PumpPendingClientCommands()
+         return;
+ 
+     BrtDeathMenu::Tick(world, localPlayer);
++    BrtFirstEquip::Tick(world, localPlayer);
+ 
+     const auto now = std::chrono::steady_clock::now();
+     bool enterRange = false;
+@@ -191,6 +193,7 @@ void PumpPendingClientCommands()
+             ClientDebugLog("[CLIENT] Connecting to match: " + *connectTarget);
+             UKismetSystemLibrary::ExecuteConsoleCommand(world, command.c_str(), nullptr);
+             BrtDeathMenu::Travel(world, localPlayer, *connectTarget);
++            BrtFirstEquip::opening = {};
+             actionSucceeded = true;
+         }
+     }

@@ -1,0 +1,322 @@
+diff --git a/Payload/BrtInventory/ConnectionBook.hpp b/Payload/BrtInventory/ConnectionBook.hpp
+new file mode 100644
+index 0000000..1c9035a
+--- /dev/null
++++ b/Payload/BrtInventory/ConnectionBook.hpp
+@@ -0,0 +1,65 @@
++#pragma once
++#include <optional>
++#include <string>
++#include <utility>
++
++namespace brt::reconnect {
++template<class Identity>
++class ConnectionBook {
++public:
++    struct Entry {
++        Identity controller, transport;
++        std::string request, previous;
++        bool menuHandled = false;
++        bool verified = false;
++        bool birthReady = false;
++        bool Finished() const { return menuHandled && birthReady; }
++    };
++private:
++    std::string room_, owner_;
++    std::optional<Entry> current_;
++    std::string confirmed_;
++public:
++    // 同房同人只有旧控制器或旧传输确实失效才轮换。相同标识允许未成功时重试。
++    template<class Disconnected, class NewRequest>
++    Entry* Start(const std::string& room, const std::string& owner, Identity controller,
++                 Identity transport, Disconnected&& lost, NewRequest&& make) {
++        if (room_ == room && owner_ != owner && !confirmed_.empty()) return nullptr;
++        if (room_ != room || owner_ != owner) {
++            current_.reset();
++            confirmed_.clear();
++            room_ = room;
++            owner_ = owner;
++        }
++        std::string previous;
++        if (current_) {
++            if (current_->controller == controller && current_->transport == transport)
++                return current_->Finished() ? nullptr : &*current_;
++            if (!lost(current_->controller,current_->transport)) return nullptr;
++            previous = current_->request;
++        }
++        std::string request = make();
++        if (request.empty()) return nullptr;
++        current_.emplace(Entry{controller,transport,std::move(request),std::move(previous)});
++        return &*current_;
++    }
++    const std::string& Confirmed() const { return confirmed_; }
++    bool IsDifferentVerifiedSession(const std::string& room,const std::string& owner,Identity controller,Identity transport) const {
++        return current_ && current_->verified && room_==room && owner_==owner &&
++               (!(current_->controller==controller) || !(current_->transport==transport));
++    }
++    template<class Disconnected>
++    bool PreviousIsDetached(Disconnected&& lost) const {
++        return current_ && lost(current_->controller,current_->transport);
++    }
++    void Verified(const std::string& id, const std::string& predecessor) {
++        if (!current_ || current_->request != id) return;
++        confirmed_ = id;
++        current_->previous = predecessor;
++        current_->verified = true;
++    }
++    Entry* VerifiedEntry(const std::string& id) {
++        return current_ && current_->verified && current_->request == id ? &*current_ : nullptr;
++    }
++};
++}
+diff --git a/Payload/BrtInventory/OwnerLogin.cpp b/Payload/BrtInventory/OwnerLogin.cpp
+index 0ac26bf..ed147ca 100644
+--- a/Payload/BrtInventory/OwnerLogin.cpp
++++ b/Payload/BrtInventory/OwnerLogin.cpp
+@@ -1,7 +1,7 @@
+ #include "OwnerLogin.hpp"
+ #include "../BrtGrapple/Observer.hpp"
+ #include "SDK/ProjectBoundary_classes.hpp"
+-#include "LoginRows.hpp"
++#include "Retry.hpp"
+ #include <cstdio>
+ 
+ namespace {
+@@ -22,10 +22,23 @@
+         auto* owner = static_cast<SDK::APBPlayerState*>(state);
+         const bool alreadySelected = owner->HasSelectedRole();
+         const auto steam = owner->GetDefaultIDStr().ToString();
+-        const auto rows = brt::login::ReadAtLogin(*room, steam);
+-        if (!rows) return;
++        const auto menu = brt::reconnect::ReadMenu(*room, steam, *player);
++        if (!menu) {
++            brt::reconnect::WaitForDisconnect(*gameMode,*player,room->RoomId(),steam);
++            return;
++        }
++        const auto* rows = &menu->rows;
++        if (player->PlayerState != owner || !player->NetConnection ||
++            player->NetConnection->PlayerController != player || owner->GetDefaultIDStr().ToString() != steam) return;
+         brt::grapple::BindVerified(gameMode, player, steam);
+-        if (alreadySelected || owner->HasSelectedRole()) return;
++        auto* login = brt::reconnect::connections.VerifiedEntry(menu->member.connection);
++        if (!login) return;
++        if (!login->birthReady) login->birthReady = BrtWatchOwnerBirth(player, *room, steam, *rows);
++        if (login->menuHandled) return;
++        if (alreadySelected || owner->HasSelectedRole()) {
++            login->menuHandled = true;
++            return;
++        }
+ 
+         using Slot = SDK::EPBCharacterSlotType;
+         constexpr std::array slots{Slot::FirstWeapon, Slot::SecondWeapon, Slot::LeftPod,
+@@ -40,11 +53,17 @@
+                 orders[i].inventory.InventoryItems.Add(ItemName((*rows)[i].items[j]));
+             }
+         }
+-        BrtWatchOwnerBirth(player, *room, steam, *rows);
++        if (player->PlayerState != owner || !player->NetConnection ||
++            player->NetConnection->PlayerController != player) return;
++        login->menuHandled = true;
++        if (owner->HasSelectedRole()) return;
+         for (const auto& order : orders) player->ServerPreOrderInventory(order.role, order.inventory);
+         std::puts("[BRT-INVENTORY] owner-preorder-submitted roles=6 slots=36");
+         std::fflush(stdout);
++        room->MenuSubmitted(menu->member);
+     } catch (const std::exception&) {
+         // 本机档案未就绪、不是房主或资源不可用时，让正常的游戏登录流程继续。
+     }
+ }
++
++void BrtTickPendingOwnerReconnect() noexcept { brt::reconnect::Tick(); }
+diff --git a/Payload/BrtInventory/OwnerLogin.hpp b/Payload/BrtInventory/OwnerLogin.hpp
+index 7b860bd..4894041 100644
+--- a/Payload/BrtInventory/OwnerLogin.hpp
++++ b/Payload/BrtInventory/OwnerLogin.hpp
+@@ -3,3 +3,5 @@
+ 
+ namespace SDK { class AGameMode; class APBPlayerController; }
+ void BrtPreorderOwnerInventory(SDK::AGameMode* gameMode, SDK::APBPlayerController* player) noexcept;
++
++void BrtTickPendingOwnerReconnect() noexcept;
+diff --git a/Payload/BrtInventory/Reconnect.hpp b/Payload/BrtInventory/Reconnect.hpp
+new file mode 100644
+index 0000000..e14f010
+--- /dev/null
++++ b/Payload/BrtInventory/Reconnect.hpp
+@@ -0,0 +1,65 @@
++#pragma once
++#include "ConnectionBook.hpp"
++#include "LoginRows.hpp"
++#include "SDK/ProjectBoundary_classes.hpp"
++
++namespace brt::reconnect {
++using namespace SDK;
++struct Identity {
++    TSoftObjectPtr<UObject> key;
++    explicit Identity(UObject* o) : key(UKismetSystemLibrary::Conv_ObjectToSoftObjectReference(o)) {}
++    bool operator==(const Identity& value) const {
++        return key.WeakPtr.ObjectIndex == value.key.WeakPtr.ObjectIndex &&
++               key.WeakPtr.ObjectSerialNumber == value.key.WeakPtr.ObjectSerialNumber;
++    }
++    bool Valid() const { return key.WeakPtr.ObjectSerialNumber > 0; }
++    UObject* Object() const {
++        if (!Valid()) return nullptr;
++        auto* object = UKismetSystemLibrary::Conv_SoftObjectReferenceToObject(key);
++        return UKismetSystemLibrary::IsValid(object) && *this == Identity(object) ? object : nullptr;
++    }
++};
++inline ConnectionBook<Identity> connections;
++
++inline bool Disconnected(const Identity& controller, const Identity& transport) {
++    auto* old = static_cast<APBPlayerController*>(controller.Object());
++    auto* net = static_cast<UNetConnection*>(transport.Object());
++    return !old || !net || old->IsActorBeingDestroyed() || old->NetConnection != net || net->PlayerController != old;
++}
++inline std::string NewRequest() {
++    GUID id{};
++    wchar_t text[40]{};
++    if (FAILED(CoCreateGuid(&id)) || StringFromGUID2(id,text,40) != 39) return {};
++    std::string ascii;
++    for (unsigned i = 1; i < 37; ++i) ascii.push_back(static_cast<char>(text[i]));
++    return ascii;
++}
++
++struct Menu {
++    spawn::Member member;
++    std::vector<spawn::SavedMenuRole> rows;
++};
++inline std::optional<Menu> ReadMenu(const spawn::RoomHttp& room, const std::string& steam, APBPlayerController& pc) {
++    auto* net = pc.NetConnection;
++    if (!login::IsSteamAccount(steam) || pc.IsActorBeingDestroyed() || !UKismetSystemLibrary::IsValid(net) ||
++        net->PlayerController != &pc) return {};
++    const Identity controller(&pc), transport(net);
++    if (!controller.Valid() || !transport.Valid()) return {};
++    auto* user = connections.Start(room.RoomId(),steam,controller,transport,Disconnected,NewRequest);
++    if (!user) return {};
++    spawn::Member member{room.RoomId(),user->request,steam};
++    const auto predecessor = user->previous;
++    std::string used = predecessor, doc;
++    try { doc = room.ReconnectMenu(member,predecessor); }
++    catch (const spawn::RoomHttpStatus& error) {
++        // 上一次 PostLogin 如在服务器收到请求之前断线，使用最近已回读的前任重试。
++        if (error.status != 409 || user->verified || predecessor == connections.Confirmed()) throw;
++        used = connections.Confirmed();
++        doc = room.ReconnectMenu(member,used);
++    }
++    auto rows = spawn::ReadOwnerMenu(member,doc);
++    if (!rows || !login::ValidRows(*rows) || pc.NetConnection != net || net->PlayerController != &pc) return {};
++    connections.Verified(member.connection,used);
++    return Menu{std::move(member),std::move(*rows)};
++}
++}
+diff --git a/Payload/BrtInventory/Retry.hpp b/Payload/BrtInventory/Retry.hpp
+new file mode 100644
+index 0000000..8dfb062
+--- /dev/null
++++ b/Payload/BrtInventory/Retry.hpp
+@@ -0,0 +1,38 @@
++#pragma once
++#include "OwnerLogin.hpp"
++#include "Reconnect.hpp"
++
++namespace brt::reconnect {
++struct PendingLogin {
++    Identity mode, controller, transport;
++    std::string room, owner;
++};
++inline std::optional<PendingLogin> pending;
++
++inline void WaitForDisconnect(AGameMode& mode, APBPlayerController& pc, const std::string& room, const std::string& owner) {
++    auto* wire=pc.NetConnection;
++    if (!UKismetSystemLibrary::IsValid(wire) || wire->PlayerController!=&pc) return;
++    const Identity controller(&pc), transport(wire);
++    if (!connections.IsDifferentVerifiedSession(room,owner,controller,transport)) return;
++    if (pending && pending->controller==controller && pending->transport==transport) return;
++    pending.emplace(PendingLogin{Identity(&mode),controller,transport,room,owner});
++}
++
++inline void Tick() noexcept {
++    if (!pending) return;
++    try {
++        auto* pc=static_cast<APBPlayerController*>(pending->controller.Object());
++        auto* mode=static_cast<AGameMode*>(pending->mode.Object());
++        if (!pc || !mode || mode->IsActorBeingDestroyed() || !pc->HasAuthority() || pc->IsActorBeingDestroyed() ||
++            !pc->NetConnection || pc->NetConnection!=pending->transport.Object() || pc->NetConnection->PlayerController!=pc || !pc->PlayerState ||
++            !pc->PlayerState->IsA(APBPlayerState::StaticClass())) { pending.reset(); return; }
++        if (!connections.IsDifferentVerifiedSession(pending->room,pending->owner,pending->controller,pending->transport)) {
++            pending.reset();
++            return;
++        }
++        if (!connections.PreviousIsDetached(Disconnected)) return;
++        pending.reset();
++        BrtPreorderOwnerInventory(mode,pc);
++    } catch(const std::exception&) { pending.reset(); }
++}
++}
+diff --git a/Payload/BrtInventory/RoomHttp.cpp b/Payload/BrtInventory/RoomHttp.cpp
+index 90a04e2..1e0db72 100644
+--- a/Payload/BrtInventory/RoomHttp.cpp
++++ b/Payload/BrtInventory/RoomHttp.cpp
+@@ -62,7 +62,7 @@ std::string RoomHttp::Post(const wchar_t* operation, const Json& body, DWORD exp
+     DWORD status = 0, size = sizeof(status);
+     Check(WinHttpQueryHeaders(request.get(),WINHTTP_QUERY_STATUS_CODE|WINHTTP_QUERY_FLAG_NUMBER,
+           WINHTTP_HEADER_NAME_BY_INDEX,&status,&size,WINHTTP_NO_HEADER_INDEX));
+-    if (status != expected) throw std::runtime_error("room request rejected with HTTP " + std::to_string(status));
++    if (status != expected) throw RoomHttpStatus(status);
+     std::string reply;
+     char data[4096]; DWORD read = 0;
+     do {
+@@ -79,6 +79,15 @@ std::string RoomHttp::OwnerBirthPlan(const Member& member, std::uint64_t sequenc
+         {"life",sequence},{"selection",{{"role",chosen.role},{"primary",chosen.primary},{"secondary",chosen.secondary}}}},200,true);
+ }
+ 
++std::string RoomHttp::ReconnectMenu(const Member& member, const Name& previous) const {
++    if (member.room != room_) throw std::invalid_argument("room mismatch");
++    return Post(L"session-menu", {{"authenticatedSteamId",member.steam},{"connectionId",member.connection},
++        {"previousConnectionId",previous.empty() ? Json(nullptr) : Json(previous)}},200,true);
++}
++void RoomHttp::MenuSubmitted(const Member& member) const {
++    if (member.room != room_) throw std::invalid_argument("room mismatch");
++    Post(L"session-menu-applied",{{"authenticatedSteamId",member.steam},{"connectionId",member.connection}},204,true);
++}
+ std::string RoomHttp::LoginMenu(const Member& authenticated) const {
+     if (authenticated.room != room_) throw std::invalid_argument("room mismatch");
+     return Post(L"login-menu",{{"connectionId",authenticated.connection},{"authenticatedSteamId",authenticated.steam}},200,true);
+diff --git a/Payload/BrtInventory/RoomHttp.hpp b/Payload/BrtInventory/RoomHttp.hpp
+index d463842..0692369 100644
+--- a/Payload/BrtInventory/RoomHttp.hpp
++++ b/Payload/BrtInventory/RoomHttp.hpp
+@@ -4,6 +4,12 @@
+ namespace brt::spawn {
+ 
+ // 此对象归专服工作线程所有。I/O 完成后将字符串和原出生编号投递回同一游戏线程。
++class RoomHttpStatus final : public std::runtime_error {
++public:
++    unsigned long status;
++    explicit RoomHttpStatus(unsigned long code) : std::runtime_error("room request rejected with HTTP " + std::to_string(code)), status(code) {}
++};
++
+ class RoomHttp {
+     unsigned short port_;
+     Name room_, credential_;
+@@ -13,6 +19,8 @@ public:
+     static std::optional<RoomHttp> FromLocalServer(unsigned short port = 8000);
+     const Name& RoomId() const { return room_; }
+     std::string OwnerBirthPlan(const Member& authenticated, std::uint64_t sequence, const Selection& chosen) const;
++    std::string ReconnectMenu(const Member& member, const Name& previous) const;
++    void MenuSubmitted(const Member& member) const;
+     std::string LoginMenu(const Member& authenticated) const;
+     void Admit(const Member& authenticated) const;
+     std::string InitialMenu(const Name& connection) const;
+diff --git a/Payload/ServerLogic/LateJoinManager.cpp b/Payload/ServerLogic/LateJoinManager.cpp
+index f9ce78e..01cea1d 100644
+--- a/Payload/ServerLogic/LateJoinManager.cpp
++++ b/Payload/ServerLogic/LateJoinManager.cpp
+@@ -144,6 +144,7 @@ void LateJoinManager::ForceFirstLifeSpawn(APBPlayerController* PC)
+ //  根据当前阶段推进状态或执行超时清理。
+ void LateJoinManager::Tick(float DeltaTime)
+ {
++    BrtTickPendingOwnerReconnect();
+     BrtTickOwnerBirth();
+     for (auto it = LateJoinPlayers.begin(); it != LateJoinPlayers.end();)
+     {

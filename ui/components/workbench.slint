@@ -1,0 +1,77 @@
+import { ScrollView } from "std-widgets.slint";
+import { Txt } from "foundation.slint";
+import { TextField } from "inputs.slint";
+
+export component Workbench inherits Rectangle {
+    background: #151a1b;
+    clip: true;
+    scroll := ScrollView {
+        viewport-width: self.visible-width;
+        viewport-height: max(self.visible-height, form.preferred-height);
+        horizontal-scrollbar-policy: always-off;
+        form := VerticalLayout {
+            x: 0px;
+            y: 0px;
+            width: scroll.visible-width;
+            height: self.preferred-height;
+            alignment: start;
+            padding: root.width < 740px ? 14px : 22px;
+            spacing: 10px;
+            @children
+        }
+    }
+}
+
+export component Heading inherits HorizontalLayout {
+    in property <string> title;
+    in property <color> accent: #ffb763;
+    height: 36px; spacing: 12px;
+    Rectangle { width: 4px; height: 24px; y: (parent.height - self.height)/2; background: root.accent; }
+    Txt { text: root.title; color: #f0f2ed; font-size: 23px; font-weight: 750; horizontal-stretch: 1; vertical-alignment: center; }
+    @children
+}
+
+export component Divider inherits Rectangle { height: 1px; background: #3a4443; }
+export component Caption inherits Txt {
+    color: #ced8d4; font-size: 14px; font-weight: 650;
+    vertical-alignment: center;
+}
+export component Value inherits Txt {
+    color: #b7c3bf; font-size: 13px; wrap: char-wrap; vertical-alignment: center;
+    min-width: 0px; horizontal-stretch: 1;
+}
+export component Field inherits TextField { height: 38px; border-radius: 3px; min-width: 0px; horizontal-stretch: 1; }
+export component Command inherits Rectangle {
+    in property <string> label;
+    in property <bool> enabled: true;
+    in property <bool> emphasis: false;
+    in property <color> accent: #ffbd70;
+    callback clicked();
+    height: 36px; preferred-width: caption.preferred-width + 26px;
+    border-radius: 3px; border-width: 1px;
+    border-color: !enabled ? #343c3c : focus.has-focus || touch.has-hover ? accent : (emphasis ? accent : #64716d);
+    background: !enabled ? #222929 : emphasis ? (touch.pressed ? accent.darker(20%) : accent) : (touch.has-hover ? #34413d : #242d2c);
+    accessible-role: button; accessible-label: label; accessible-enabled: enabled;
+    accessible-action-default => { if root.enabled { root.clicked(); } }
+    forward-focus: focus;
+    focus := FocusScope {
+        enabled: root.enabled;
+        key-pressed(event) => {
+            if event.text == Key.Return || event.text == " " { root.clicked(); return accept; }
+            return reject;
+        }
+    }
+    caption := Txt {
+        text: root.label; color: !root.enabled ? #909b96 : root.emphasis ? #16201d : #ecf2ee;
+        font-size: 13px; font-weight: 650; horizontal-alignment: center; vertical-alignment: center;
+    }
+    touch := TouchArea { enabled: root.enabled; clicked => { focus.focus(); root.clicked(); } }
+}
+export component Reading inherits HorizontalLayout {
+    in property <string> label;
+    in property <string> value;
+    in property <color> ink: #e3ebe5;
+    spacing: 12px; min-height: 28px;
+    Caption { width: min(150px, root.width / 3); text: root.label; color: #98aaa2; }
+    Value { text: root.value; color: root.ink; }
+}

@@ -1,0 +1,37 @@
+--- a/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp
++++ b/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp
+@@ -3,6 +3,7 @@
+ 
+ #include "ServerEventHooks.h"
+ #include "HookCore.h"
++#include "../BrtInventory/Airlock.hpp"
+ #include "../Core/GameOffsets.h"
+ #include "../Logging/LogManager.h"
+ #include "../Server/NetDriverAccess.h"
+@@ -42,6 +43,8 @@
+     if (EventInfo.FullName == "Function ProjectBoundary.PBPlayerController.ServerConfirmRoleSelection")
+         BrtArchiveBeforeConfirm(Object, Parms);
+     brt::field_menu::ControllerEvent(Object, EventInfo.FullName);
++    if (brt::airlock::DuplicateHatch(Object, EventInfo.FullName, Parms)) return;
++    brt::airlock::Publish(Object, EventInfo.FullName, Parms);
+     if (EventInfo.ServerKind == EServerProcessEventKind::MatchHasEnded)
+     {
+         HandleServerMatchEndSignal("process_event_match_has_ended");
+--- a/ProjectReboundMainDLL/Hooking/ClientHooks.cpp
++++ b/ProjectReboundMainDLL/Hooking/ClientHooks.cpp
+@@ -3,6 +3,7 @@
+ 
+ #include "ClientHooks.h"
+ #include "HookCore.h"
++#include "../BrtInventory/Airlock.hpp"
+ #include "../Logging/LogManager.h"
+ #include "../Client/SideMountFixClient.h"
+ #include "../Client/UIShake.h"
+@@ -21,6 +22,7 @@
+ void ProcessEventHookClient(UObject *Object, UFunction *Function, void *Parms)
+ {
+     const FCachedProcessEventInfo& EventInfo = GetProcessEventInfo(Function);
++    if (brt::airlock::Receive(Object, EventInfo.FullName, Parms)) return;
+ 
+     // Froce space to login
+     if (EventInfo.ClientKind == EClientProcessEventKind::EnterGameConstruct)

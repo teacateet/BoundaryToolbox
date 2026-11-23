@@ -1,0 +1,11 @@
+diff --git a/ProjectReboundMainDLL/Client/UIShake.cpp b/ProjectReboundMainDLL/Client/UIShake.cpp
+--- a/ProjectReboundMainDLL/Client/UIShake.cpp
++++ b/ProjectReboundMainDLL/Client/UIShake.cpp
+@@ -6,2 +6,3 @@
+ #include <unordered_map>
++#include "SparrowReticle.hpp"
+ #include <cmath>
+@@ -20,2 +21,3 @@
+ {
++    BrtSparrowReticle::OnCharacter(static_cast<APBCharacter*>(Object), funcName);
+     if (!UIFixDebugEnabled)

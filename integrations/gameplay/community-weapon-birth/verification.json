@@ -1,0 +1,93 @@
+{
+  "testedBranches": [
+    "v0.8.4 b3d7f83f3789111d4a460b9662a8dc4e06e6a934",
+    "main 74c68ac3e6007c36248c442a281c2b7b831cc53a"
+  ],
+  "appliedPatches": [
+    "PASS v084 pristine upstream + inventory + birth + grapple observation patches applied",
+    "PASS main pristine upstream + inventory + birth + grapple observation patches applied"
+  ],
+  "compilerResults": [
+    "PASS birth gate first life, death respawn and 12 used/foreign/stale cases",
+    "PASS v084 real inventory login, birth, native weapon, RoomHttp, grapple and heartbeat objects",
+    "PASS main real inventory login, birth, native weapon, RoomHttp, grapple and heartbeat objects"
+  ],
+  "archive": {
+    "source": "formal",
+    "roles": 6,
+    "independentBirthSession": 7,
+    "windowsTransport": "MSVC WinHTTP",
+    "unchangedOtherSession": true,
+    "original": [
+      {
+        "parts": [
+          "GSW-DMR_MZL-STD",
+          "GSW-DMR_BRL-DMR-STD",
+          "GSW-DMR_HGD-STD",
+          "GSW-DMR_FRM-SEMI",
+          "GSW-DMR_GRP-GSW-STD",
+          "GSW-DMR_SGT-REFLEX-3X",
+          "None",
+          "None",
+          "GSW-DMR_MAG-DMR-STD",
+          "None"
+        ],
+        "receiver": "None"
+      },
+      {
+        "parts": [
+          "GSW-FOP_MZL-STD",
+          "None",
+          "None",
+          "GSW-FOP_FRM-SEMI",
+          "GSW-FOP_GRP-GSW-STD",
+          "GSW-FOP_SGT-IRON-FOP",
+          "None",
+          "None",
+          "GSW-FOP_MAG-FOP-STD",
+          "None"
+        ],
+        "receiver": "None"
+      }
+    ],
+    "saved": [
+      {
+        "parts": [
+          "GSW-DMR_MZL-BRAKE",
+          "GSW-DMR_BRL-DMR-HEAVY",
+          "GSW-DMR_HGD-HEAVY",
+          "GSW-DMR_FRM-SEMI",
+          "GSW-DMR_GRP-GSW-TAC",
+          "GSW-DMR_SGT-REFLEX-3X",
+          "None",
+          "None",
+          "GSW-DMR_MAG-DMR-FAST",
+          "None"
+        ],
+        "receiver": "GSW-DMR_ReceiverMain_PTMetalGold"
+      },
+      {
+        "parts": [
+          "GSW-FOP_MZL-BRAKE",
+          "None",
+          "None",
+          "GSW-FOP_FRM-METALSTORM",
+          "GSW-FOP_GRP-GSW-TAC",
+          "GSW-FOP_SGT-REDDOT-MICRO",
+          "None",
+          "None",
+          "GSW-FOP_MAG-FOP-STD",
+          "None"
+        ],
+        "receiver": "GSW-FOP_ReceiverMain_PTElectroRed"
+      }
+    ],
+    "rejected": [
+      "wrong account",
+      "wrong room secret",
+      "cross-role gun",
+      "ended room"
+    ],
+    "retailPawnObserved": false
+  }
+}

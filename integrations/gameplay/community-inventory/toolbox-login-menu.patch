@@ -1,0 +1,86 @@
+diff --git a/integrations/loadout/room-spawn.cjs b/integrations/loadout/room-spawn.cjs
+index e0da09d..c5df46f 100644
+--- a/integrations/loadout/room-spawn.cjs
++++ b/integrations/loadout/room-spawn.cjs
+@@ -254,6 +254,17 @@ function installRoomSpawn(app, getStore, type, configured = process.env.BRT_SPAW
+             }
+             for (const [key, member] of room.sessions) if (now - member.touched > cutoff) drop(key, member);
+             switch (req.params.op) {
++            case 'login-menu': {
++                shape(body, ['connectionId', 'authenticatedSteamId']);
++                if (!room.owner || room.owner !== body.authenticatedSteamId) fail(403, 'wrong-local-player');
++                if (!uuid.test(body.connectionId)) fail(400, 'invalid-login-request');
++                const active = room.sessions.get(room.accounts.get(room.owner));
++                if (room.loginMenuSent || active?.menu || active?.life) fail(409, 'initial-menu-already-used');
++                const roles = initialMenu(getStore(), room.owner, room.owner);
++                room.loginMenuSent = true;
++                return res.json({version:1, roomId:room.id, connectionId:body.connectionId,
++                    authenticatedSteamId:room.owner, roles});
++            }
+             case 'admit': {
+                 shape(body, ['connectionId', 'authenticatedSteamId']);
+                 if (!uuid.test(body.connectionId) || !account(body.authenticatedSteamId)) fail(400, 'invalid-authenticated-member');
+diff --git a/integrations/spawn/RoomHttp.cpp b/integrations/spawn/RoomHttp.cpp
+index 55130f1..54ee9fb 100644
+--- a/integrations/spawn/RoomHttp.cpp
++++ b/integrations/spawn/RoomHttp.cpp
+@@ -4,6 +4,7 @@
+ #include <windows.h>
+ #include <winhttp.h>
+ #include <memory>
++#include <chrono>
+ #include <stdexcept>
+ #pragma comment(lib, "winhttp.lib")
+ 
+@@ -39,10 +40,12 @@ std::optional<RoomHttp> RoomHttp::FromLocalServer(unsigned short port) {
+     return RoomHttp(port, Name(room, n), Name(key, k));
+ }
+ 
+-std::string RoomHttp::Post(const wchar_t* operation, const Json& body, DWORD expected) const {
++std::string RoomHttp::Post(const wchar_t* operation, const Json& body, DWORD expected, bool atLogin) const {
+     const Handle session(WinHttpOpen(L"BRT room inventory/1", WINHTTP_ACCESS_TYPE_NO_PROXY, nullptr, nullptr, 0));
+     Check(bool(session));
+-    Check(WinHttpSetTimeouts(session.get(), 2000, 2000, 4000, 4000));
++    Check(atLogin ? WinHttpSetTimeouts(session.get(), 100, 120, 120, 250)
++                  : WinHttpSetTimeouts(session.get(), 2000, 2000, 4000, 4000));
++    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(350);
+     const Handle local(WinHttpConnect(session.get(), L"127.0.0.1", port_, 0));
+     Check(bool(local));
+     const std::wstring path = L"/api/brt/v1/rooms/" + std::wstring(room_.begin(),room_.end()) + L"/spawn/" + operation;
+@@ -63,12 +66,17 @@ std::string RoomHttp::Post(const wchar_t* operation, const Json& body, DWORD exp
+     std::string reply;
+     char data[4096]; DWORD read = 0;
+     do {
++        if (atLogin) Check(std::chrono::steady_clock::now() < deadline);
+         Check(WinHttpReadData(request.get(), data, sizeof(data), &read));
+-        if (reply.size() + read > 131072) throw std::runtime_error("oversize room response");
++        if (reply.size() + read > (atLogin ? 16384u : 131072u)) throw std::runtime_error("oversize room response");
+         reply.append(data,read);
+     } while (read != 0);
+     return reply;
+ }
++std::string RoomHttp::LoginMenu(const Member& authenticated) const {
++    if (authenticated.room != room_) throw std::invalid_argument("room mismatch");
++    return Post(L"login-menu",{{"connectionId",authenticated.connection},{"authenticatedSteamId",authenticated.steam}},200,true);
++}
+ void RoomHttp::Admit(const Member& authenticated) const {
+     if (authenticated.room != room_) throw std::invalid_argument("room mismatch");
+     Post(L"admit",{{"connectionId",authenticated.connection},{"authenticatedSteamId",authenticated.steam}},204);
+diff --git a/integrations/spawn/RoomHttp.hpp b/integrations/spawn/RoomHttp.hpp
+index 78695ad..fe345ff 100644
+--- a/integrations/spawn/RoomHttp.hpp
++++ b/integrations/spawn/RoomHttp.hpp
+@@ -7,11 +7,12 @@ namespace brt::spawn {
+ class RoomHttp {
+     unsigned short port_;
+     Name room_, credential_;
+-    std::string Post(const wchar_t* operation, const Json& body, unsigned long status) const;
++    std::string Post(const wchar_t* operation, const Json& body, unsigned long status, bool atLogin = false) const;
+ public:
+     RoomHttp(unsigned short port, Name room, Name credential);
+     static std::optional<RoomHttp> FromLocalServer(unsigned short port = 8000);
+     const Name& RoomId() const { return room_; }
++    std::string LoginMenu(const Member& authenticated) const;
+     void Admit(const Member& authenticated) const;
+     std::string InitialMenu(const Name& connection) const;
+     std::string Prepare(const Name& connection, std::uint64_t life, const Selection& chosen) const;

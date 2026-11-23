@@ -1,0 +1,28 @@
+diff --git a/index.js b/index.js
+--- a/index.js
++++ b/index.js
+@@ -42,3 +42,8 @@
++const { managedRegionCatalog, regionReplySummary } = require("./native-menu.cjs");
++const menuRegionCatalog = managedRegionCatalog(__dirname, matchmakingUDPServerDiscoveryPayload);
++
+ app.get("/", (req, res) => {
+-  res.status(200).json(matchmakingUDPServerDiscoveryPayload);
++  const payload = menuRegionCatalog?.discovery ?? matchmakingUDPServerDiscoveryPayload;
++  res.once("finish", () => console.log("[PVE-REGIONS] discovery rows=" + payload.servers.length));
++  res.status(200).json(payload);
+ });
+@@ -739,7 +744,9 @@
+-        let QueryMatchmakingRegionResponse = QueryMatchmakingRegionResponseType.create({StatusCode: 0, Regions: BuildRegionList()});
+-
+-        let ResponseBytes = QueryMatchmakingRegionResponseType.encode(QueryMatchmakingRegionResponse).finish();
+-
+-        socket.write(WrapMessageAndSerialize(MessageId, RPCPath, ResponseBytes));
++        const regionRows = menuRegionCatalog?.regions ?? BuildRegionList();
++        let QueryMatchmakingRegionResponse = QueryMatchmakingRegionResponseType.create({StatusCode: 0, Regions: regionRows});
++
++        let ResponseBytes = QueryMatchmakingRegionResponseType.encode(QueryMatchmakingRegionResponse).finish();
++
++        socket.write(WrapMessageAndSerialize(MessageId, RPCPath, ResponseBytes),
++          error => { if (!error) console.log(regionReplySummary(regionRows)); });
+       }
+       else if(RPCPath === "/matchmaking.Matchmaking/StartUnityMatchmaking"){

@@ -1,0 +1,89 @@
+import { ListView } from "std-widgets.slint";
+import { DriveRow } from "../models.slint";
+import { Action } from "../components/controls.slint";
+import { Panel, TitleBlock } from "../components/surfaces.slint";
+import { DriveLine } from "../rows/dialog_rows.slint";
+import { I18n } from "../i18n.slint";
+
+// 自定义全盘扫描弹窗。
+export component DriveScanDialog inherits Rectangle {
+    in property <bool> busy;
+    in property <[DriveRow]> drive_rows;
+    callback drive_toggled(index: int, checked: bool);
+    callback drive_confirmed();
+    callback drive_cancelled();
+    Rectangle {
+        width: parent.width;
+        height: parent.height;
+        background: #05070bcc;
+
+        dialog := Panel {
+            property <length> max-panel-width: root.width > 64px ? root.width - 64px : root.width;
+            property <length> max-panel-height: root.height > 64px ? root.height - 64px : root.height;
+            property <length> fixed-height: 182px;
+            property <length> natural-list-height: drive_rows.length <= 0 ? 64px : 20px + 58px * drive_rows.length;
+            property <length> available-list-height: max-panel-height > fixed-height + 64px ? max-panel-height - fixed-height : 64px;
+            property <length> list-height: min(natural-list-height, available-list-height);
+
+            width: min(560px, max-panel-width);
+            height: min(max-panel-height, fixed-height + list-height);
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            radius: 24px;
+
+            VerticalLayout {
+                padding: 22px;
+                spacing: 14px;
+
+                TitleBlock {
+                    title: I18n.tr("选择扫描盘符", "Select Drives to Scan", "スキャンするドライブを選択");
+                    sub: I18n.tr("只扫描勾选的磁盘", "Only selected drives will be scanned", "選択したドライブのみスキャンします");
+                }
+
+                Panel {
+                    height: dialog.list-height;
+                    fill: #0f131a;
+                    radius: 18px;
+
+                    ListView {
+                        x: 12px;
+                        y: 10px;
+                        width: parent.width - 24px;
+                        height: parent.height - 20px;
+
+                        for drive[index] in drive_rows: DriveLine {
+                            label: drive.label;
+                            checked: drive.checked;
+                            toggled => { root.drive_toggled(index, !drive.checked); }
+                        }
+                    }
+                }
+
+                HorizontalLayout {
+                    height: 58px;
+                    spacing: 12px;
+
+                    Rectangle { horizontal-stretch: 1; background: #00000000; }
+
+                    Action {
+                        width: 132px;
+                        label: I18n.tr("取消", "Cancel", "キャンセル");
+                        sub: "";
+                        enabled: !busy;
+                        accent: #ffb4ab;
+                        clicked => { root.drive_cancelled(); }
+                    }
+
+                    Action {
+                        width: 156px;
+                        label: I18n.tr("开始扫描", "Start Scan", "スキャン開始");
+                        sub: "";
+                        enabled: !busy;
+                        accent: #62e2c1;
+                        clicked => { root.drive_confirmed(); }
+                    }
+                }
+            }
+        }
+    }
+}

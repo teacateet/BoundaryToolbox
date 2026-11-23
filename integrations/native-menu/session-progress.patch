@@ -1,0 +1,129 @@
+diff --git a/index.js b/index.js
+--- a/index.js
++++ b/index.js
+@@ -354,6 +354,10 @@ function matchServerRequest(method, path, body) {
+       let data = '';
+       res.on('data', chunk => data += chunk);
+       res.on('end', () => {
++        if (res.statusCode < 200 || res.statusCode >= 300) {
++          reject(new Error('MatchServer HTTP ' + res.statusCode));
++          return;
++        }
+         try { resolve(JSON.parse(data)); }
+         catch(_) { resolve({ _raw: data }); }
+       });
+@@ -376,7 +376,9 @@ function generateTicketId() {
+ 
+ let fs = require("fs");
+ 
++const { createMenuSession } = require('./session-progress.cjs');
+ const server = net.createServer((socket) => {
++  const menuSession = createMenuSession(() => require('./game/definitions/DT_GameModeDefinition.json'), MatchmakingHost === '127.0.0.1');
+   console.log('\n=== Client connected ===');
+   console.log(`From: ${socket.remoteAddress}:${socket.remotePort}\n`);
+ 
+@@ -420,6 +422,7 @@ const server = net.createServer((socket) => {
+       const MessageBytes = RequestObj.Message;
+ 
+       if(gateSessions.has(RPCPath)){
++        menuSession.reset();
+         socket.playerId = gateSessions.get(RPCPath);
+         console.log(`[SESSION] Bound protobuf socket to player ${socket.playerId}`);
+         socket.write(data);
+@@ -748,10 +751,13 @@ const server = net.createServer((socket) => {
+         let userId = '';
+         let gameMode = 'Purge';
+         let regionIds = [];
++        let requestedMode, requestedBy;
+         try {
+           Root = protobuf.loadSync("./game/proto/Request/StartMatchmakingRequest.proto");
+           let ReqType = Root.lookupType("ProjectBoundary.StartMatchmakingRequest");
+           let req = ReqType.toObject(ReqType.decode(MessageBytes), ObjectOptions);
++          requestedMode = req.GameMode;
++          requestedBy = req.Payload?.MatchmakingRequestorUserId;
+           userId = req.Payload.MatchmakingRequestorUserId || TEMP_USER_ID;
+           gameMode = req.GameMode || 'Purge';
+           regionIds = (req.Payload.UnknownMessage || []).map(m => m.RegionId).filter(Boolean);
+@@ -759,6 +765,7 @@ const server = net.createServer((socket) => {
+           console.log("[MATCH] Failed to decode StartMatchmaking:", e.message);
+         }
+ 
++        const attempt = menuSession.start(socket.playerId, requestedBy, requestedMode);
+         // Try MatchServer API; fall back to in-memory ticket
+         let ticketId = generateTicketId();
+         let matchFound = false;
+@@ -767,6 +774,7 @@ const server = net.createServer((socket) => {
+             userId, regionIds, gameMode, ticketId,
+           });
+           ticketId = result.ticketId || ticketId;
++          menuSession.enqueued(attempt, ticketId, result.status);
+           matchFound = result.status === 'found';
+           if (matchFound) {
+             matchTickets.set(ticketId, {
+@@ -779,6 +787,7 @@ const server = net.createServer((socket) => {
+           }
+           console.log(`[MATCH] MatchServer: ticket=${ticketId} status=${result.status}`);
+         } catch(_) {
++          menuSession.enqueued(attempt, null, null);
+           // MatchServer unavailable - queue locally
+           matchTickets.set(ticketId, {
+             userId, gameMode, regionIds,
+@@ -797,14 +806,18 @@ const server = net.createServer((socket) => {
+       }
+       else if(RPCPath === "/matchmaking.Matchmaking/QueryUnityMatchmaking"){
+         // Parse ticketId from request
+-        let ticketId = '';
++        let ticketId = '', decoded = false;
+         try {
+           Root = protobuf.loadSync("./game/proto/Response/matchmaking_ext.proto");
+           let ReqType = Root.lookupType("ProjectBoundary.QueryUnityMatchmakingReq");
+           let req = ReqType.toObject(ReqType.decode(MessageBytes), ObjectOptions);
+           ticketId = req.ticketId || '';
++          decoded = true;
+         } catch(_) {}
+ 
++        const progress = menuSession.query(socket.playerId, ticketId, MessageBytes?.length ?? 0, decoded);
++        ticketId = progress.ticket;
++        let backend = 'not-polled';
+         let status = 'queued', serverIp = '', serverPort = 0;
+         if (ticketId && matchTickets.has(ticketId)) {
+           const ticket = matchTickets.get(ticketId);
+@@ -813,10 +826,13 @@ const server = net.createServer((socket) => {
+           serverPort = ticket.serverPort || 0;
+         }
+ 
++        if (progress.cached) status = 'found';
++        if (ticketId && status === 'found') backend = 'cache-found';
+         // Poll MatchServer if available
+         if (ticketId && status === 'queued') {
+           try {
+             const result = await matchServerRequest('GET', `/matchmaking/status/${ticketId}`);
++            backend = result.status;
+             if (result.status === 'found') {
+               const ticket = matchTickets.get(ticketId);
+               if (ticket) {
+@@ -828,7 +844,7 @@ const server = net.createServer((socket) => {
+               serverIp = result.serverIp;
+               serverPort = result.serverPort;
+             }
+-          } catch(_) {}
++          } catch(_) { backend = 'unavailable'; }
+         }
+ 
+         // Return empty response (QueryUnityMatchmakingRes has no known fields)
+@@ -836,6 +852,7 @@ const server = net.createServer((socket) => {
+         let RespType = Root.lookupType("ProjectBoundary.QueryUnityMatchmakingRes");
+         let Resp = RespType.create({});
+         let ResponseBytes = RespType.encode(Resp).finish();
++        menuSession.queried(progress, backend, ResponseBytes.length);
+         socket.write(WrapMessageAndSerialize(MessageId, RPCPath, ResponseBytes));
+       }
+       else if(RPCPath === "/matchmaking.Matchmaking/StopUnityMatchmaking"){
+@@ -847,6 +864,7 @@ const server = net.createServer((socket) => {
+           ticketId = req.ticketId || '';
+         } catch(_) {}
+ 
++        menuSession.stop(socket.playerId, ticketId);
+         console.log(`[MATCH] Stop matchmaking: ticket=${ticketId}`);
+         if (ticketId) {
+           matchTickets.delete(ticketId);

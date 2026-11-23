@@ -1,0 +1,34 @@
+import { PortRow } from "../models.slint";
+import { Workbench, Heading, Divider, Caption, Command, Reading } from "../components/workbench.slint";
+import { PortLine } from "../rows/diagnostics_rows.slint";
+import { I18n } from "../i18n.slint";
+
+export component DiagnosticsPage inherits Workbench {
+    in property <bool> has_target;
+    in property <bool> busy;
+    in property <string> status_text;
+    in property <string> target_text;
+    in property <string> process_status_text;
+    in property <string> system_status_text;
+    in property <bool> system_status_warning;
+    in property <[PortRow]> port_rows;
+    callback detect_processes_clicked();
+    callback stop_processes_clicked();
+    callback stop_port_process_clicked(protocol: string, port: int, pid: int);
+
+    Heading { title: I18n.tr("诊断", "Diagnostics", "診断"); accent: #8fcfe5; }
+    Reading { label: I18n.tr("当前操作", "Operation", "操作状態"); value: root.status_text; }
+    Reading { label: I18n.tr("游戏目录", "Game directory", "ゲームフォルダー"); value: root.has_target ? root.target_text : I18n.tr("未选择", "Not selected", "未選択"); }
+    Reading { label: I18n.tr("运行进程", "Processes", "実行中プロセス"); value: root.process_status_text; }
+    Reading { label: I18n.tr("系统检查", "System check", "システム確認"); value: root.system_status_text; ink: root.system_status_warning ? #ffa69a : #9de2c1; }
+    HorizontalLayout { spacing: 8px; alignment: start;
+        Command { label: I18n.tr("检测进程", "Check processes", "プロセス検出"); enabled: root.has_target && !root.busy; clicked => { root.detect_processes_clicked(); } }
+        Command { label: I18n.tr("关闭相关进程", "Stop related processes", "関連プロセスを停止"); enabled: root.has_target && !root.busy; accent: #ffada2; clicked => { root.stop_processes_clicked(); } }
+    }
+    Divider {}
+    Caption { text: I18n.tr("本机端口", "Local ports", "ローカルポート"); }
+    for p in root.port_rows: PortLine {
+        label: p.label; detail: p.detail; pid: p.pid; busy: root.busy; occupied: p.occupied; expected: p.expected;
+        close_clicked => { root.stop_port_process_clicked(p.protocol, p.port, p.pid); }
+    }
+}

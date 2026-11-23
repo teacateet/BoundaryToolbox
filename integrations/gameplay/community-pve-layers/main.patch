@@ -1,0 +1,61 @@
+--- a/ProjectReboundMainDLL/Server/RoundManager.cpp
++++ b/ProjectReboundMainDLL/Server/RoundManager.cpp
+@@ -1,5 +1,6 @@
+ // RoundManager.cpp
+ #include "RoundManager.h"
++#include "../BrtInventory/ModeLayer.hpp"
+ #include "../Config/Config.h"
+ #include "../Logging/LogManager.h"
+ #include "Backend.h"
+@@ -202,27 +203,32 @@
+         return;
+     }
+ 
+-    ServerLog("[SERVER] Forcing streaming levels to load...");
+-
+-    for (int i = SDK::UObject::GObjects->Num() - 1; i >= 0; i--)
+-    {
+-        SDK::UObject *Obj = SDK::UObject::GObjects->GetByIndex(i);
+-
+-        if (!Obj)
++    // 只在当前世界中查找关卡。地图自带的美术和开场仍按原流程加载。
++    auto* gameMode = World->AuthorityGameMode;
++    const std::string mode = gameMode ? gameMode->Class->GetName() : "";
++    const auto layer = brt::levels::ModeLayer(mode);
++    bool hasModeLayer = false;
++    if (!layer.empty()) {
++        for (auto* level : World->StreamingLevels) {
++            if (level && brt::levels::Layer(level->GetWorldAssetPackageFName().ToString()) == layer) {
++                hasModeLayer = true;
++                break;
++            }
++        }
++    }
++
++    for (auto* level : World->StreamingLevels) {
++        if (!level) continue;
++        const auto package = level->GetWorldAssetPackageFName().ToString();
++        const auto name = brt::levels::Layer(package);
++        if (hasModeLayer && !name.empty() && name != layer) {
++            // 原作仍可按自己的规则选择共享层；服务器不再强开其他玩法。
++            ServerLog("[BRT-LEVEL] native " + package);
+             continue;
+-
+-        if (Obj->IsDefaultObject())
+-            continue;
+-
+-        if (Obj->IsA(ULevelStreaming::StaticClass()))
+-        {
+-            ULevelStreaming *LS = (ULevelStreaming *)Obj;
+-
+-            LS->SetShouldBeLoaded(true);
+-            LS->SetShouldBeVisible(true);
+-
+-            ServerLog("[SERVER] Streaming level loaded: " + std::string(Obj->GetFullName()));
+         }
++        level->SetShouldBeLoaded(true);
++        level->SetShouldBeVisible(true);
++        ServerLog("[SERVER] Streaming level loaded: " + package);
+     }
+ 
+     if (!libReplicate)

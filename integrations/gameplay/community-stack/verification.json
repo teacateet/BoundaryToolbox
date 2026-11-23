@@ -1,0 +1,833 @@
+{
+  "scope": "Combined ordinary community business and UMG source objects in two static libraries.",
+  "runtime": "No game session was run.",
+  "versions": [
+    {
+      "version": "v084",
+      "upstreamCommit": "b3d7f83f3789111d4a460b9662a8dc4e06e6a934",
+      "patches": [
+        {
+          "name": "inventory",
+          "patch": "community-inventory/v084-community.patch",
+          "sha256": "7a6a9271476d91d697eff221a2cbbcf3d6b12f1f941f01e2cb4ceb1cba4f2965"
+        },
+        {
+          "name": "birth",
+          "patch": "community-weapon-birth/v084-birth.patch",
+          "sha256": "504f713fb77c2e9e475c681b90badf1094ef979c961905b7a859145e6441c98c"
+        },
+        {
+          "name": "grapple",
+          "patch": "community-grapple/v084-community.patch",
+          "sha256": "5921ea80150bc2520b0b6ae62967c99a9caf5b95e02858259cb6042019d3597c"
+        },
+        {
+          "name": "reconnect",
+          "patch": "inventory-reconnect/v084-reconnect.patch",
+          "sha256": "05941dae571fc35b6839d47d0cb836b874194d1a7df3e79463d7f2de60ab9d05"
+        },
+        {
+          "name": "first-life",
+          "patch": "first-life/v084.patch",
+          "sha256": "b06530566ff4ba7e03e64a3f3669bd154285dbafa568ac9348f413a0b4b23c12"
+        },
+        {
+          "name": "presentation",
+          "patch": "community-presentation/v084.patch",
+          "sha256": "9d9a0a85ba5e982f01fd676dd37f9831b5bbfc3a86530368c870573ee98c5617"
+        },
+        {
+          "name": "reticle",
+          "patch": "community-reticle/v084.patch",
+          "sha256": "90c30a320fbd8dffb3d57034ab8f5725809defb1e046410ca83f665bdacc3395"
+        },
+        {
+          "name": "radar",
+          "patch": "community-radar/v084.patch",
+          "sha256": "96162fad16f0841a13598bebbd07f3a1f8fb15a2241883270a9cb653ee465e61"
+        },
+        {
+          "name": "death-menu",
+          "patch": "community-death-menu/v084.patch",
+          "sha256": "37e778f50cdd36975037931a24541133f8314ae498098ff9d9c32fb805b0a525"
+        },
+        {
+          "name": "death-menu-sdk",
+          "patch": "community-death-menu/sdk-v084.patch",
+          "sha256": "3856d7de2340b31debfe38c95d0d7ba8b75b388202f673896467f403917dad5f"
+        },
+        {
+          "name": "pod-view",
+          "patch": "community-pod-view/v084.patch",
+          "sha256": "c0b9657661213e397fbdba3a2396c0420561a27aa0e5d5dcb311c4989bf8de3d"
+        },
+        {
+          "name": "grapple-input",
+          "patch": "community-grapple-input/v084.patch",
+          "sha256": "e6400f13c04f2d0765b1a123a4fb2e29e0e4f925b4466e4afab8f92979583b77"
+        }
+      ],
+      "upstreamGitBlobs": {
+        "Payload.vcxproj": "ae80fa85d92465b277a81da740aa014a25bd9e38",
+        "ServerLogic/LateJoinManager.h": "fd997dc674aa0de84798b19d88fb4a3282da93ca",
+        "ServerLogic/LateJoinManager.cpp": "8040081b49815a5d7dfc5e80eb8412a785c51704",
+        "ServerLogic/ServerLogic.cpp": "a6160f6e96a5b3811b69b04d26c085381ed38fe3",
+        "Utility/UIFix.cpp": "af1112ffc38387d8be57b05e94b4e9ec59b21659",
+        "Utility/LauncherFix.cpp": "7d7260f1f5401c2815cf1cd365bb6d72328adfd7",
+        "ClientLogic/ClientLogic.cpp": "6ea2268dd97f70d388fae05c433604926f234c4e",
+        "SDK/UMG_HelmetHUD_MiniMap_functions.cpp": "b489cdac5581edc77ba08c8efc6648558510eadc",
+        "SDK/UMG_MinimapNode_functions.cpp": "c093bb8eefaf63adee833dea316c99c5268c622d",
+        "SDK/UMG_Prompt_functions.cpp": "05e843b220374b15ba87e596425b2cbd0f41ab3f"
+      },
+      "maintenanceHeaders": [
+        {
+          "module": "community-reticle",
+          "file": "SparrowReticle.hpp",
+          "sha256": "f37ee78186aa81aadb20b4a535948f4fc822eec063c4dcedb10ad4ddd8e1b972"
+        },
+        {
+          "module": "community-radar",
+          "file": "MarkedHeadRadar.hpp",
+          "sha256": "9bee3cc8ccb3116a504e6de3ef06c557c560f47093ee282654b53d3ff464b569"
+        },
+        {
+          "module": "community-death-menu",
+          "file": "DeathMenu.hpp",
+          "sha256": "493640e47d8bb7ce9e9f5ccbc99390d0b6ed75aa438247bcaf9ad743dfbb1ef0"
+        },
+        {
+          "module": "community-death-menu",
+          "file": "DeathMenu.sdk.hpp",
+          "sha256": "00e35debfad7c111b083fd8217b52d990655164c8746a2e783afd760d9da1954"
+        },
+        {
+          "module": "community-pod-view",
+          "file": "PodView.hpp",
+          "sha256": "0ec53cddc66fea192c8de41ddfc0bc9d89751dfb3590df225bbe22624fb2bf79"
+        },
+        {
+          "module": "community-grapple-input",
+          "file": "GrappleInput.hpp",
+          "sha256": "199aa787e50b9c34078366396b9ef3593ca726999e879b458a86047f5e9c3452"
+        },
+        {
+          "module": "community-death-menu",
+          "file": "DeathMenuTravel.hpp",
+          "sha256": "e9863127db5c45ecf64480cb0565d441ee40a7bc5ac8391da8f73725bf15fd81"
+        },
+        {
+          "module": "community-death-menu",
+          "file": "DeathMenu.v084.hpp",
+          "sha256": "d214b18c737caacd9282900d689b8958c5db8b5ffded16bc37a74df356bf2c93"
+        }
+      ],
+      "finalSourceSHA256": {
+        "ServerLogic/LateJoinManager.cpp": "d83344157c6d573319e979302060c979032bb0fbcdaf2dbe8eb8944589b1b769",
+        "ServerLogic/ServerLogic.cpp": "004e2ff5b4d9738fb6dd3964c1951cbdc466cbb69f9dda892a8443b440f742be",
+        "Utility/UIFix.cpp": "af5adf6fcee4122f26690754bf311451ab91eac2b99a0819c663eb2bde70fdb2",
+        "Utility/LauncherFix.cpp": "b1f30655b3634f5ae3ce583cffe93ed702014be889437bd156df481b8b0d3e2c",
+        "ClientLogic/ClientLogic.cpp": "e4905603fc8f29bb3fe1cc590ae0389aa0cdf8b6bf481ad18259920015865972"
+      },
+      "features": [
+        "inventory",
+        "birth",
+        "grapple-observation",
+        "reconnect",
+        "first-life",
+        "side-mount-reload",
+        "sparrow-reticle",
+        "marked-head-radar",
+        "death-menu",
+        "pod-view",
+        "grapple-input-observation"
+      ],
+      "compiledSources": [
+        "ServerLogic/LateJoinManager.cpp",
+        "ServerLogic/ServerLogic.cpp",
+        "Utility/UIFix.cpp",
+        "Utility/LauncherFix.cpp",
+        "ClientLogic/ClientLogic.cpp",
+        "BrtInventory/OwnerLogin.cpp",
+        "BrtInventory/Birth.cpp",
+        "BrtInventory/RoomHttp.cpp",
+        "SDK/UMG_HelmetHUD_MiniMap_functions.cpp",
+        "SDK/UMG_MinimapNode_functions.cpp",
+        "SDK/UMG_Prompt_functions.cpp"
+      ],
+      "archive": {
+        "version": "v084",
+        "library": "community-business-v084.lib",
+        "bytes": 19047054,
+        "sha256": "d85b4b79649d4aa27c6852bbba076dfac50a4d5a16ce6a836b78b3d873b48122",
+        "members": [
+          "LateJoinManager.obj",
+          "ServerLogic.obj",
+          "UIFix.obj",
+          "LauncherFix.obj",
+          "ClientLogic.obj",
+          "OwnerLogin.obj",
+          "Birth.obj",
+          "RoomHttp.obj",
+          "UMG_HelmetHUD_MiniMap_functions.obj",
+          "UMG_MinimapNode_functions.obj",
+          "UMG_Prompt_functions.obj"
+        ]
+      },
+      "omissionControl": {
+        "symbol": "?BP_OnHandleBackAction@UUMG_Prompt_C@",
+        "positiveMembers": 11,
+        "omissionMembers": 10,
+        "presentInFull": true,
+        "presentInOmission": false
+      },
+      "entryChecks": [
+        {
+          "object": "UIFix",
+          "symbol": "HandleUICharacterClientEvent@@",
+          "role": "defined"
+        },
+        {
+          "object": "UIFix",
+          "symbol": "OnCharacter@BrtSparrowReticle@@",
+          "role": "defined"
+        },
+        {
+          "object": "UIFix",
+          "symbol": "OnCharacter@BrtHeadRadar@@",
+          "role": "defined"
+        },
+        {
+          "object": "UIFix",
+          "symbol": "OnCharacter@BrtPodView@@",
+          "role": "defined"
+        },
+        {
+          "object": "UIFix",
+          "symbol": "Reconcile@BrtPodView@@",
+          "role": "defined"
+        },
+        {
+          "object": "UIFix",
+          "symbol": "OnCharacter@BrtGrappleInput@@",
+          "role": "defined"
+        },
+        {
+          "object": "UIFix",
+          "symbol": "SetRenderOpacity@UWidget@",
+          "role": "needed"
+        },
+        {
+          "object": "UIFix",
+          "symbol": "GetRenderOpacity@UWidget@",
+          "role": "needed"
+        },
+        {
+          "object": "UIFix",
+          "symbol": "GetCurrentMobilityModule@APBCharacter@",
+          "role": "needed"
+        },
+        {
+          "object": "UIFix",
+          "symbol": "GetKeysFromActionName@UPBOptions@",
+          "role": "needed"
+        },
+        {
+          "object": "UIFix",
+          "symbol": "WasInputKeyJustPressed@APlayerController@",
+          "role": "needed"
+        },
+        {
+          "object": "UIFix",
+          "symbol": "WasInputKeyJustReleased@APlayerController@",
+          "role": "needed"
+        },
+        {
+          "object": "UIFix",
+          "symbol": "GetIsAllowedCatch@APBCharacter@",
+          "role": "needed"
+        },
+        {
+          "object": "LauncherFix",
+          "symbol": "HandleLauncherClientEvent@@",
+          "role": "defined"
+        },
+        {
+          "object": "LauncherFix",
+          "symbol": "K2_ASingleAmmoReloaded@APBLauncher@",
+          "role": "needed"
+        },
+        {
+          "object": "LauncherFix",
+          "symbol": "GetOwnerPawn@APBAttachables@",
+          "role": "needed"
+        },
+        {
+          "object": "LauncherFix",
+          "symbol": "IsAlive@APBCharacter@",
+          "role": "needed"
+        },
+        {
+          "object": "ServerLogic",
+          "symbol": "NoteServerGameTick@@",
+          "role": "defined"
+        },
+        {
+          "object": "ServerLogic",
+          "symbol": "Tick@grapple@brt@@",
+          "role": "defined"
+        },
+        {
+          "object": "ServerLogic",
+          "symbol": "GetCurrentMobilityModule@APBCharacter@",
+          "role": "needed"
+        },
+        {
+          "object": "ServerLogic",
+          "symbol": "GetCoolingDownPercent@APBCatchingModule@",
+          "role": "needed"
+        },
+        {
+          "object": "ServerLogic",
+          "symbol": "GetDeaths@APBPlayerState@",
+          "role": "needed"
+        },
+        {
+          "object": "OwnerLogin",
+          "symbol": "BindVerified@grapple@brt@@",
+          "role": "defined"
+        },
+        {
+          "object": "OwnerLogin",
+          "symbol": "BrtTickPendingOwnerReconnect@@",
+          "role": "defined"
+        },
+        {
+          "object": "OwnerLogin",
+          "symbol": "GetDefaultIDStr@APBPlayerState@",
+          "role": "needed"
+        },
+        {
+          "object": "OwnerLogin",
+          "symbol": "ServerPreOrderInventory@APBPlayerController@",
+          "role": "needed"
+        },
+        {
+          "object": "Birth",
+          "symbol": "InitWeapon@APBWeapon@",
+          "role": "needed"
+        },
+        {
+          "object": "Birth",
+          "symbol": "GetWeaponArray@APBCharacter@",
+          "role": "needed"
+        },
+        {
+          "object": "UIFix",
+          "symbol": "OpenInGameSelectRoleMenu@APBPlayerController@",
+          "role": "needed"
+        },
+        {
+          "object": "UIFix",
+          "symbol": "CharacterTick@BrtDeathMenuV084@@",
+          "role": "defined"
+        },
+        {
+          "object": "ClientLogic",
+          "symbol": "Begin@BrtDeathMenuTravel@@",
+          "role": "defined"
+        },
+        {
+          "object": "ClientLogic",
+          "symbol": "Complete@BrtDeathMenuTravel@@",
+          "role": "defined"
+        }
+      ],
+      "matchingConsumerProviderSymbols": [
+        {
+          "caller": "LateJoinManager",
+          "callee": "OwnerLogin",
+          "name": "BrtPreorderOwnerInventory@@",
+          "decorated": [
+            "?BrtPreorderOwnerInventory@@YAXPEAVAGameMode@SDK@@PEAVAPBPlayerController@2@@Z"
+          ]
+        },
+        {
+          "caller": "LateJoinManager",
+          "callee": "OwnerLogin",
+          "name": "BrtTickPendingOwnerReconnect@@",
+          "decorated": [
+            "?BrtTickPendingOwnerReconnect@@YAXXZ"
+          ]
+        },
+        {
+          "caller": "LateJoinManager",
+          "callee": "Birth",
+          "name": "BrtTickOwnerBirth@@",
+          "decorated": [
+            "?BrtTickOwnerBirth@@YAXXZ"
+          ]
+        },
+        {
+          "caller": "OwnerLogin",
+          "callee": "Birth",
+          "name": "BrtWatchOwnerBirth@@",
+          "decorated": [
+            "?BrtWatchOwnerBirth@@YA_NPEAVAPBPlayerController@SDK@@AEBVRoomHttp@spawn@brt@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AEBV?$vector@USavedMenuRole@spawn@brt@@V?$allocator@USavedMenuRole@spawn@brt@@@std@@@7@@Z"
+          ]
+        },
+        {
+          "caller": "OwnerLogin",
+          "callee": "RoomHttp",
+          "name": "ReconnectMenu@RoomHttp@",
+          "decorated": [
+            "?ReconnectMenu@RoomHttp@spawn@brt@@QEBA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AEBUMember@23@AEBV45@@Z"
+          ]
+        },
+        {
+          "caller": "OwnerLogin",
+          "callee": "RoomHttp",
+          "name": "MenuSubmitted@RoomHttp@",
+          "decorated": [
+            "?MenuSubmitted@RoomHttp@spawn@brt@@QEBAXAEBUMember@23@@Z"
+          ]
+        },
+        {
+          "caller": "UIFix",
+          "callee": "UMG_HelmetHUD_MiniMap_functions",
+          "name": "K2_AddWidgetToCanvasPanel@UUMG_HelmetHUD_MiniMap_C@",
+          "decorated": [
+            "?K2_AddWidgetToCanvasPanel@UUMG_HelmetHUD_MiniMap_C@SDK@@QEAAXPEAVUPBMiniMapNode@2@@Z"
+          ]
+        },
+        {
+          "caller": "UIFix",
+          "callee": "UMG_MinimapNode_functions",
+          "name": "UpdateNode@UUMG_MinimapNode_C@",
+          "decorated": [
+            "?UpdateNode@UUMG_MinimapNode_C@SDK@@QEAAXAEBUFPBMiniMapIconInfo@2@@Z"
+          ]
+        },
+        {
+          "caller": "UIFix",
+          "callee": "UMG_Prompt_functions",
+          "name": "BP_OnHandleBackAction@UUMG_Prompt_C@",
+          "decorated": [
+            "?BP_OnHandleBackAction@UUMG_Prompt_C@SDK@@QEAA_NXZ"
+          ]
+        }
+      ],
+      "rejectedControls": [
+        "reconnect before prerequisites",
+        "radar before prerequisites",
+        "duplicate inventory",
+        "missing prompt implementation"
+      ]
+    },
+    {
+      "version": "main",
+      "upstreamCommit": "74c68ac3e6007c36248c442a281c2b7b831cc53a",
+      "patches": [
+        {
+          "name": "inventory",
+          "patch": "community-inventory/main-community.patch",
+          "sha256": "e66fe3b48f9a130194ed1ea9bc26051fae09fdcb89735424ca03eb8560bfe8fe"
+        },
+        {
+          "name": "birth",
+          "patch": "community-weapon-birth/main-birth.patch",
+          "sha256": "eafa672fdbfed2dcdbae9b5516fc2678286406a84fc5046c0fb1e1a3a8262a50"
+        },
+        {
+          "name": "grapple",
+          "patch": "community-grapple/main-community.patch",
+          "sha256": "0be0a47644b0124ab3092f53a595ba7b594558fd853798378b59b0dbd8919877"
+        },
+        {
+          "name": "reconnect",
+          "patch": "inventory-reconnect/main-reconnect.patch",
+          "sha256": "f990f02d3c55daa0468d34f31721bbe13a1d781b4216292ee266f16d88dedaf3"
+        },
+        {
+          "name": "first-life",
+          "patch": "first-life/main.patch",
+          "sha256": "61471b80f506586c0aacb3e9b8220f153a6ae07f251525a5aa39874cf5a07ede"
+        },
+        {
+          "name": "presentation",
+          "patch": "community-presentation/split.patch",
+          "sha256": "9f8fc078055c21eeacc63604aafae35f00ecd63bc310182d56105ad2ec585521"
+        },
+        {
+          "name": "reticle",
+          "patch": "community-reticle/split.patch",
+          "sha256": "257c114be7008cba67cfd509921b341ee149913a594638864cf6b40f516b8d6d"
+        },
+        {
+          "name": "radar",
+          "patch": "community-radar/split.patch",
+          "sha256": "4b979f6adf05ad9e2c83ec049dbc998a2332a4a3f7ac04a8495abcf86741a85d"
+        },
+        {
+          "name": "death-menu",
+          "patch": "community-death-menu/split.patch",
+          "sha256": "606b5b07a05b613e27a35c46e6de93403916f769461a35183638c0ff33266546"
+        },
+        {
+          "name": "death-menu-sdk",
+          "patch": "community-death-menu/sdk-split.patch",
+          "sha256": "e31a1fa5a51bbbb5be4d254f9b34c149f464166525f74550a1f9fbe9c3a59bd3"
+        },
+        {
+          "name": "pod-view",
+          "patch": "community-pod-view/split.patch",
+          "sha256": "cafe33062605bd08b38191459e1f4cb9dd3634a7267e7c057e483516387aeae5"
+        },
+        {
+          "name": "grapple-input",
+          "patch": "community-grapple-input/split.patch",
+          "sha256": "1f1c8aa7047717146ba9b95c23facd34d3e165d1723ca6f612b073b000890f79"
+        }
+      ],
+      "upstreamGitBlobs": {
+        "Payload.vcxproj": "b80ba707d944f2d65d6d1684652452b928b023ec",
+        "Server/LateJoin.h": "fd997dc674aa0de84798b19d88fb4a3282da93ca",
+        "Server/LateJoin.cpp": "1d70e8e03df2ec553f2a358954a991a919199c4a",
+        "Server/RoundManager.cpp": "b35d8d1b1b404b912bca36ec2f91f8e7b0511d59",
+        "Client/UIShake.cpp": "7a50720b1295331ff366024e8de22c05b1416441",
+        "Client/SideMountFixClient.cpp": "5160e9cbfc58f853aca7a7bb45816edde1320413",
+        "Client/AutoConnect.cpp": "9d9cfa7350de99d65b6a117452f74dd00eed29ce",
+        "SDK/UMG_HelmetHUD_MiniMap_functions.cpp": "b489cdac5581edc77ba08c8efc6648558510eadc",
+        "SDK/UMG_MinimapNode_functions.cpp": "c093bb8eefaf63adee833dea316c99c5268c622d",
+        "SDK/UMG_Prompt_functions.cpp": "05e843b220374b15ba87e596425b2cbd0f41ab3f"
+      },
+      "maintenanceHeaders": [
+        {
+          "module": "community-reticle",
+          "file": "SparrowReticle.hpp",
+          "sha256": "f37ee78186aa81aadb20b4a535948f4fc822eec063c4dcedb10ad4ddd8e1b972"
+        },
+        {
+          "module": "community-radar",
+          "file": "MarkedHeadRadar.hpp",
+          "sha256": "9bee3cc8ccb3116a504e6de3ef06c557c560f47093ee282654b53d3ff464b569"
+        },
+        {
+          "module": "community-death-menu",
+          "file": "DeathMenu.hpp",
+          "sha256": "493640e47d8bb7ce9e9f5ccbc99390d0b6ed75aa438247bcaf9ad743dfbb1ef0"
+        },
+        {
+          "module": "community-death-menu",
+          "file": "DeathMenu.sdk.hpp",
+          "sha256": "00e35debfad7c111b083fd8217b52d990655164c8746a2e783afd760d9da1954"
+        },
+        {
+          "module": "community-pod-view",
+          "file": "PodView.hpp",
+          "sha256": "0ec53cddc66fea192c8de41ddfc0bc9d89751dfb3590df225bbe22624fb2bf79"
+        },
+        {
+          "module": "community-grapple-input",
+          "file": "GrappleInput.hpp",
+          "sha256": "199aa787e50b9c34078366396b9ef3593ca726999e879b458a86047f5e9c3452"
+        }
+      ],
+      "finalSourceSHA256": {
+        "Server/LateJoin.cpp": "4f8f08c4cb5e69fc73bd3e4abb0e1ddcf2a5cc6d3210b44150b72821958e99d2",
+        "Server/RoundManager.cpp": "49cb182c4cf2e7cc5c10b18f77a8fc116a18104d4341ad1bbec98de11ad8a470",
+        "Client/UIShake.cpp": "626f2d0007226879b882c42d8a26e2585fedbad4093384044cf17d21c5cd4f8a",
+        "Client/SideMountFixClient.cpp": "4f6186ef4c362a9751304bdfcb22c1c0da08843dcdae648e725c4cbe4fb44264",
+        "Client/AutoConnect.cpp": "411cece9dbdc814fae588a33faae51b2691676cf3c4b7445071ff85599d0555b"
+      },
+      "features": [
+        "inventory",
+        "birth",
+        "grapple-observation",
+        "reconnect",
+        "first-life",
+        "side-mount-reload",
+        "sparrow-reticle",
+        "marked-head-radar",
+        "death-menu",
+        "pod-view",
+        "grapple-input-observation"
+      ],
+      "compiledSources": [
+        "Server/LateJoin.cpp",
+        "Server/RoundManager.cpp",
+        "Client/UIShake.cpp",
+        "Client/SideMountFixClient.cpp",
+        "Client/AutoConnect.cpp",
+        "BrtInventory/OwnerLogin.cpp",
+        "BrtInventory/Birth.cpp",
+        "BrtInventory/RoomHttp.cpp",
+        "SDK/UMG_HelmetHUD_MiniMap_functions.cpp",
+        "SDK/UMG_MinimapNode_functions.cpp",
+        "SDK/UMG_Prompt_functions.cpp"
+      ],
+      "archive": {
+        "version": "main",
+        "library": "community-business-main.lib",
+        "bytes": 19034862,
+        "sha256": "aaacfb63b533b49ddcf0de84b4c7be1413c083f42083dbf13c52bdaab6a41546",
+        "members": [
+          "LateJoin.obj",
+          "RoundManager.obj",
+          "UIShake.obj",
+          "SideMountFixClient.obj",
+          "AutoConnect.obj",
+          "OwnerLogin.obj",
+          "Birth.obj",
+          "RoomHttp.obj",
+          "UMG_HelmetHUD_MiniMap_functions.obj",
+          "UMG_MinimapNode_functions.obj",
+          "UMG_Prompt_functions.obj"
+        ]
+      },
+      "omissionControl": {
+        "symbol": "?BP_OnHandleBackAction@UUMG_Prompt_C@",
+        "positiveMembers": 11,
+        "omissionMembers": 10,
+        "presentInFull": true,
+        "presentInOmission": false
+      },
+      "entryChecks": [
+        {
+          "object": "UIShake",
+          "symbol": "HandleUICharacterClientEvent@@",
+          "role": "defined"
+        },
+        {
+          "object": "UIShake",
+          "symbol": "OnCharacter@BrtSparrowReticle@@",
+          "role": "defined"
+        },
+        {
+          "object": "UIShake",
+          "symbol": "OnCharacter@BrtHeadRadar@@",
+          "role": "defined"
+        },
+        {
+          "object": "UIShake",
+          "symbol": "OnCharacter@BrtPodView@@",
+          "role": "defined"
+        },
+        {
+          "object": "UIShake",
+          "symbol": "Reconcile@BrtPodView@@",
+          "role": "defined"
+        },
+        {
+          "object": "UIShake",
+          "symbol": "OnCharacter@BrtGrappleInput@@",
+          "role": "defined"
+        },
+        {
+          "object": "UIShake",
+          "symbol": "SetRenderOpacity@UWidget@",
+          "role": "needed"
+        },
+        {
+          "object": "UIShake",
+          "symbol": "GetRenderOpacity@UWidget@",
+          "role": "needed"
+        },
+        {
+          "object": "UIShake",
+          "symbol": "GetCurrentMobilityModule@APBCharacter@",
+          "role": "needed"
+        },
+        {
+          "object": "UIShake",
+          "symbol": "GetKeysFromActionName@UPBOptions@",
+          "role": "needed"
+        },
+        {
+          "object": "UIShake",
+          "symbol": "WasInputKeyJustPressed@APlayerController@",
+          "role": "needed"
+        },
+        {
+          "object": "UIShake",
+          "symbol": "WasInputKeyJustReleased@APlayerController@",
+          "role": "needed"
+        },
+        {
+          "object": "UIShake",
+          "symbol": "GetIsAllowedCatch@APBCharacter@",
+          "role": "needed"
+        },
+        {
+          "object": "SideMountFixClient",
+          "symbol": "HandleLauncherClientEvent@@",
+          "role": "defined"
+        },
+        {
+          "object": "SideMountFixClient",
+          "symbol": "K2_ASingleAmmoReloaded@APBLauncher@",
+          "role": "needed"
+        },
+        {
+          "object": "SideMountFixClient",
+          "symbol": "GetOwnerPawn@APBAttachables@",
+          "role": "needed"
+        },
+        {
+          "object": "SideMountFixClient",
+          "symbol": "IsAlive@APBCharacter@",
+          "role": "needed"
+        },
+        {
+          "object": "RoundManager",
+          "symbol": "NoteServerGameTick@@",
+          "role": "defined"
+        },
+        {
+          "object": "RoundManager",
+          "symbol": "Tick@grapple@brt@@",
+          "role": "defined"
+        },
+        {
+          "object": "RoundManager",
+          "symbol": "GetCurrentMobilityModule@APBCharacter@",
+          "role": "needed"
+        },
+        {
+          "object": "RoundManager",
+          "symbol": "GetCoolingDownPercent@APBCatchingModule@",
+          "role": "needed"
+        },
+        {
+          "object": "RoundManager",
+          "symbol": "GetDeaths@APBPlayerState@",
+          "role": "needed"
+        },
+        {
+          "object": "OwnerLogin",
+          "symbol": "BindVerified@grapple@brt@@",
+          "role": "defined"
+        },
+        {
+          "object": "OwnerLogin",
+          "symbol": "BrtTickPendingOwnerReconnect@@",
+          "role": "defined"
+        },
+        {
+          "object": "OwnerLogin",
+          "symbol": "GetDefaultIDStr@APBPlayerState@",
+          "role": "needed"
+        },
+        {
+          "object": "OwnerLogin",
+          "symbol": "ServerPreOrderInventory@APBPlayerController@",
+          "role": "needed"
+        },
+        {
+          "object": "Birth",
+          "symbol": "InitWeapon@APBWeapon@",
+          "role": "needed"
+        },
+        {
+          "object": "Birth",
+          "symbol": "GetWeaponArray@APBCharacter@",
+          "role": "needed"
+        },
+        {
+          "object": "AutoConnect",
+          "symbol": "OpenInGameSelectRoleMenu@APBPlayerController@",
+          "role": "needed"
+        },
+        {
+          "object": "AutoConnect",
+          "symbol": "Tick@BrtDeathMenu@@",
+          "role": "defined"
+        },
+        {
+          "object": "AutoConnect",
+          "symbol": "Travel@BrtDeathMenu@@",
+          "role": "defined"
+        }
+      ],
+      "matchingConsumerProviderSymbols": [
+        {
+          "caller": "LateJoin",
+          "callee": "OwnerLogin",
+          "name": "BrtPreorderOwnerInventory@@",
+          "decorated": [
+            "?BrtPreorderOwnerInventory@@YAXPEAVAGameMode@SDK@@PEAVAPBPlayerController@2@@Z"
+          ]
+        },
+        {
+          "caller": "LateJoin",
+          "callee": "OwnerLogin",
+          "name": "BrtTickPendingOwnerReconnect@@",
+          "decorated": [
+            "?BrtTickPendingOwnerReconnect@@YAXXZ"
+          ]
+        },
+        {
+          "caller": "LateJoin",
+          "callee": "Birth",
+          "name": "BrtTickOwnerBirth@@",
+          "decorated": [
+            "?BrtTickOwnerBirth@@YAXXZ"
+          ]
+        },
+        {
+          "caller": "OwnerLogin",
+          "callee": "Birth",
+          "name": "BrtWatchOwnerBirth@@",
+          "decorated": [
+            "?BrtWatchOwnerBirth@@YA_NPEAVAPBPlayerController@SDK@@AEBVRoomHttp@spawn@brt@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AEBV?$vector@USavedMenuRole@spawn@brt@@V?$allocator@USavedMenuRole@spawn@brt@@@std@@@7@@Z"
+          ]
+        },
+        {
+          "caller": "OwnerLogin",
+          "callee": "RoomHttp",
+          "name": "ReconnectMenu@RoomHttp@",
+          "decorated": [
+            "?ReconnectMenu@RoomHttp@spawn@brt@@QEBA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AEBUMember@23@AEBV45@@Z"
+          ]
+        },
+        {
+          "caller": "OwnerLogin",
+          "callee": "RoomHttp",
+          "name": "MenuSubmitted@RoomHttp@",
+          "decorated": [
+            "?MenuSubmitted@RoomHttp@spawn@brt@@QEBAXAEBUMember@23@@Z"
+          ]
+        },
+        {
+          "caller": "UIShake",
+          "callee": "UMG_HelmetHUD_MiniMap_functions",
+          "name": "K2_AddWidgetToCanvasPanel@UUMG_HelmetHUD_MiniMap_C@",
+          "decorated": [
+            "?K2_AddWidgetToCanvasPanel@UUMG_HelmetHUD_MiniMap_C@SDK@@QEAAXPEAVUPBMiniMapNode@2@@Z"
+          ]
+        },
+        {
+          "caller": "UIShake",
+          "callee": "UMG_MinimapNode_functions",
+          "name": "UpdateNode@UUMG_MinimapNode_C@",
+          "decorated": [
+            "?UpdateNode@UUMG_MinimapNode_C@SDK@@QEAAXAEBUFPBMiniMapIconInfo@2@@Z"
+          ]
+        },
+        {
+          "caller": "AutoConnect",
+          "callee": "UMG_Prompt_functions",
+          "name": "BP_OnHandleBackAction@UUMG_Prompt_C@",
+          "decorated": [
+            "?BP_OnHandleBackAction@UUMG_Prompt_C@SDK@@QEAA_NXZ"
+          ]
+        }
+      ],
+      "rejectedControls": [
+        "reconnect before prerequisites",
+        "radar before prerequisites",
+        "duplicate inventory",
+        "missing prompt implementation"
+      ]
+    }
+  ]
+}

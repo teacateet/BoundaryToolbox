@@ -1,0 +1,21 @@
+diff --git a/integrations/loadout/room-spawn.cjs b/integrations/loadout/room-spawn.cjs
+index c5df46f..d952b61 100644
+--- a/integrations/loadout/room-spawn.cjs
++++ b/integrations/loadout/room-spawn.cjs
+@@ -254,6 +254,16 @@ function installRoomSpawn(app, getStore, type, configured = process.env.BRT_SPAW
+             }
+             for (const [key, member] of room.sessions) if (now - member.touched > cutoff) drop(key, member);
+             switch (req.params.op) {
++            case 'birth-plan': {
++                shape(body, ['connectionId', 'authenticatedSteamId', 'life', 'selection']);
++                if (!room.owner || room.owner !== body.authenticatedSteamId) fail(403, 'wrong-local-player');
++                if (!uuid.test(body.connectionId) || !Number.isSafeInteger(body.life) || body.life < 1)
++                    fail(400, 'invalid-birth-request');
++                shape(body.selection, ['role', 'primary', 'secondary']);
++                const loadout = selectedLoadout(getStore(), type(), room.owner, body.selection, room.owner);
++                return res.json({ version:1, roomId:room.id, connectionId:body.connectionId,
++                    authenticatedSteamId:room.owner, life:body.life, loadout });
++            }
+             case 'login-menu': {
+                 shape(body, ['connectionId', 'authenticatedSteamId']);
+                 if (!room.owner || room.owner !== body.authenticatedSteamId) fail(403, 'wrong-local-player');

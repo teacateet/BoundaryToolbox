@@ -1,0 +1,237 @@
+import { Txt } from "../components/foundation.slint";
+import { TextField } from "../components/inputs.slint";
+import { I18n } from "../i18n.slint";
+
+export component VntGamePort inherits HorizontalLayout {
+    in-out property <string> value;
+    in property <bool> editable: true;
+    height: 44px;
+    spacing: 12px;
+
+    Txt {
+        text: I18n.tr("房主游戏端口", "Host game port", "ホストのゲームポート");
+        color: #b0bfd2;
+        font-size: 13px;
+        font-weight: 700;
+        horizontal-stretch: 1;
+        vertical-alignment: center;
+    }
+    TextField {
+        width: 94px;
+        border-radius: 3px;
+        height: parent.height;
+        text <=> root.value;
+        enabled: root.editable;
+        input-type: InputType.number;
+    }
+}
+
+// VNT 联机页的单个节点行。
+export component VntPeerLine inherits Rectangle {
+    in property <string> name;
+    in property <string> address;
+    in property <string> detail;
+    in property <bool> online: false;
+    in property <bool> can-join: true;
+    callback join_clicked(address: string);
+
+    property <bool> join-enabled: online && can-join && address != "";
+
+    height: 62px;
+    background: #00000000;
+
+    Rectangle {
+        width: parent.width;
+        height: 56px;
+        y: 3px;
+        border-radius: 3px;
+        border-width: 1px;
+        border-color: #394540;
+        background: #1b2221;
+        clip: true;
+
+        HorizontalLayout {
+            padding-left: 14px;
+            padding-right: 14px;
+            spacing: 12px;
+
+            Rectangle {
+                width: 6px;
+                background: #00000000;
+
+                Rectangle {
+                    width: parent.width;
+                    height: 34px;
+                    y: (parent.height - self.height) / 2;
+                    border-radius: 3px;
+                    background: online ? #9ef0b5 : #54617a;
+                }
+            }
+
+            VerticalLayout {
+                alignment: center;
+                spacing: 3px;
+                horizontal-stretch: 1;
+
+                Txt {
+                    text: address == "" ? name : name + " / " + address;
+                    color: #eef4fb;
+                    font-size: 13px;
+                    font-weight: 800;
+                    horizontal-stretch: 1;
+                    wrap: no-wrap; min-width: 0px; overflow: elide;
+                }
+
+                Txt {
+                    text: detail == "" ? address : detail;
+                    color: online ? #b9f6c9 : #95a3b8;
+                    font-size: 11px;
+                    font-weight: 500;
+                    horizontal-stretch: 1;
+                    wrap: no-wrap; min-width: 0px; overflow: elide;
+                }
+            }
+
+            Rectangle {
+                width: 56px;
+                height: 28px;
+                y: (parent.height - self.height) / 2;
+                border-radius: 3px;
+                border-width: 1px;
+                border-color: online ? #9ef0b5 : #344056;
+                background: online ? #163b25 : #101721;
+
+                Txt {
+                    text: online ? I18n.tr("在线", "Online", "オンライン") : I18n.tr("等待", "Waiting", "待機中");
+                    color: online ? #9ef0b5 : #95a3b8;
+                    font-size: 12px;
+                    font-weight: 800;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+
+            Rectangle {
+                width: 68px;
+                height: 30px;
+                y: (parent.height - self.height) / 2;
+                border-radius: 3px;
+                border-width: 1px;
+                border-color: root.join-enabled ? (join-touch.has-hover ? #62e2c1 : #54617a) : #344056;
+                background: root.join-enabled
+                    ? (join-touch.pressed ? #10241f : (join-touch.has-hover ? #183429 : #101721))
+                    : #10172188;
+
+                animate background { duration: 120ms; }
+                animate border-color { duration: 120ms; }
+
+                Txt {
+                    text: I18n.tr("加入", "Join", "参加");
+                    color: root.join-enabled ? #c7fff2 : #687589;
+                    font-size: 12px;
+                    font-weight: 800;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+
+                join-touch := TouchArea {
+                    enabled: root.join-enabled;
+                    clicked => { root.join_clicked(root.address); }
+                }
+            }
+        }
+    }
+}
+
+// VNT 联机页的单个服务器状态行。
+export component VntServerLine inherits Rectangle {
+    in property <string> name;
+    in property <string> address;
+    in property <string> detail;
+    in property <bool> online: false;
+
+    height: 68px;
+    background: #00000000;
+
+    Rectangle {
+        width: parent.width;
+        height: 62px;
+        y: 3px;
+        border-radius: 15px;
+        border-width: 1px;
+        border-color: online ? #9ef0b5 : #344056;
+        background: online ? #0c2b1b : #0f131a;
+        clip: true;
+
+        HorizontalLayout {
+            padding-left: 14px;
+            padding-right: 14px;
+            spacing: 12px;
+
+            Rectangle {
+                width: 6px;
+                background: #00000000;
+
+                Rectangle {
+                    width: parent.width;
+                    height: 34px;
+                    y: (parent.height - self.height) / 2;
+                    border-radius: 3px;
+                    background: online ? #9ef0b5 : #54617a;
+                }
+            }
+
+            VerticalLayout {
+                alignment: center;
+                spacing: 2px;
+                horizontal-stretch: 1;
+
+                Txt {
+                    text: name;
+                    color: #eef4fb;
+                    font-size: 13px;
+                    font-weight: 800;
+                    horizontal-stretch: 1;
+                    wrap: no-wrap;
+                }
+
+                Txt {
+                    text: address;
+                    color: #95a3b8;
+                    font-size: 11px;
+                    font-weight: 500;
+                    horizontal-stretch: 1;
+                    wrap: no-wrap;
+                }
+
+                Txt {
+                    text: detail;
+                    color: online ? #b9f6c9 : #8793a6;
+                    font-size: 11px;
+                    font-weight: 500;
+                    horizontal-stretch: 1;
+                    wrap: no-wrap;
+                }
+            }
+
+            Rectangle {
+                width: 72px;
+                height: 28px;
+                y: (parent.height - self.height) / 2;
+                border-radius: 10px;
+                border-width: 1px;
+                border-color: online ? #9ef0b5 : #344056;
+                background: online ? #163b25 : #101721;
+
+                Txt {
+                    text: online ? I18n.tr("在线", "Online", "オンライン") : I18n.tr("离线", "Offline", "オフライン");
+                    color: online ? #9ef0b5 : #95a3b8;
+                    font-size: 12px;
+                    font-weight: 800;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+        }
+    }
+}

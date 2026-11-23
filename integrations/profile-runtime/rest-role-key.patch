@@ -1,0 +1,20 @@
+diff --git a/game/loadoutStore.js b/game/loadoutStore.js
+--- a/game/loadoutStore.js
++++ b/game/loadoutStore.js
+@@ -541,5 +541,7 @@
+     getRoleLoadoutSnapshot(playerId, roleId) {
+         const data = this.load(playerId);
+-        const roleData = data && data.roles ? data.roles[roleId] : null;
++        const roles = data?.roles || {};
++        const key = this.getSavedRoleKey(roles, roleId);
++        const roleData = key === null ? null : roles[key];
+         if (!roleData && !this.getRoleDefinition(roleId).role) return null;
+         if (roleData && roleData.loadoutSnapshot) {
+@@ -738,5 +740,6 @@
+         const roles = { ...data.roles };
+         for (const [roleId, input] of Object.entries(this.normalizeFullLoadout(fullLoadout).roles)) {
+-            roles[roleId] = projection.write(this, roleId, roles[roleId] || {}, input);
++            const key = this.getSavedRoleKey(roles, roleId) ?? roleId;
++            roles[key] = projection.write(this, roleId, roles[key] || {}, input);
+         }
+         this.save(playerId, { ...data, roles });

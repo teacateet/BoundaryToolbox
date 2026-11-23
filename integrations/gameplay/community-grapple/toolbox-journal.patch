@@ -1,0 +1,14 @@
+diff --git a/integrations/fixed-server/local-pve-host.cjs b/integrations/fixed-server/local-pve-host.cjs
+index f2ffa08..7ab20f5 100644
+--- a/integrations/fixed-server/local-pve-host.cjs
++++ b/integrations/fixed-server/local-pve-host.cjs
+@@ -37,7 +37,8 @@ function roomJournal(write) {
+       line = '[SERVER_LIFECYCLE] match_end_detected';
+     }
+     const ownerPreorder = line === '[BRT-INVENTORY] owner-preorder-submitted roles=6 slots=36';
+-    if (line.length > 512 || !(ownerPreorder || /^\[SERVER\] (?:Map loaded: |Mode: |Port: )/.test(line) ||
++    const grappleObservation = line.length < 160 && /^\[BRT-GRAPPLE\] owner=[1-9]\d{0,5} life=[1-9]\d{0,5} slot=[1-9]\d{0,5} ms=\d{1,8} event=(?:baseline|change|followup|slot-end|life-end|limit) hook=[0-3] cool=[01] anchor=[01] permille=(?:-1|1000|\d{1,3})$/.test(line) && !/[\r\n]/.test(line);
++    if (line.length > 512 || !(grappleObservation || ownerPreorder || /^\[SERVER\] (?:Map loaded: |Mode: |Port: )/.test(line) ||
+         line === '[SERVER] Server is now listening.' || /^\[SERVER_LIFECYCLE\] [a-z_]+$/.test(line))) return;
+     // 同图重新加载也要交给 BRT，使上一场的开赛状态失效。
+     if (remaining > 0) { remaining--; write(line); }

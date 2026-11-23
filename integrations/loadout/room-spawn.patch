@@ -1,0 +1,35 @@
+--- a/index.js
++++ b/index.js
+@@ -94,4 +94,14 @@
+ app.post("//connectServer", handleConnectServer);
+ app.post("/connectServer", handleConnectServer);
++
++const { mergeWeaponUpdate } = require('./spawn-parts.cjs');
++let spawnArchiveType;
++function getSpawnArchiveType() {
++    spawnArchiveType ??= protobuf.loadSync("./game/proto/Request/UpdateWeaponArchiveV2Request.proto")
++        .lookupType("ProjectBoundary.UpdateWeaponArchiveV2Request");
++    return spawnArchiveType;
++}
++const registerLocalSpawn = require('./room-spawn.cjs').installRoomSpawn(app, getLoadoutStore, getSpawnArchiveType);
++
+ 
+ // =====================================================================
+@@ -395,1 +405,1 @@
+-  const roomSession = createReadyRoomSession(readModes, lobbyRoomReader(socket, readRoom), { report: e => console.log('[PVE-ROOM] ' + JSON.stringify(e)) });
++  const roomSession = createReadyRoomSession(readModes, lobbyRoomReader(socket, readRoom), { registerSpawn: registerLocalSpawn, report: e => console.log('[PVE-ROOM] ' + JSON.stringify(e)) });
+@@ -582,2 +592,6 @@
++      else if(RPCPath === "/assets.Assets/QueryAssetsInMatch"){
++        const catalog = registerLocalSpawn.matchCatalog(socket, MessageBytes, protobuf);
++        if (catalog) socket.write(WrapMessageAndSerialize(MessageId, RPCPath, catalog));
++      }
+       else if(RPCPath === "/assets.Assets/QueryAssets"){
+         console.log("[RECV] Query Assets!");
+@@ -952,4 +962,7 @@
+             bytes = Buffer.from(type.encode(edit).finish());
+           }
++          bytes = mergeWeaponUpdate(store, role, weaponRoleId, scoped, Buffer.from(bytes), getSpawnArchiveType());
++          if (!bytes) return false;
++          require('./room-spawn.cjs').rememberReceiverSelection(role, scoped, MessageBytes, bytes, getSpawnArchiveType());
+           role._weaponArchives = { ...role._weaponArchives, [scoped]: bytes.toString('hex') };
+           role._weaponArchiveRaw = role._weaponArchives[scoped];

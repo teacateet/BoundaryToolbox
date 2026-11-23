@@ -1,0 +1,15 @@
+diff --git a/Payload/Utility/UIFix.cpp b/Payload/Utility/UIFix.cpp
+--- a/Payload/Utility/UIFix.cpp
++++ b/Payload/Utility/UIFix.cpp
+@@ -5,2 +5,3 @@
+ #include <string>
++#include "PodView.hpp"
+ #include <unordered_map>
+@@ -21,4 +22,5 @@ void HandleUICharacterClientEvent(UObject* Object, UFunction* Function, void* Parms,
+-    if (!UIFixDebugEnabled)
++    BrtPodView::OnCharacter(static_cast<APBCharacter*>(Object), funcName);
++    if (!UIFixDebugEnabled)
+         return;
+ 
+     // ReceiveTick fires every frame for actors with BP tick via ProcessEvent.
+

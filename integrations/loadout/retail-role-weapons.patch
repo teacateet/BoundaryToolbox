@@ -1,0 +1,30 @@
+--- a/game/loadoutStore.js
++++ b/game/loadoutStore.js
+@@ -33,1 +33,11 @@
++// 六名可选干员的两槽来自角色定义所引用的 DA_CharacterDefault。这里只处理缺省值。
++const RETAIL_ROLE_WEAPONS = {
++    PEACE: ["PEACE_RU-AKM", "PEACE_RU-APS"],
++    PROBE: ["PROBE_GSW-DMR", "PROBE_GSW-FOP"],
++    SNIPER: ["SNIPER_GSW-PSR", "SNIPER_GSW-CDP"],
++    FORT: ["FORT_GSW-MG", "FORT_GSW-IDW"],
++    SPIKE: ["SPIKE_GSW-SG", "SPIKE_GSW-IDW"],
++    FIXER: ["FIXER_GSW-PCC", "FIXER_GSW-FOP"],
++};
++
+ const WEAPON_ARCHIVE_SLOT_SCOPES = [
+@@ -733,6 +743,9 @@
+-        return {
+-            primaryWeapon: this.firstFromSet(role.weaponScope, 0),
+-            // DA_CharacterDefault_PROBE_EA 的副槽是 FOP，可选武器的排列不是默认装备。
+-            secondaryWeapon: roleId.toUpperCase() === "PROBE" && role.weaponScope.has("PROBE_GSW-FOP")
+-                ? "PROBE_GSW-FOP"
+-                : this.firstFromSet(role.weaponScope, 1),
++        const weapons = RETAIL_ROLE_WEAPONS[roleId.toUpperCase()];
++        const initialWeapon = (slot) => {
++            const id = weapons?.[slot];
++            return role.weaponScope.has(id) ? id : this.firstFromSet(role.weaponScope, slot);
++        };
++
++        return {
++            primaryWeapon: initialWeapon(0),
++            secondaryWeapon: initialWeapon(1),

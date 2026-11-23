@@ -1,0 +1,193 @@
+import { ListView } from "std-widgets.slint";
+import { VntPeerRow } from "../models.slint";
+import { Action } from "../components/controls.slint";
+import { Txt } from "../components/foundation.slint";
+import { Panel, TitleBlock } from "../components/surfaces.slint";
+import { VntGamePort } from "../rows/vnt_rows.slint";
+import { I18n } from "../i18n.slint";
+
+component HostPeerLine inherits Rectangle {
+    in property <string> name;
+    in property <string> address;
+    in property <string> detail;
+    in property <bool> online: false;
+    callback selected(address: string);
+
+    height: 62px;
+    background: #00000000;
+
+    Rectangle {
+        width: parent.width;
+        height: 56px;
+        y: 3px;
+        border-radius: 15px;
+        border-width: 1px;
+        border-color: online ? (touch.has-hover ? #c7fff2 : #9ef0b5) : #344056;
+        background: online ? (touch.pressed ? #123f28 : (touch.has-hover ? #103621 : #0c2b1b)) : #0f131a;
+        clip: true;
+
+        animate background { duration: 120ms; }
+        animate border-color { duration: 120ms; }
+
+        HorizontalLayout {
+            padding-left: 14px;
+            padding-right: 14px;
+            spacing: 12px;
+
+            Rectangle {
+                width: 6px;
+                background: #00000000;
+
+                Rectangle {
+                    width: parent.width;
+                    height: 34px;
+                    y: (parent.height - self.height) / 2;
+                    border-radius: 3px;
+                    background: online ? #9ef0b5 : #54617a;
+                }
+            }
+
+            VerticalLayout {
+                alignment: center;
+                spacing: 3px;
+                horizontal-stretch: 1;
+
+                Txt {
+                    text: address == "" ? name : name + " / " + address;
+                    color: online ? #eef4fb : #687589;
+                    font-size: 13px;
+                    font-weight: 800;
+                    horizontal-stretch: 1;
+                    wrap: no-wrap;
+                }
+
+                Txt {
+                    text: detail == "" ? address : detail;
+                    color: online ? #b9f6c9 : #95a3b8;
+                    font-size: 11px;
+                    font-weight: 500;
+                    horizontal-stretch: 1;
+                    wrap: no-wrap;
+                }
+            }
+
+            Rectangle {
+                width: 86px;
+                height: 30px;
+                y: (parent.height - self.height) / 2;
+                border-radius: 10px;
+                border-width: 1px;
+                border-color: online ? #9ef0b5 : #344056;
+                background: online ? #163b25 : #101721;
+
+                Txt {
+                    text: online ? I18n.tr("选为房主", "Select", "選択") : I18n.tr("离线", "Offline", "オフライン");
+                    color: online ? #9ef0b5 : #95a3b8;
+                    font-size: 12px;
+                    font-weight: 800;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+        }
+
+        touch := TouchArea {
+            enabled: online;
+            clicked => { root.selected(root.address); }
+        }
+    }
+}
+
+// 无网卡模式下选择房主节点。
+export component VntHostDialog inherits Rectangle {
+    in property <bool> busy;
+    in-out property <string> vnt_game_port: "7777";
+    in property <[VntPeerRow]> peers;
+    callback host_selected(address: string);
+    callback host_cancelled();
+
+    Rectangle {
+        width: parent.width;
+        height: parent.height;
+        background: #05070bd9;
+
+        dialog := Panel {
+            property <length> max-panel-width: root.width > 64px ? root.width - 64px : root.width;
+            property <length> max-panel-height: root.height > 64px ? root.height - 64px : root.height;
+            property <length> fixed-height: 236px;
+            property <length> natural-list-height: peers.length <= 0 ? 76px : 18px + 62px * peers.length;
+            property <length> available-list-height: max-panel-height > fixed-height + 64px ? max-panel-height - fixed-height : 64px;
+            property <length> list-height: min(natural-list-height, available-list-height);
+
+            width: min(760px, max-panel-width);
+            height: min(max-panel-height, fixed-height + list-height);
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            radius: 24px;
+
+            VerticalLayout {
+                padding: 24px;
+                spacing: 14px;
+
+                TitleBlock {
+                    title: I18n.tr("选择房主节点", "Select Host Peer", "ホストを選択");
+                    sub: I18n.tr("无网卡模式需要选择房主，工具箱会自动重启联机并映射端口", "No-adapter mode needs a host; the toolbox will restart networking with port mappings", "アダプターなしモードではホスト選択後に再起動してポートを転送します");
+                }
+
+                VntGamePort {
+                    value <=> root.vnt_game_port;
+                    editable: !root.busy;
+                }
+
+                Panel {
+                    height: dialog.list-height;
+                    fill: #0f131a;
+                    radius: 18px;
+
+                    if peers.length <= 0 : Txt {
+                        x: 18px;
+                        y: 0px;
+                        width: parent.width - 36px;
+                        height: parent.height;
+                        text: I18n.tr("正在等待同网络节点...", "Waiting for peers on this network...", "同じネットワークのノードを待機中...");
+                        color: #95a3b8;
+                        font-size: 13px;
+                        font-weight: 600;
+                        vertical-alignment: center;
+                    }
+
+                    if peers.length > 0 : ListView {
+                        x: 12px;
+                        y: 10px;
+                        width: parent.width - 24px;
+                        height: parent.height - 20px;
+
+                        for peer[index] in peers: HostPeerLine {
+                            name: peer.name;
+                            address: peer.address;
+                            detail: peer.detail;
+                            online: peer.online && !root.busy;
+                            selected(address) => { root.host_selected(address); }
+                        }
+                    }
+                }
+
+                HorizontalLayout {
+                    height: 58px;
+                    spacing: 12px;
+
+                    Rectangle { horizontal-stretch: 1; background: #00000000; }
+
+                    Action {
+                        width: 132px;
+                        label: I18n.tr("我是房主", "I Am Host", "自分がホスト");
+                        sub: "";
+                        enabled: !busy;
+                        accent: #a8d8ff;
+                        clicked => { root.host_cancelled(); }
+                    }
+                }
+            }
+        }
+    }
+}

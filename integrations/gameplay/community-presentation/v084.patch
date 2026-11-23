@@ -1,0 +1,49 @@
+diff --git a/Payload/Utility/LauncherFix.cpp b/Payload/Utility/LauncherFix.cpp
+--- a/Payload/Utility/LauncherFix.cpp
++++ b/Payload/Utility/LauncherFix.cpp
+@@ -106,11 +106,42 @@
+             Pod->bPendingFiring = false;
+             Pod->K2_Ready();
+             break;
+-        case 4: // Reloading — snapshot/motion-sensor launchers override
+-                // K2_ASingleAmmoReloaded to show the FakeProjectileMesh (dummy round).
+-                // Parent default is a no-op, safe to call on all launcher types.
++        case 4: // Reloading
++        {
++            // 状态复制可重复到达。每次真正进入装填只补播一次。
++            if (pending == current)
++                break;
+             Pod->K2_Reloading();
++
++            // 只有当前拥有这件挂载的活角色才可能需要补显示装入的弹体。
++            auto* pawn = Pod->GetOwnerPawn();
++            if (!UKismetSystemLibrary::IsValid(pawn) || !pawn->IsA(APBCharacter::StaticClass()))
++                break;
++            auto* owner = static_cast<APBCharacter*>(pawn);
++            auto* vehicle = owner->CurrentVehicle;
++            const bool mounted = UKismetSystemLibrary::IsValid(vehicle)
++                ? (vehicle->LeftLauncher == Pod || vehicle->RightLauncher == Pod)
++                : (owner->CurrentLeftLauncher == Pod || owner->CurrentRightLauncher == Pod);
++            if (!owner->IsAlive() || !mounted)
++                break;
++
++            const bool selected = owner->CurrentLauncher == Pod;
++            if (Pod->IsA(APBLauncher_Deploy::StaticClass()))
++            {
++                if (!selected)
++                    break;
++                const auto hands = owner->CurrentHandsState;
++                const auto* controller = owner->GetController();
++                const bool localView = owner->IsFirstPerson() || (controller && controller->IsLocalPlayerController());
++                if (localView && hands != EPBHandsState::DeployingLauncherController &&
++                    hands != EPBHandsState::DeployedLauncherController)
++                    break;
++            }
++            else if (!selected && !Pod->IsActivated())
++                break;
++
+             Pod->K2_ASingleAmmoReloaded();
+             break;
++        }
+         case 5: Pod->K2_Handup();      break;
+         }

@@ -1,0 +1,502 @@
+// Boundary 工具箱的主窗口。
+//
+// 具体视觉组件按 components、dialogs、pages、rows 模块拆分。
+
+import { PortRow, DriveRow, ProxyRow, ServerRow, VntPeerRow, VntServerRow } from "models.slint";
+import { StartPage } from "pages/start_page.slint";
+import { DiagnosticsPage } from "pages/diagnostics_page.slint";
+import { VntPage } from "pages/vnt_page.slint";
+import { SettingsPage } from "pages/settings_page.slint";
+import { ServersPage } from "pages/servers_page.slint";
+import { ShellHeader } from "header.slint";
+import { AppDialog } from "dialogs/app_dialog.slint";
+import { DriveScanDialog } from "dialogs/drive_scan_dialog.slint";
+import { InstallProgressDialog } from "dialogs/install_progress_dialog.slint";
+import { ProxySelectDialog } from "dialogs/proxy_select_dialog.slint";
+import { VntHostDialog } from "dialogs/vnt_host_dialog.slint";
+import { WindowButton } from "components/controls.slint";
+import { Txt } from "components/foundation.slint";
+import { ImageLightbox } from "components/overlays.slint";
+import { TutorialOverlay } from "components/tutorial.slint";
+import { I18n } from "i18n.slint";
+
+export component AppWindow inherits Window {
+    title: "Boundary Resurrection Toolkit";
+    in property <image> library-art;
+    out property <string> feedback_group: "1048069240";
+    in property <bool> feedback_copied: false;
+    preferred-width: 1260px;
+    preferred-height: 780px;
+    min-width: 420px;
+    min-height: 320px;
+    background: #0b0e13;
+    default-font-family: "Maple Mono CN";
+    no-frame: true;
+    resize-border-width: 6px;
+
+    // 联机子页沿用各自的刷新路由。
+    in-out property <int> page: 0;
+    private property <int> last-online-page: 2;
+
+    // 启动页和目录页共享的目录/安装状态。
+    in-out property <string> payload_label: "";
+    in-out property <string> detected_text: I18n.tr("正在检测 Steam 安装目录...", "Detecting Steam install path...", "Steam のインストール先を検出中...");
+    in-out property <string> manual_path: "";
+    in-out property <string> target_text: I18n.tr("未解析到有效的安装目录", "No valid install path resolved", "有効なインストール先が見つかりません");
+    in-out property <string> status_text: I18n.tr("准备就绪", "Ready", "準備完了");
+    in-out property <bool> launch_pve_server: false;
+    in-out property <string> process_status_text: I18n.tr("运行进程：未检测", "Runtime processes: not checked", "実行中プロセス: 未確認");
+    in-out property <string> system_status_text: I18n.tr("系统检查：未检测", "System check: not checked", "システムチェック: 未確認");
+    in-out property <bool> system_status_warning: false;
+    in-out property <bool> show_logs: false;
+    in-out property <string> log_text: "";
+    in-out property <bool> busy: false;
+    in-out property <bool> is_admin: false;
+    in-out property <bool> pulse: false;
+    in-out property <bool> install_progress_visible: false;
+    in-out property <bool> install_progress_cancelable: true;
+    in-out property <string> install_progress_dialog_title: I18n.tr("任务进度", "Task Progress", "タスク進捗");
+    in-out property <float> install_progress_value: 0.0;
+    in-out property <string> install_progress_percent: "0%";
+    in-out property <string> install_progress_title: "";
+    in-out property <string> install_progress_detail: "";
+    in-out property <int> install_progress_detail_lines: 1;
+    in-out property <bool> show_drive_dialog: false;
+    in-out property <bool> show_github_proxy_dialog: false;
+    in-out property <bool> show_app_dialog: false;
+    in-out property <bool> show_vnt_host_dialog: false;
+    in-out property <bool> show_mama_image: false;
+    in-out property <bool> tutorial_active: false;
+    in-out property <int> tutorial_step: 0;
+    in-out property <bool> app_dialog_confirm: false;
+    in-out property <bool> app_dialog_input: false;
+    in-out property <bool> app_dialog_error: false;
+    in-out property <int> app_dialog_text_lines: 1;
+    in-out property <string> app_dialog_title: "";
+    in-out property <string> app_dialog_text: "";
+    in-out property <string> app_dialog_input_text: "";
+    in-out property <string> app_dialog_primary_text: I18n.tr("确定", "OK", "OK");
+    in-out property <string> app_dialog_secondary_text: I18n.tr("取消", "Cancel", "キャンセル");
+    in-out property <string> app_dialog_tertiary_text: "";
+    in-out property <bool> app_dialog_has_tertiary: false;
+    in-out property <bool> has_target: false;
+
+    // 远程社区服列表状态。
+    in-out property <bool> servers_loading: false;
+    in-out property <string> fixed_room_port: "7777";
+    in-out property <bool> fixed_room_pve;
+    public pure function room-mode-center(pve: bool) -> Point {
+        return rooms.mode-button-center(pve);
+    }
+    in-out property <string> fixed_room_status: I18n.tr("待操作", "Idle", "待機中");
+    in property <bool> fixed_room_running;
+    in property <bool> fixed_room_error;
+    in-out property <string> server_status_text: I18n.tr("服务器列表：未刷新", "Server list: not refreshed", "サーバー一覧: 未更新");
+    in-out property <bool> update_checking: false;
+    in-out property <string> update_status_text: I18n.tr("更新：未检查", "Update: not checked", "更新: 未確認");
+    in-out property <string> github_proxy_text: "";
+    in-out property <string> network_proxy_text: "";
+    in-out property <[ProxyRow]> github_proxy_rows;
+    in-out property <bool> github_proxy_loading: false;
+    in-out property <string> github_proxy_status_text: "";
+
+    // 用于 VNT 联机的状态和选项。
+    in-out property <string> vnt_server_text: "101.35.230.139:6660";
+    in-out property <string> vnt_new_server_text: "";
+    in-out property <[string]> vnt_server_options;
+    in-out property <string> vnt_username: "";
+    in-out property <string> vnt_network_code: "";
+    in-out property <string> vnt_game_port: "7777";
+    in-out property <string> vnt_password: "";
+    in-out property <bool> vnt_no_tun: false;
+    in-out property <bool> vnt_no_punch: false;
+    in-out property <bool> vnt_compress: false;
+    in-out property <bool> vnt_rtx: false;
+    in-out property <bool> vnt_busy: false;
+    in-out property <bool> vnt_running: false;
+    in-out property <string> vnt_status_text: I18n.tr("未连接", "Disconnected", "未接続");
+    in-out property <string> vnt_detail_text: I18n.tr("填写房间号后启动联机平台", "Enter a room code before starting", "ルーム番号を入力してから起動してください");
+    in-out property <string> vnt_ip_text: "-";
+    in-out property <string> vnt_server_status_text: "-";
+    in-out property <string> vnt_nat_text: "-";
+    in-out property <string> vnt_peer_summary_text: I18n.tr("0 个节点", "0 peers", "0 ノード");
+    in-out property <[VntServerRow]> vnt_server_rows;
+    in-out property <int> language: 0;
+    in-out property <int> language_mode: -1;
+
+    // 列表模型由 Rust 持有并原地更新。
+    in-out property <[PortRow]> port_rows;
+    in-out property <[DriveRow]> drive_rows;
+    in-out property <[ServerRow]> server_rows;
+    in-out property <[VntPeerRow]> vnt_peer_rows;
+
+    // 目录选择回调。
+    callback browse_clicked();
+    callback redetect_clicked();
+    callback manual_path_changed(text: string);
+
+    // 核心操作回调。
+    callback install_clicked();
+    callback community_source_clicked();
+    callback uninstall_clicked();
+    callback launch_client_clicked();
+    callback launch_pve_server_changed(value: bool);
+    callback detect_processes_clicked();
+    callback stop_processes_clicked();
+    callback stop_port_process_clicked(protocol: string, port: int, pid: int);
+    callback open_logs_clicked();
+    callback copy_feedback_clicked();
+
+    // 远程服务器和 VNT 回调。
+    callback check_updates_clicked();
+    callback refresh_servers_clicked();
+    callback copy_server_address_clicked(address: string);
+    callback join_server_clicked(address: string);
+    callback start_fixed_room_clicked();
+    callback stop_fixed_room_clicked();
+    callback github_proxy_changed(proxy: string);
+    callback network_proxy_changed(proxy: string);
+    callback github_proxy_selected(proxy: string);
+    callback open_github_proxy_dialog_clicked();
+    callback refresh_github_proxies_clicked();
+    callback vnt_start_clicked();
+    callback vnt_stop_clicked();
+    callback vnt_refresh_clicked();
+    callback vnt_add_server_clicked(address: string);
+    callback vnt_join_peer_clicked(address: string);
+    callback vnt_host_selected(address: string);
+    callback vnt_host_cancelled();
+    callback vnt_settings_changed();
+    callback page_changed(page: int);
+    callback language_changed(language: int);
+
+    // 自定义弹窗回调。
+    callback drive_toggled(index: int, checked: bool);
+    callback drive_confirmed();
+    callback drive_cancelled();
+    callback github_proxy_dialog_cancelled();
+    callback app_dialog_primary();
+    callback app_dialog_secondary();
+    callback app_dialog_tertiary();
+    callback install_progress_closed();
+    callback install_progress_cancelled();
+    callback tutorial_target_clicked(step: int);
+    callback tutorial_next_clicked();
+    callback tutorial_skip_clicked();
+    callback tutorial_finish_clicked();
+    callback window_drag_started();
+    callback window_minimize_clicked();
+    callback window_close_clicked();
+
+    changed page => {
+        root.page_changed(root.page);
+        if root.page == 2 || root.page == 3 { root.last-online-page = root.page; }
+    }
+    changed language => { I18n.language = root.language; }
+
+    Rectangle {
+        width: parent.width;
+        height: parent.height;
+        background: #0b0e13;
+        border-color: #273041;
+        border-width: 1px;
+        clip: true;
+
+        title-bar := Rectangle {
+            x: 18px;
+            y: 0px;
+            width: parent.width > 36px ? parent.width - 36px : 0px;
+            height: 34px;
+            background: #00000000;
+
+            HorizontalLayout {
+                padding-left: 4px;
+                spacing: 10px;
+
+                Rectangle {
+                    width: 12px;
+                    background: #00000000;
+
+                    Rectangle {
+                        width: 8px;
+                        height: 8px;
+                        x: 2px;
+                        y: (parent.height - self.height) / 2;
+                        border-radius: 4px;
+                        background: #62e2c1;
+                    }
+                }
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                    background: #00000000;
+
+                    Txt {
+                        text: I18n.tr("BRT 工具箱", "BRT", "BRT ツールキット");
+                        color: #c7d1df;
+                        font-size: 13px;
+                        font-weight: 700;
+                        vertical-alignment: center;
+                    }
+
+                    drag-area := TouchArea {
+                        width: parent.width;
+                        height: parent.height;
+                        pointer-event(event) => {
+                            if event.button == PointerEventButton.left && event.kind == PointerEventKind.down {
+                                root.window_drag_started();
+                            }
+                        }
+                    }
+                }
+
+                WindowButton {
+                    label: "−";
+                    clicked => { root.window_minimize_clicked(); }
+                }
+
+                WindowButton {
+                    label: "×";
+                    danger: true;
+                    clicked => { root.window_close_clicked(); }
+                }
+            }
+        }
+
+        content := Rectangle {
+            property <length> page-height: self.height;
+
+            x: 18px;
+            y: 100px;
+            width: parent.width > 36px ? parent.width - 36px : 0px;
+            height: max(0px, parent.height - self.y - 24px);
+            background: #00000000;
+
+                StartPage {
+                    width: parent.width;
+                    height: content.page-height;
+                    visible: root.page == 0;
+                    has_target: root.has_target;
+                    busy: root.busy;
+                    artwork: root.library-art;
+                    vnt_no_tun: root.vnt_no_tun && root.vnt_running;
+                    launch_pve_server <=> root.launch_pve_server;
+                    open-guide => { root.tutorial_step = 1; root.tutorial_active = true; }
+                    language-mode: root.language_mode;
+                    feedback-group: root.feedback_group;
+                    feedback-copied: root.feedback_copied;
+                    language-changed(value) => { root.language_changed(value); }
+                    copy-feedback => { root.copy_feedback_clicked(); }
+                    status_text: root.status_text;
+                    target_text: root.target_text;
+                    launch_client_clicked => { root.launch_client_clicked(); }
+                    install_clicked => { root.install_clicked(); }
+                    community_source_clicked => { root.community_source_clicked(); }
+                    launch_pve_server_changed(value) => { root.launch_pve_server_changed(value); }
+                    browse_clicked => { root.browse_clicked(); }
+                    redetect_clicked => { root.redetect_clicked(); }
+                }
+
+                DiagnosticsPage {
+                    width: parent.width;
+                    height: content.page-height;
+                    visible: root.page == 1;
+                    has_target: root.has_target;
+                    busy: root.busy;
+                    status_text: root.status_text;
+                    target_text: root.target_text;
+                    process_status_text: root.process_status_text;
+                    system_status_text: root.system_status_text;
+                    system_status_warning: root.system_status_warning;
+                    port_rows: root.page == 1 ? root.port_rows : [];
+                    detect_processes_clicked => { root.detect_processes_clicked(); }
+                    stop_processes_clicked => { root.stop_processes_clicked(); }
+                    stop_port_process_clicked(protocol, port, pid) => {
+                        root.stop_port_process_clicked(protocol, port, pid);
+                    }
+                }
+
+                VntPage {
+                    busy: root.busy;
+                    switch-page(page) => { root.page = page; }
+                    width: parent.width;
+                    height: content.page-height;
+                    visible: root.page == 3;
+                    can_start: root.is_admin;
+                    vnt_server_text <=> root.vnt_server_text;
+                    vnt_new_server_text <=> root.vnt_new_server_text;
+                    vnt_server_options: root.vnt_server_options;
+                    vnt_username <=> root.vnt_username;
+                    vnt_network_code <=> root.vnt_network_code;
+                    vnt_game_port <=> root.vnt_game_port;
+                    vnt_password <=> root.vnt_password;
+                    vnt_no_tun <=> root.vnt_no_tun;
+                    vnt_no_punch <=> root.vnt_no_punch;
+                    vnt_compress <=> root.vnt_compress;
+                    vnt_rtx <=> root.vnt_rtx;
+                    vnt_busy: root.vnt_busy;
+                    vnt_running: root.vnt_running;
+                    vnt_status_text: root.vnt_status_text;
+                    vnt_detail_text: root.vnt_detail_text;
+                    vnt_ip_text: root.vnt_ip_text;
+                    vnt_server_status_text: root.vnt_server_status_text;
+                    vnt_nat_text: root.vnt_nat_text;
+                    vnt_peer_summary_text: root.vnt_peer_summary_text;
+                    vnt_peer_rows: root.page == 3 ? root.vnt_peer_rows : [];
+                    vnt_start_clicked => { root.vnt_start_clicked(); }
+                    vnt_stop_clicked => { root.vnt_stop_clicked(); }
+                    vnt_refresh_clicked => { root.vnt_refresh_clicked(); }
+                    vnt_add_server_clicked(address) => { root.vnt_add_server_clicked(address); }
+                    vnt_join_peer_clicked(address) => { root.vnt_join_peer_clicked(address); }
+                    vnt_settings_changed => { root.vnt_settings_changed(); }
+                }
+
+                SettingsPage {
+                    width: parent.width;
+                    height: content.page-height;
+                    visible: root.page == 4;
+                    busy: root.busy;
+                    has_target: root.has_target;
+                    update_checking: root.update_checking;
+                    update_status_text: root.update_status_text;
+                    feedback_group: root.feedback_group;
+                    feedback_copied: root.feedback_copied;
+                    language_mode: root.language_mode;
+                    language_changed(value) => { root.language_changed(value); }
+                    copy_feedback_clicked => { root.copy_feedback_clicked(); }
+                    github_proxy_text <=> root.github_proxy_text;
+                    github_proxy_loading: root.github_proxy_loading;
+                    github_proxy_status_text: root.github_proxy_status_text;
+                    open_logs_clicked => { root.open_logs_clicked(); }
+                    check_updates_clicked => { root.check_updates_clicked(); }
+                    github_proxy_changed(proxy) => { root.github_proxy_changed(proxy); }
+                    open_github_proxy_dialog_clicked => { root.open_github_proxy_dialog_clicked(); }
+                    refresh_github_proxies_clicked => { root.refresh_github_proxies_clicked(); }
+                }
+
+                rooms := ServersPage {
+                    switch-page(page) => { root.page = page; }
+                    width: parent.width;
+                    height: content.page-height;
+                    visible: root.page == 2;
+                    servers_loading: root.servers_loading;
+                    busy: root.busy;
+                    server_status_text: root.server_status_text;
+                    server_rows: root.page == 2 ? root.server_rows : [];
+                    fixed_room_port <=> root.fixed_room_port;
+                    fixed_room_pve <=> root.fixed_room_pve;
+                    fixed_room_status: root.fixed_room_status;
+                    fixed_room_running: root.fixed_room_running;
+                    fixed_room_error: root.fixed_room_error;
+                    start_fixed_room_clicked => { root.start_fixed_room_clicked(); }
+                    stop_fixed_room_clicked => { root.stop_fixed_room_clicked(); }
+                    refresh_servers_clicked => { root.refresh_servers_clicked(); }
+                    join_clicked(address) => { root.join_server_clicked(address); }
+                    copy_server_address_clicked(address) => {
+                        root.copy_server_address_clicked(address);
+                    }
+                }
+
+        }
+
+        ShellHeader {
+            width: parent.width - 36px;
+            height: 42px;
+            x: 18px;
+            y: 40px;
+            page <=> root.page;
+            online-page: root.last-online-page;
+            busy: root.busy;
+        }
+
+        if install_progress_visible : InstallProgressDialog {
+            width: parent.width;
+            height: parent.height;
+            busy: root.busy;
+            cancelable: root.install_progress_cancelable;
+            dialog_title: root.install_progress_dialog_title;
+            progress: root.install_progress_value;
+            percent: root.install_progress_percent;
+            title: root.install_progress_title;
+            detail: root.install_progress_detail;
+            detail_lines: root.install_progress_detail_lines;
+            close_clicked => { root.install_progress_closed(); }
+            cancel_clicked => { root.install_progress_cancelled(); }
+        }
+
+        if show_drive_dialog : DriveScanDialog {
+            width: parent.width;
+            height: parent.height;
+            busy: root.busy;
+            drive_rows: root.drive_rows;
+            drive_toggled(index, checked) => { root.drive_toggled(index, checked); }
+            drive_confirmed => { root.drive_confirmed(); }
+            drive_cancelled => { root.drive_cancelled(); }
+        }
+
+        if show_github_proxy_dialog : ProxySelectDialog {
+            width: parent.width;
+            height: parent.height;
+            busy: root.busy;
+            loading: root.github_proxy_loading;
+            status_text: root.github_proxy_status_text;
+            proxy_rows: root.github_proxy_rows;
+            proxy_selected(url) => { root.github_proxy_selected(url); }
+            proxy_refresh_clicked => { root.refresh_github_proxies_clicked(); }
+            proxy_cancelled => { root.github_proxy_dialog_cancelled(); }
+        }
+
+        if show_vnt_host_dialog : VntHostDialog {
+            width: parent.width;
+            height: parent.height;
+            busy: root.vnt_busy;
+            peers: root.vnt_peer_rows;
+            vnt_game_port <=> root.vnt_game_port;
+            host_selected(address) => { root.vnt_host_selected(address); }
+            host_cancelled => { root.vnt_host_cancelled(); }
+        }
+
+        if show_app_dialog : AppDialog {
+            width: parent.width;
+            height: parent.height;
+            app_dialog_confirm: root.app_dialog_confirm;
+            app_dialog_input: root.app_dialog_input;
+            app_dialog_error: root.app_dialog_error;
+            app_dialog_text_lines: root.app_dialog_text_lines;
+            app_dialog_title: root.app_dialog_title;
+            app_dialog_text: root.app_dialog_text;
+            app_dialog_input_text <=> root.app_dialog_input_text;
+            app_dialog_primary_text: root.app_dialog_primary_text;
+            app_dialog_secondary_text: root.app_dialog_secondary_text;
+            app_dialog_tertiary_text: root.app_dialog_tertiary_text;
+            app_dialog_has_tertiary: root.app_dialog_has_tertiary;
+            app_dialog_primary => { root.app_dialog_primary(); }
+            app_dialog_secondary => { root.app_dialog_secondary(); }
+            app_dialog_tertiary => { root.app_dialog_tertiary(); }
+        }
+
+        if show_mama_image : ImageLightbox {
+            width: parent.width;
+            height: parent.height;
+            image: @image-url("assets/gm.png");
+            closed => { root.show_mama_image = false; }
+        }
+
+        if root.tutorial_active && root.tutorial_step > 0 && !root.busy && !root.install_progress_visible && !root.show_drive_dialog && !root.show_app_dialog && !root.show_vnt_host_dialog && !root.show_mama_image : TutorialOverlay {
+            width: parent.width;
+            height: parent.height;
+            step: root.tutorial_step;
+            language-mode: root.language_mode;
+            feedback-group: root.feedback_group;
+            feedback-copied: root.feedback_copied;
+            language-changed(language) => { root.language_changed(language); }
+            copy-feedback => { root.copy_feedback_clicked(); }
+            has-target: root.has_target;
+            is-admin: root.is_admin;
+            target_clicked(step) => { root.tutorial_target_clicked(step); }
+            next_clicked => { root.tutorial_next_clicked(); }
+            skip_clicked => { root.tutorial_skip_clicked(); }
+            finish_clicked => { root.tutorial_finish_clicked(); }
+        }
+    }
+}

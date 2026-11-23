@@ -1,0 +1,52 @@
+diff --git a/Payload/ClientLogic/ClientLogic.cpp b/Payload/ClientLogic/ClientLogic.cpp
+index 6ea2268..e84ed2e 100644
+--- a/Payload/ClientLogic/ClientLogic.cpp
++++ b/Payload/ClientLogic/ClientLogic.cpp
+@@ -1,4 +1,5 @@
+ // ClientLogic.cpp
+ #include "ClientLogic.h"
++#include "../Utility/DeathMenuTravel.hpp"
+ #include "../Config/Config.h"
+ #include "../Debug/Debug.h"
+@@ -74,6 +75,9 @@ void ConnectToMatch()
+     ClientDebugLog("[CLIENT] Reconnecting to match: " + target);
+ 
++    auto* travelWorld = UWorld::GetWorld();
++    const auto receipt = BrtDeathMenuTravel::Begin();
+     UKismetSystemLibrary::ExecuteConsoleCommand(
+-        UWorld::GetWorld(), travelCmd.c_str(), nullptr);
++        travelWorld, travelCmd.c_str(), nullptr);
++    BrtDeathMenuTravel::Complete(receipt, travelWorld, GameInstance, LocalPlayer, target);
+ 
+     GameInstance->ShowLoadingScreen(true, true);
+@@ -140,8 +144,11 @@ void AutoConnectToMatchFromCmdline()
+                     ClientDebugLog("[CLIENT] Auto-connecting to match: " + target);
+ 
++                    auto* travelWorld = UWorld::GetWorld();
++                    const auto receipt = BrtDeathMenuTravel::Begin();
+                     UKismetSystemLibrary::ExecuteConsoleCommand(
+-                        UWorld::GetWorld(),
++                        travelWorld,
+                         wcmd.c_str(),
+                         nullptr);
++                    BrtDeathMenuTravel::Complete(receipt, travelWorld, GI, LP, target);
+                 })
+         .detach();
+diff --git a/Payload/Utility/UIFix.cpp b/Payload/Utility/UIFix.cpp
+index af1112f..b649068 100644
+--- a/Payload/Utility/UIFix.cpp
++++ b/Payload/Utility/UIFix.cpp
+@@ -1,3 +1,4 @@
+ #include "UIFix.h"
++#include "DeathMenu.v084.hpp"
+ #include "../SDK/ProjectBoundary_classes.hpp"
+ #include "../SDK/Engine_classes.hpp"
+@@ -21,4 +22,7 @@ void HandleUICharacterClientEvent(UObject* Object, UFunction* Function, void* Parms,
+-    if (!UIFixDebugEnabled)
++    if (Object && (funcName == "ReceiveTick" || funcName.ends_with(".ReceiveTick")))
++        BrtDeathMenuV084::CharacterTick();
++
++    if (!UIFixDebugEnabled)
+         return;
+ 
+     // ReceiveTick fires every frame for actors with BP tick via ProcessEvent.

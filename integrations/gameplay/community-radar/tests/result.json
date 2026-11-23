@@ -1,0 +1,42 @@
+{
+  "headerSha256": "EF64CA388779E0420CE6A0903D29CABBCB46A3B657317F3075DDC05844F21A7D",
+  "environment": "stateful local HUD fixture",
+  "scenarios": {
+    "original": {
+      "passed": 23,
+      "failed": 25,
+      "failureNames": [
+        "FAIL visible_head_empty_native_tables",
+        "FAIL project_from_visible_head",
+        "FAIL same_target_three_lists_one_node",
+        "FAIL stock_released_fallback_returns",
+        "FAIL pooled_node_does_not_cover",
+        "FAIL stock_listed_in_pool_does_not_cover",
+        "FAIL hidden_stock_does_not_cover",
+        "FAIL transparent_stock_does_not_cover",
+        "FAIL invalid_stock_does_not_cover",
+        "FAIL foreign_viewer_stock_does_not_cover",
+        "FAIL recycled_widget_gets_new_generation",
+        "FAIL visible_again_restored",
+        "FAIL range_boundary_inclusive",
+        "FAIL old_capture_tracks_current_visible_location",
+        "FAIL two_distinct_targets_draw_once_each",
+        "FAIL first_removed_second_kept",
+        "FAIL visible_mark_supersedes_unmarked_untextured_cache",
+        "FAIL previous_unmarked_capture_cannot_veto_visible_head",
+        "FAIL visible_mark_uses_current_head_projection",
+        "FAIL own_visible_mark_without_head",
+        "FAIL supported_pve_mode",
+        "FAIL other_player_death_preserves_owner",
+        "FAIL confirmed_respawn_restores",
+        "FAIL signal_recovers_before_mode_change",
+        "FAIL hard_pve_mode_resumes"
+      ]
+    },
+    "candidate": {
+      "passed": 48,
+      "failed": 0,
+      "failureNames": []
+    }
+  }
+}

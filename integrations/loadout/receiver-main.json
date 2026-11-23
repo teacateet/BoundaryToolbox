@@ -1,0 +1,753 @@
+{
+  "weapons": {
+    "EVENT-FOP": {
+      "part": "5001009",
+      "suits": [
+        "SkinFOPOriginal"
+      ]
+    },
+    "EVENT-TP82": {
+      "part": "5001021",
+      "suits": [
+        "Event-TP82_Original"
+      ]
+    },
+    "GSW-AMR": {
+      "part": "5001008",
+      "suits": [
+        "SkinAMROriginal"
+      ]
+    },
+    "GSW-AMR-HC": {
+      "part": "5001008_HC",
+      "suits": [
+        "SkinAMROriginal"
+      ]
+    },
+    "GSW-AR": {
+      "part": "5001001",
+      "suits": [
+        "SkinAROriginal"
+      ]
+    },
+    "GSW-AR-HC": {
+      "part": "5001001_HC",
+      "suits": [
+        "SkinAROriginal"
+      ]
+    },
+    "GSW-CARKIT": {
+      "part": "5001020",
+      "suits": [
+        "SkinCarkitOriginal"
+      ]
+    },
+    "GSW-CARKIT-HC": {
+      "part": "5001020_HC",
+      "suits": [
+        "SkinCarkitOriginal"
+      ]
+    },
+    "GSW-CDP": {
+      "part": "5001012",
+      "suits": [
+        "SkinCDPOriginal"
+      ]
+    },
+    "GSW-CDP-HC": {
+      "part": "5001012_HC",
+      "suits": [
+        "SkinCDPOriginal"
+      ]
+    },
+    "GSW-DMR": {
+      "part": "5001002",
+      "suits": [
+        "SkinDMROriginal"
+      ]
+    },
+    "GSW-DMR-HC": {
+      "part": "5001002_HC",
+      "suits": [
+        "SkinDMRMACAR",
+        "SkinDMROriginal"
+      ]
+    },
+    "GSW-FOP": {
+      "part": "5001009",
+      "suits": [
+        "SkinFOPOriginal"
+      ]
+    },
+    "GSW-FOP-HC": {
+      "part": "5001009_HC",
+      "suits": [
+        "SkinFOPOriginal"
+      ]
+    },
+    "GSW-IDW": {
+      "part": "5001003",
+      "suits": [
+        "SkinIDWOriginal"
+      ]
+    },
+    "GSW-IDW-HC": {
+      "part": "5001003_HC",
+      "suits": [
+        "SkinIDWOriginal"
+      ]
+    },
+    "GSW-MG": {
+      "part": "5001006",
+      "suits": [
+        "SkinMGOriginal",
+        "SkinMGTiger",
+        "SkinMgEngineerYellow"
+      ]
+    },
+    "GSW-MG-HC": {
+      "part": "5001006_HC",
+      "suits": [
+        "SkinMGOriginal",
+        "SkinMGTiger",
+        "SkinMgEngineerYellow"
+      ]
+    },
+    "GSW-PCC": {
+      "part": "5001010",
+      "suits": [
+        "SkinPCCOriginal"
+      ]
+    },
+    "GSW-PCC-HC": {
+      "part": "5001010_HC",
+      "suits": [
+        "SkinPCCOriginal"
+      ]
+    },
+    "GSW-PSR": {
+      "part": "5001007",
+      "suits": [
+        "SkinPSRAMD",
+        "SkinPSROriginal"
+      ]
+    },
+    "GSW-PSR-C": {
+      "part": "5001013",
+      "suits": [
+        "SkinPSRCOriginal"
+      ]
+    },
+    "GSW-PSR-C-HC": {
+      "part": "5001013_HC",
+      "suits": [
+        "SkinPSRCOriginal"
+      ]
+    },
+    "GSW-PSR-HC": {
+      "part": "5001007_HC",
+      "suits": [
+        "SkinPSRAMD",
+        "SkinPSROriginal"
+      ]
+    },
+    "GSW-SG": {
+      "part": "5001005",
+      "suits": [
+        "SkinSGOriginal"
+      ]
+    },
+    "GSW-SG-HC": {
+      "part": "5001005_HC",
+      "suits": [
+        "SkinSGOriginal"
+      ]
+    },
+    "GSW-SMG": {
+      "part": "5001004",
+      "suits": [
+        "SkinSMGOriginal",
+        "SkinSMGTiger"
+      ]
+    },
+    "GSW-SMG-HC": {
+      "part": "5001004_HC",
+      "suits": [
+        "SkinSMGOriginal",
+        "SkinSMGTiger"
+      ]
+    },
+    "RU-AKM": {
+      "part": "5001011",
+      "suits": [
+        "SkinAKMOriginal",
+        "SkinAKMTiger"
+      ]
+    },
+    "RU-AKM-HC": {
+      "part": "5001011_HC",
+      "suits": [
+        "SkinAKMOriginal",
+        "SkinAKMTiger"
+      ]
+    },
+    "RU-APS": {
+      "part": "5001018",
+      "suits": [
+        "SkinAPSOriginal"
+      ]
+    },
+    "RU-APS-HC": {
+      "part": "5001018_HC",
+      "suits": [
+        "SkinAPSOriginal"
+      ]
+    },
+    "RU-KP9": {
+      "part": "5001015",
+      "suits": [
+        "SkinKP9Original"
+      ]
+    },
+    "RU-KP9-HC": {
+      "part": "5001015_HC",
+      "suits": [
+        "SkinKP9Original"
+      ]
+    },
+    "RU-MOSIN": {
+      "part": "5001017",
+      "suits": [
+        "SkinMOSINOriginal"
+      ]
+    },
+    "RU-MOSIN-HC": {
+      "part": "5001017_HC",
+      "suits": [
+        "SkinMOSINOriginal"
+      ]
+    },
+    "RU-PTRD": {
+      "part": "5001024",
+      "suits": [
+        "SkinPTRDOriginal"
+      ]
+    },
+    "RU-PTRD-HC": {
+      "part": "5001024_HC",
+      "suits": [
+        "SkinPTRDOriginal"
+      ]
+    },
+    "RU-RPK": {
+      "part": "5001014",
+      "suits": [
+        "SkinRPKOriginal"
+      ]
+    },
+    "RU-RPK-HC": {
+      "part": "5001014_HC",
+      "suits": [
+        "SkinRPKOriginal"
+      ]
+    },
+    "RU-SAIGA12": {
+      "part": "5001023",
+      "suits": [
+        "SkinSaigaOriginal"
+      ]
+    },
+    "RU-SAIGA12-HC": {
+      "part": "5001023_HC",
+      "suits": [
+        "SkinSaigaOriginal"
+      ]
+    },
+    "RU-SVD": {
+      "part": "5001022",
+      "suits": [
+        "SkinSVDOriginal"
+      ]
+    },
+    "RU-SVD-HC": {
+      "part": "5001022_HC",
+      "suits": [
+        "SkinSVDOriginal"
+      ]
+    },
+    "RU-TP82": {
+      "part": "5001021",
+      "suits": [
+        "SkinTP82Original"
+      ]
+    },
+    "RU-TP82-HC": {
+      "part": "5001021_HC",
+      "suits": [
+        "SkinTP82Original"
+      ]
+    }
+  },
+  "suits": {
+    "SkinFOPOriginal": {
+      "skin": "PartOri",
+      "paints": {
+        "GSW-FOP_Original_PTBPOrange": "GSW-FOP_ReceiverMain_PTBPOrange",
+        "GSW-FOP_Original_PTDigitalTriangle": "GSW-FOP_ReceiverMain_PTDigitalTriangle",
+        "GSW-FOP_Original_PTElectroRed": "GSW-FOP_ReceiverMain_PTElectroRed",
+        "GSW-FOP_Original_PTForgedCarbonBlue": "GSW-FOP_ReceiverMain_PTForgedCarbonBlue",
+        "GSW-FOP_Original_PTForgedCarbonPink": "GSW-FOP_ReceiverMain_PTForgedCarbonPink",
+        "GSW-FOP_Original_PTGalaxyWP": "GSW-FOP_ReceiverMain_PTGalaxyWP",
+        "GSW-FOP_Original_PTMetalCopper": "GSW-FOP_ReceiverMain_PTMetalCopper",
+        "GSW-FOP_Original_PTMetalGold": "GSW-FOP_ReceiverMain_PTMetalGold",
+        "GSW-FOP_Original_PTMetalSilver": "GSW-FOP_ReceiverMain_PTMetalSilver",
+        "GSW-FOP_Original_PTODGreen": "GSW-FOP_ReceiverMain_PTODGreen",
+        "GSW-FOP_Original_PTOriginal": "GSW-FOP_ReceiverMain_PTOriginal",
+        "GSW-FOP_Original_PTPrism": "GSW-FOP_ReceiverMain_PTPrism",
+        "GSW-FOP_Original_PTTwitch": "GSW-FOP_ReceiverMain_PTTwitch",
+        "GSW-FOP_Original_PTUrbanGrey": "GSW-FOP_ReceiverMain_PTUrbanGrey"
+      }
+    },
+    "Event-TP82_Original": {
+      "skin": "PartOri",
+      "paints": {
+        "EVENT-TP82_Original_PTOriginal": "EVENT-TP82_ReceiverMain_PTOriginal"
+      }
+    },
+    "SkinAMROriginal": {
+      "skin": "PartOri",
+      "paints": {
+        "GSW-AMR_Original_PTBPOrange": "GSW-AMR_ReceiverMain_PTBPOrange",
+        "GSW-AMR_Original_PTDigitalTriangle": "GSW-AMR_ReceiverMain_PTDigitalTriangle",
+        "GSW-AMR_Original_PTElectroRed": "GSW-AMR_ReceiverMain_PTElectroRed",
+        "GSW-AMR_Original_PTForgedCarbonBlue": "GSW-AMR_ReceiverMain_PTForgedCarbonBlue",
+        "GSW-AMR_Original_PTForgedCarbonPink": "GSW-AMR_ReceiverMain_PTForgedCarbonPink",
+        "GSW-AMR_Original_PTGalaxyWP": "GSW-AMR_ReceiverMain_PTGalaxyWP",
+        "GSW-AMR_Original_PTMetalCopper": "GSW-AMR_ReceiverMain_PTMetalCopper",
+        "GSW-AMR_Original_PTMetalGold": "GSW-AMR_ReceiverMain_PTMetalGold",
+        "GSW-AMR_Original_PTMetalSilver": "GSW-AMR_ReceiverMain_PTMetalSilver",
+        "GSW-AMR_Original_PTODGreen": "GSW-AMR_ReceiverMain_PTODGreen",
+        "GSW-AMR_Original_PTOriginal": "GSW-AMR_ReceiverMain_PTOriginal",
+        "GSW-AMR_Original_PTPrism": "GSW-AMR_ReceiverMain_PTPrism",
+        "GSW-AMR_Original_PTTwitch": "GSW-AMR_ReceiverMain_PTTwitch",
+        "GSW-AMR_Original_PTUrbanGrey": "GSW-AMR_ReceiverMain_PTUrbanGrey"
+      }
+    },
+    "SkinAROriginal": {
+      "skin": "PartOri",
+      "paints": {
+        "GSW-AR_Original_PTBPOrange": "GSW-AR_ReceiverMain_PTBPOrange",
+        "GSW-AR_Original_PTDigitalTriangle": "GSW-AR_ReceiverMain_PTDigitalTriangle",
+        "GSW-AR_Original_PTElectroRed": "GSW-AR_ReceiverMain_PTElectroRed",
+        "GSW-AR_Original_PTForgedCarbonBlue": "GSW-AR_ReceiverMain_PTForgedCarbonBlue",
+        "GSW-AR_Original_PTForgedCarbonPink": "GSW-AR_ReceiverMain_PTForgedCarbonPink",
+        "GSW-AR_Original_PTGalaxyWP": "GSW-AR_ReceiverMain_PTGalaxyWP",
+        "GSW-AR_Original_PTMetalCopper": "GSW-AR_ReceiverMain_PTMetalCopper",
+        "GSW-AR_Original_PTMetalGold": "GSW-AR_ReceiverMain_PTMetalGold",
+        "GSW-AR_Original_PTMetalSilver": "GSW-AR_ReceiverMain_PTMetalSilver",
+        "GSW-AR_Original_PTODGreen": "GSW-AR_ReceiverMain_PTODGreen",
+        "GSW-AR_Original_PTOriginal": "GSW-AR_ReceiverMain_PTOriginal",
+        "GSW-AR_Original_PTPrism": "GSW-AR_ReceiverMain_PTPrism",
+        "GSW-AR_Original_PTTwitch": "GSW-AR_ReceiverMain_PTTwitch",
+        "GSW-AR_Original_PTUrbanGrey": "GSW-AR_ReceiverMain_PTUrbanGrey"
+      }
+    },
+    "SkinCarkitOriginal": {
+      "skin": "PartOri",
+      "paints": {
+        "GSW-CARKIT_Original_PTBPOrange": "GSW-CARKIT_ReceiverMain_PTBPOrange",
+        "GSW-CARKIT_Original_PTDigitalTriangle": "GSW-CARKIT_ReceiverMain_PTDigitalTriangle",
+        "GSW-CARKIT_Original_PTElectroRed": "GSW-CARKIT_ReceiverMain_PTElectroRed",
+        "GSW-CARKIT_Original_PTForgedCarbonBlue": "GSW-CARKIT_ReceiverMain_PTForgedCarbonBlue",
+        "GSW-CARKIT_Original_PTForgedCarbonPink": "GSW-CARKIT_ReceiverMain_PTForgedCarbonPink",
+        "GSW-CARKIT_Original_PTGalaxyWP": "GSW-CARKIT_ReceiverMain_PTGalaxyWP",
+        "GSW-CARKIT_Original_PTMetalCopper": "GSW-CARKIT_ReceiverMain_PTMetalCopper",
+        "GSW-CARKIT_Original_PTMetalGold": "GSW-CARKIT_ReceiverMain_PTMetalGold",
+        "GSW-CARKIT_Original_PTMetalSilver": "GSW-CARKIT_ReceiverMain_PTMetalSilver",
+        "GSW-CARKIT_Original_PTODGreen": "GSW-CARKIT_ReceiverMain_PTODGreen",
+        "GSW-CARKIT_Original_PTOriginal": "GSW-CARKIT_ReceiverMain_PTOriginal",
+        "GSW-CARKIT_Original_PTPrism": "GSW-CARKIT_ReceiverMain_PTPrism",
+        "GSW-CARKIT_Original_PTTwitch": "GSW-CARKIT_ReceiverMain_PTTwitch",
+        "GSW-CARKIT_Original_PTUrbanGrey": "GSW-CARKIT_ReceiverMain_PTUrbanGrey"
+      }
+    },
+    "SkinCDPOriginal": {
+      "skin": "PartOri",
+      "paints": {
+        "GSW-CDP_Original_PTBPOrange": "GSW-CDP_ReceiverMain_PTBPOrange",
+        "GSW-CDP_Original_PTDigitalTriangle": "GSW-CDP_ReceiverMain_PTDigitalTriangle",
+        "GSW-CDP_Original_PTElectroRed": "GSW-CDP_ReceiverMain_PTElectroRed",
+        "GSW-CDP_Original_PTForgedCarbonBlue": "GSW-CDP_ReceiverMain_PTForgedCarbonBlue",
+        "GSW-CDP_Original_PTForgedCarbonPink": "GSW-CDP_ReceiverMain_PTForgedCarbonPink",
+        "GSW-CDP_Original_PTGalaxyWP": "GSW-CDP_ReceiverMain_PTGalaxyWP",
+        "GSW-CDP_Original_PTMetalCopper": "GSW-CDP_ReceiverMain_PTMetalCopper",
+        "GSW-CDP_Original_PTMetalGold": "GSW-CDP_ReceiverMain_PTMetalGold",
+        "GSW-CDP_Original_PTMetalSilver": "GSW-CDP_ReceiverMain_PTMetalSilver",
+        "GSW-CDP_Original_PTODGreen": "GSW-CDP_ReceiverMain_PTODGreen",
+        "GSW-CDP_Original_PTOriginal": "GSW-CDP_ReceiverMain_PTOriginal",
+        "GSW-CDP_Original_PTPrism": "GSW-CDP_ReceiverMain_PTPrism",
+        "GSW-CDP_Original_PTTwitch": "GSW-CDP_ReceiverMain_PTTwitch",
+        "GSW-CDP_Original_PTUrbanGrey": "GSW-CDP_ReceiverMain_PTUrbanGrey"
+      }
+    },
+    "SkinDMROriginal": {
+      "skin": "PartOri",
+      "paints": {
+        "GSW-DMR_Original_PTBPOrange": "GSW-DMR_ReceiverMain_PTBPOrange",
+        "GSW-DMR_Original_PTDigitalTriangle": "GSW-DMR_ReceiverMain_PTDigitalTriangle",
+        "GSW-DMR_Original_PTElectroRed": "GSW-DMR_ReceiverMain_PTElectroRed",
+        "GSW-DMR_Original_PTForgedCarbonBlue": "GSW-DMR_ReceiverMain_PTForgedCarbonBlue",
+        "GSW-DMR_Original_PTForgedCarbonPink": "GSW-DMR_ReceiverMain_PTForgedCarbonPink",
+        "GSW-DMR_Original_PTGalaxyWP": "GSW-DMR_ReceiverMain_PTGalaxyWP",
+        "GSW-DMR_Original_PTMetalCopper": "GSW-DMR_ReceiverMain_PTMetalCopper",
+        "GSW-DMR_Original_PTMetalGold": "GSW-DMR_ReceiverMain_PTMetalGold",
+        "GSW-DMR_Original_PTMetalSilver": "GSW-DMR_ReceiverMain_PTMetalSilver",
+        "GSW-DMR_Original_PTODGreen": "GSW-DMR_ReceiverMain_PTODGreen",
+        "GSW-DMR_Original_PTOriginal": "GSW-DMR_ReceiverMain_PTOriginal",
+        "GSW-DMR_Original_PTPrism": "GSW-DMR_ReceiverMain_PTPrism",
+        "GSW-DMR_Original_PTTwitch": "GSW-DMR_ReceiverMain_PTTwitch",
+        "GSW-DMR_Original_PTUrbanGrey": "GSW-DMR_ReceiverMain_PTUrbanGrey"
+      }
+    },
+    "SkinDMRMACAR": {
+      "skin": "DMRMACARRCVR",
+      "paints": {
+        "GSW-DMR_Macaron_PTMacaron": "GSW-DMR_PTMacaron"
+      }
+    },
+    "SkinIDWOriginal": {
+      "skin": "PartOri",
+      "paints": {
+        "GSW-IDW_Original_PTBPOrange": "GSW-IDW_ReceiverMain_PTBPOrange",
+        "GSW-IDW_Original_PTDigitalTriangle": "GSW-IDW_ReceiverMain_PTDigitalTriangle",
+        "GSW-IDW_Original_PTElectroRed": "GSW-IDW_ReceiverMain_PTElectroRed",
+        "GSW-IDW_Original_PTForgedCarbonBlue": "GSW-IDW_ReceiverMain_PTForgedCarbonBlue",
+        "GSW-IDW_Original_PTForgedCarbonPink": "GSW-IDW_ReceiverMain_PTForgedCarbonPink",
+        "GSW-IDW_Original_PTGalaxyWP": "GSW-IDW_ReceiverMain_PTGalaxyWP",
+        "GSW-IDW_Original_PTMetalCopper": "GSW-IDW_ReceiverMain_PTMetalCopper",
+        "GSW-IDW_Original_PTMetalGold": "GSW-IDW_ReceiverMain_PTMetalGold",
+        "GSW-IDW_Original_PTMetalSilver": "GSW-IDW_ReceiverMain_PTMetalSilver",
+        "GSW-IDW_Original_PTODGreen": "GSW-IDW_ReceiverMain_PTODGreen",
+        "GSW-IDW_Original_PTOriginal": "GSW-IDW_ReceiverMain_PTOriginal",
+        "GSW-IDW_Original_PTPrism": "GSW-IDW_ReceiverMain_PTPrism",
+        "GSW-IDW_Original_PTTwitch": "GSW-IDW_ReceiverMain_PTTwitch",
+        "GSW-IDW_Original_PTUrbanGrey": "GSW-IDW_ReceiverMain_PTUrbanGrey"
+      }
+    },
+    "SkinMGOriginal": {
+      "skin": "PartOri",
+      "paints": {
+        "GSW-MG_Original_PTBPOrange": "GSW-MG_ReceiverMain_PTBPOrange",
+        "GSW-MG_Original_PTDigitalTriangle": "GSW-MG_ReceiverMain_PTDigitalTriangle",
+        "GSW-MG_Original_PTElectroRed": "GSW-MG_ReceiverMain_PTElectroRed",
+        "GSW-MG_Original_PTForgedCarbonBlue": "GSW-MG_ReceiverMain_PTForgedCarbonBlue",
+        "GSW-MG_Original_PTForgedCarbonPink": "GSW-MG_ReceiverMain_PTForgedCarbonPink",
+        "GSW-MG_Original_PTGalaxyWP": "GSW-MG_ReceiverMain_PTGalaxyWP",
+        "GSW-MG_Original_PTMetalCopper": "GSW-MG_ReceiverMain_PTMetalCopper",
+        "GSW-MG_Original_PTMetalGold": "GSW-MG_ReceiverMain_PTMetalGold",
+        "GSW-MG_Original_PTMetalSilver": "GSW-MG_ReceiverMain_PTMetalSilver",
+        "GSW-MG_Original_PTODGreen": "GSW-MG_ReceiverMain_PTODGreen",
+        "GSW-MG_Original_PTOriginal": "GSW-MG_ReceiverMain_PTOriginal",
+        "GSW-MG_Original_PTPrism": "GSW-MG_ReceiverMain_PTPrism",
+        "GSW-MG_Original_PTTwitch": "GSW-MG_ReceiverMain_PTTwitch",
+        "GSW-MG_Original_PTUrbanGrey": "GSW-MG_ReceiverMain_PTUrbanGrey"
+      }
+    },
+    "SkinMGTiger": {
+      "skin": "MGTigerRCVR",
+      "paints": {
+        "SkinMGTiger_PTTiger": "GSW-MG_PTTiger"
+      }
+    },
+    "SkinMgEngineerYellow": {
+      "skin": "MGEngineerYRCVR",
+      "paints": {
+        "GSW-MG_Engineer_PTEngineerYellow": "GSW-MG_PTEngineerYellow"
+      }
+    },
+    "SkinPCCOriginal": {
+      "skin": "PartOri",
+      "paints": {
+        "GSW-PCC_Original_PTBPOrange": "GSW-PCC_ReceiverMain_PTBPOrange",
+        "GSW-PCC_Original_PTDigitalTriangle": "GSW-PCC_ReceiverMain_PTDigitalTriangle",
+        "GSW-PCC_Original_PTElectroRed": "GSW-PCC_ReceiverMain_PTElectroRed",
+        "GSW-PCC_Original_PTForgedCarbonBlue": "GSW-PCC_ReceiverMain_PTForgedCarbonBlue",
+        "GSW-PCC_Original_PTForgedCarbonPink": "GSW-PCC_ReceiverMain_PTForgedCarbonPink",
+        "GSW-PCC_Original_PTGalaxyWP": "GSW-PCC_ReceiverMain_PTGalaxyWP",
+        "GSW-PCC_Original_PTMetalCopper": "GSW-PCC_ReceiverMain_PTMetalCopper",
+        "GSW-PCC_Original_PTMetalGold": "GSW-PCC_ReceiverMain_PTMetalGold",
+        "GSW-PCC_Original_PTMetalSilver": "GSW-PCC_ReceiverMain_PTMetalSilver",
+        "GSW-PCC_Original_PTODGreen": "GSW-PCC_ReceiverMain_PTODGreen",
+        "GSW-PCC_Original_PTOriginal": "GSW-PCC_ReceiverMain_PTOriginal",
+        "GSW-PCC_Original_PTPrism": "GSW-PCC_ReceiverMain_PTPrism",
+        "GSW-PCC_Original_PTTwitch": "GSW-PCC_ReceiverMain_PTTwitch",
+        "GSW-PCC_Original_PTUrbanGrey": "GSW-PCC_ReceiverMain_PTUrbanGrey"
+      }
+    },
+    "SkinPSRAMD": {
+      "skin": "PSRAMDRCVR",
+      "paints": {
+        "GSW-PSR_AMD_PTAMD": "GSW-PSR_PTAMD"
+      }
+    },
+    "SkinPSROriginal": {
+      "skin": "PartOri",
+      "paints": {
+        "GSW-PSR_Original_PTBPOrange": "GSW-PSR_ReceiverMain_PTBPOrange",
+        "GSW-PSR_Original_PTDigitalTriangle": "GSW-PSR_ReceiverMain_PTDigitalTriangle",
+        "GSW-PSR_Original_PTElectroRed": "GSW-PSR_ReceiverMain_PTElectroRed",
+        "GSW-PSR_Original_PTForgedCarbonBlue": "GSW-PSR_ReceiverMain_PTForgedCarbonBlue",
+        "GSW-PSR_Original_PTForgedCarbonPink": "GSW-PSR_ReceiverMain_PTForgedCarbonPink",
+        "GSW-PSR_Original_PTGalaxyWP": "GSW-PSR_ReceiverMain_PTGalaxyWP",
+        "GSW-PSR_Original_PTMetalCopper": "GSW-PSR_ReceiverMain_PTMetalCopper",
+        "GSW-PSR_Original_PTMetalGold": "GSW-PSR_ReceiverMain_PTMetalGold",
+        "GSW-PSR_Original_PTMetalSilver": "GSW-PSR_ReceiverMain_PTMetalSilver",
+        "GSW-PSR_Original_PTODGreen": "GSW-PSR_ReceiverMain_PTODGreen",
+        "GSW-PSR_Original_PTOriginal": "GSW-PSR_ReceiverMain_PTOriginal",
+        "GSW-PSR_Original_PTPrism": "GSW-PSR_ReceiverMain_PTPrism",
+        "GSW-PSR_Original_PTTwitch": "GSW-PSR_ReceiverMain_PTTwitch",
+        "GSW-PSR_Original_PTUrbanGrey": "GSW-PSR_ReceiverMain_PTUrbanGrey"
+      }
+    },
+    "SkinPSRCOriginal": {
+      "skin": "PartOri",
+      "paints": {
+        "GSW-PSR-C_Original_PTBPOrange": "GSW-PSR-C_ReceiverMain_PTBPOrange",
+        "GSW-PSR-C_Original_PTDigitalTriangle": "GSW-PSR-C_ReceiverMain_PTDigitalTriangle",
+        "GSW-PSR-C_Original_PTElectroRed": "GSW-PSR-C_ReceiverMain_PTElectroRed",
+        "GSW-PSR-C_Original_PTForgedCarbonBlue": "GSW-PSR-C_ReceiverMain_PTForgedCarbonBlue",
+        "GSW-PSR-C_Original_PTForgedCarbonPink": "GSW-PSR-C_ReceiverMain_PTForgedCarbonPink",
+        "GSW-PSR-C_Original_PTGalaxyWP": "GSW-PSR-C_ReceiverMain_PTGalaxyWP",
+        "GSW-PSR-C_Original_PTMetalCopper": "GSW-PSR-C_ReceiverMain_PTMetalCopper",
+        "GSW-PSR-C_Original_PTMetalGold": "GSW-PSR-C_ReceiverMain_PTMetalGold",
+        "GSW-PSR-C_Original_PTMetalSilver": "GSW-PSR-C_ReceiverMain_PTMetalSilver",
+        "GSW-PSR-C_Original_PTODGreen": "GSW-PSR-C_ReceiverMain_PTODGreen",
+        "GSW-PSR-C_Original_PTOriginal": "GSW-PSR-C_ReceiverMain_PTOriginal",
+        "GSW-PSR-C_Original_PTPrism": "GSW-PSR-C_ReceiverMain_PTPrism",
+        "GSW-PSR-C_Original_PTTwitch": "GSW-PSR-C_ReceiverMain_PTTwitch",
+        "GSW-PSR-C_Original_PTUrbanGrey": "GSW-PSR-C_ReceiverMain_PTUrbanGrey"
+      }
+    },
+    "SkinSGOriginal": {
+      "skin": "PartOri",
+      "paints": {
+        "GSW-SG_Original_PTBPOrange": "GSW-SG_ReceiverMain_PTBPOrange",
+        "GSW-SG_Original_PTDigitalTriangle": "GSW-SG_ReceiverMain_PTDigitalTriangle",
+        "GSW-SG_Original_PTElectroRed": "GSW-SG_ReceiverMain_PTElectroRed",
+        "GSW-SG_Original_PTForgedCarbonBlue": "GSW-SG_ReceiverMain_PTForgedCarbonBlue",
+        "GSW-SG_Original_PTForgedCarbonPink": "GSW-SG_ReceiverMain_PTForgedCarbonPink",
+        "GSW-SG_Original_PTGalaxyWP": "GSW-SG_ReceiverMain_PTGalaxyWP",
+        "GSW-SG_Original_PTMetalCopper": "GSW-SG_ReceiverMain_PTMetalCopper",
+        "GSW-SG_Original_PTMetalGold": "GSW-SG_ReceiverMain_PTMetalGold",
+        "GSW-SG_Original_PTMetalSilver": "GSW-SG_ReceiverMain_PTMetalSilver",
+        "GSW-SG_Original_PTODGreen": "GSW-SG_ReceiverMain_PTODGreen",
+        "GSW-SG_Original_PTOriginal": "GSW-SG_ReceiverMain_PTOriginal",
+        "GSW-SG_Original_PTPrism": "GSW-SG_ReceiverMain_PTPrism",
+        "GSW-SG_Original_PTTwitch": "GSW-SG_ReceiverMain_PTTwitch",
+        "GSW-SG_Original_PTUrbanGrey": "GSW-SG_ReceiverMain_PTUrbanGrey"
+      }
+    },
+    "SkinSMGOriginal": {
+      "skin": "PartOri",
+      "paints": {
+        "GSW-SMG_Original_PTBPOrange": "GSW-SMG_ReceiverMain_PTBPOrange",
+        "GSW-SMG_Original_PTDigitalTriangle": "GSW-SMG_ReceiverMain_PTDigitalTriangle",
+        "GSW-SMG_Original_PTElectroRed": "GSW-SMG_ReceiverMain_PTElectroRed",
+        "GSW-SMG_Original_PTForgedCarbonBlue": "GSW-SMG_ReceiverMain_PTForgedCarbonBlue",
+        "GSW-SMG_Original_PTForgedCarbonPink": "GSW-SMG_ReceiverMain_PTForgedCarbonPink",
+        "GSW-SMG_Original_PTGalaxyWP": "GSW-SMG_ReceiverMain_PTGalaxyWP",
+        "GSW-SMG_Original_PTMetalCopper": "GSW-SMG_ReceiverMain_PTMetalCopper",
+        "GSW-SMG_Original_PTMetalGold": "GSW-SMG_ReceiverMain_PTMetalGold",
+        "GSW-SMG_Original_PTMetalSilver": "GSW-SMG_ReceiverMain_PTMetalSilver",
+        "GSW-SMG_Original_PTODGreen": "GSW-SMG_ReceiverMain_PTODGreen",
+        "GSW-SMG_Original_PTOriginal": "GSW-SMG_ReceiverMain_PTOriginal",
+        "GSW-SMG_Original_PTPrism": "GSW-SMG_ReceiverMain_PTPrism",
+        "GSW-SMG_Original_PTTwitch": "GSW-SMG_ReceiverMain_PTTwitch",
+        "GSW-SMG_Original_PTUrbanGrey": "GSW-SMG_ReceiverMain_PTUrbanGrey"
+      }
+    },
+    "SkinSMGTiger": {
+      "skin": "SMGTigerRCVR",
+      "paints": {
+        "SkinSMGTiger_PTTiger": "GSW-SMG_PTTiger"
+      }
+    },
+    "SkinAKMOriginal": {
+      "skin": "PartOri",
+      "paints": {
+        "RU-AKM_Original_PTBPOrange": "RU-AKM_ReceiverMain_PTBPOrange",
+        "RU-AKM_Original_PTDigitalTriangle": "RU-AKM_ReceiverMain_PTDigitalTriangle",
+        "RU-AKM_Original_PTElectroRed": "RU-AKM_ReceiverMain_PTElectroRed",
+        "RU-AKM_Original_PTForgedCarbonBlue": "RU-AKM_ReceiverMain_PTForgedCarbonBlue",
+        "RU-AKM_Original_PTForgedCarbonPink": "RU-AKM_ReceiverMain_PTForgedCarbonPink",
+        "RU-AKM_Original_PTGalaxyWP": "RU-AKM_ReceiverMain_PTGalaxyWP",
+        "RU-AKM_Original_PTMetalCopper": "RU-AKM_ReceiverMain_PTMetalCopper",
+        "RU-AKM_Original_PTMetalGold": "RU-AKM_ReceiverMain_PTMetalGold",
+        "RU-AKM_Original_PTMetalSilver": "RU-AKM_ReceiverMain_PTMetalSilver",
+        "RU-AKM_Original_PTODGreen": "RU-AKM_ReceiverMain_PTODGreen",
+        "RU-AKM_Original_PTOriginal": "RU-AKM_ReceiverMain_PTOriginal",
+        "RU-AKM_Original_PTPrism": "RU-AKM_ReceiverMain_PTPrism",
+        "RU-AKM_Original_PTTwitch": "RU-AKM_ReceiverMain_PTTwitch",
+        "RU-AKM_Original_PTUrbanGrey": "RU-AKM_ReceiverMain_PTUrbanGrey"
+      }
+    },
+    "SkinAKMTiger": {
+      "skin": "AKMTigerRCVR",
+      "paints": {
+        "SkinAKMTiger_PTTiger": "RU-AK47_PTTiger"
+      }
+    },
+    "SkinAPSOriginal": {
+      "skin": "PartOri",
+      "paints": {
+        "RU-APS_Original_PTBPOrange": "RU-APS_ReceiverMain_PTBPOrange",
+        "RU-APS_Original_PTDigitalTriangle": "RU-APS_ReceiverMain_PTDigitalTriangle",
+        "RU-APS_Original_PTElectroRed": "RU-APS_ReceiverMain_PTElectroRed",
+        "RU-APS_Original_PTForgedCarbonBlue": "RU-APS_ReceiverMain_PTForgedCarbonBlue",
+        "RU-APS_Original_PTForgedCarbonPink": "RU-APS_ReceiverMain_PTForgedCarbonPink",
+        "RU-APS_Original_PTGalaxyWP": "RU-APS_ReceiverMain_PTGalaxyWP",
+        "RU-APS_Original_PTMetalCopper": "RU-APS_ReceiverMain_PTMetalCopper",
+        "RU-APS_Original_PTMetalGold": "RU-APS_ReceiverMain_PTMetalGold",
+        "RU-APS_Original_PTMetalSilver": "RU-APS_ReceiverMain_PTMetalSilver",
+        "RU-APS_Original_PTODGreen": "RU-APS_ReceiverMain_PTODGreen",
+        "RU-APS_Original_PTOriginal": "RU-APS_ReceiverMain_PTOriginal",
+        "RU-APS_Original_PTPrism": "RU-APS_ReceiverMain_PTPrism",
+        "RU-APS_Original_PTTwitch": "RU-APS_ReceiverMain_PTTwitch",
+        "RU-APS_Original_PTUrbanGrey": "RU-APS_ReceiverMain_PTUrbanGrey"
+      }
+    },
+    "SkinKP9Original": {
+      "skin": "PartOri",
+      "paints": {
+        "RU-KP9_Original_PTBPOrange": "RU-KP9_ReceiverMain_PTBPOrange",
+        "RU-KP9_Original_PTDigitalTriangle": "RU-KP9_ReceiverMain_PTDigitalTriangle",
+        "RU-KP9_Original_PTElectroRed": "RU-KP9_ReceiverMain_PTElectroRed",
+        "RU-KP9_Original_PTForgedCarbonBlue": "RU-KP9_ReceiverMain_PTForgedCarbonBlue",
+        "RU-KP9_Original_PTForgedCarbonPink": "RU-KP9_ReceiverMain_PTForgedCarbonPink",
+        "RU-KP9_Original_PTGalaxyWP": "RU-KP9_ReceiverMain_PTGalaxyWP",
+        "RU-KP9_Original_PTMetalCopper": "RU-KP9_ReceiverMain_PTMetalCopper",
+        "RU-KP9_Original_PTMetalGold": "RU-KP9_ReceiverMain_PTMetalGold",
+        "RU-KP9_Original_PTMetalSilver": "RU-KP9_ReceiverMain_PTMetalSilver",
+        "RU-KP9_Original_PTODGreen": "RU-KP9_ReceiverMain_PTODGreen",
+        "RU-KP9_Original_PTOriginal": "RU-KP9_ReceiverMain_PTOriginal",
+        "RU-KP9_Original_PTPrism": "RU-KP9_ReceiverMain_PTPrism",
+        "RU-KP9_Original_PTTwitch": "RU-KP9_ReceiverMain_PTTwitch",
+        "RU-KP9_Original_PTUrbanGrey": "RU-KP9_ReceiverMain_PTUrbanGrey"
+      }
+    },
+    "SkinMOSINOriginal": {
+      "skin": "PartOri",
+      "paints": {
+        "RU-MOSIN_Original_PTBPOrange": "RU-MOSIN_ReceiverMain_PTBPOrange",
+        "RU-MOSIN_Original_PTDigitalTriangle": "RU-MOSIN_ReceiverMain_PTDigitalTriangle",
+        "RU-MOSIN_Original_PTElectroRed": "RU-MOSIN_ReceiverMain_PTElectroRed",
+        "RU-MOSIN_Original_PTForgedCarbonBlue": "RU-MOSIN_ReceiverMain_PTForgedCarbonBlue",
+        "RU-MOSIN_Original_PTForgedCarbonPink": "RU-MOSIN_ReceiverMain_PTForgedCarbonPink",
+        "RU-MOSIN_Original_PTGalaxyWP": "RU-MOSIN_ReceiverMain_PTGalaxyWP",
+        "RU-MOSIN_Original_PTMetalCopper": "RU-MOSIN_ReceiverMain_PTMetalCopper",
+        "RU-MOSIN_Original_PTMetalGold": "RU-MOSIN_ReceiverMain_PTMetalGold",
+        "RU-MOSIN_Original_PTMetalSilver": "RU-MOSIN_ReceiverMain_PTMetalSilver",
+        "RU-MOSIN_Original_PTODGreen": "RU-MOSIN_ReceiverMain_PTODGreen",
+        "RU-MOSIN_Original_PTOriginal": "RU-MOSIN_ReceiverMain_PTOriginal",
+        "RU-MOSIN_Original_PTPrism": "RU-MOSIN_ReceiverMain_PTPrism",
+        "RU-MOSIN_Original_PTTwitch": "RU-MOSIN_ReceiverMain_PTTwitch",
+        "RU-MOSIN_Original_PTUrbanGrey": "RU-MOSIN_ReceiverMain_PTUrbanGrey"
+      }
+    },
+    "SkinPTRDOriginal": {
+      "skin": "PartOri",
+      "paints": {
+        "RU-PTRD_Original_PTBPOrange": "RU-PTRD_ReceiverMain_PTBPOrange",
+        "RU-PTRD_Original_PTDigitalTriangle": "RU-PTRD_ReceiverMain_PTDigitalTriangle",
+        "RU-PTRD_Original_PTElectroRed": "RU-PTRD_ReceiverMain_PTElectroRed",
+        "RU-PTRD_Original_PTForgedCarbonBlue": "RU-PTRD_ReceiverMain_PTForgedCarbonBlue",
+        "RU-PTRD_Original_PTForgedCarbonPink": "RU-PTRD_ReceiverMain_PTForgedCarbonPink",
+        "RU-PTRD_Original_PTGalaxyWP": "RU-PTRD_ReceiverMain_PTGalaxyWP",
+        "RU-PTRD_Original_PTMetalCopper": "RU-PTRD_ReceiverMain_PTMetalCopper",
+        "RU-PTRD_Original_PTMetalGold": "RU-PTRD_ReceiverMain_PTMetalGold",
+        "RU-PTRD_Original_PTMetalSilver": "RU-PTRD_ReceiverMain_PTMetalSilver",
+        "RU-PTRD_Original_PTODGreen": "RU-PTRD_ReceiverMain_PTODGreen",
+        "RU-PTRD_Original_PTOriginal": "RU-PTRD_ReceiverMain_PTOriginal",
+        "RU-PTRD_Original_PTPrism": "RU-PTRD_ReceiverMain_PTPrism",
+        "RU-PTRD_Original_PTTwitch": "RU-PTRD_ReceiverMain_PTTwitch",
+        "RU-PTRD_Original_PTUrbanGrey": "RU-PTRD_ReceiverMain_PTUrbanGrey"
+      }
+    },
+    "SkinRPKOriginal": {
+      "skin": "PartOri",
+      "paints": {
+        "RU-RPK_Original_PTBPOrange": "RU-RPK_ReceiverMain_PTBPOrange",
+        "RU-RPK_Original_PTDigitalTriangle": "RU-RPK_ReceiverMain_PTDigitalTriangle",
+        "RU-RPK_Original_PTElectroRed": "RU-RPK_ReceiverMain_PTElectroRed",
+        "RU-RPK_Original_PTForgedCarbonBlue": "RU-RPK_ReceiverMain_PTForgedCarbonBlue",
+        "RU-RPK_Original_PTForgedCarbonPink": "RU-RPK_ReceiverMain_PTForgedCarbonPink",
+        "RU-RPK_Original_PTGalaxyWP": "RU-RPK_ReceiverMain_PTGalaxyWP",
+        "RU-RPK_Original_PTMetalCopper": "RU-RPK_ReceiverMain_PTMetalCopper",
+        "RU-RPK_Original_PTMetalGold": "RU-RPK_ReceiverMain_PTMetalGold",
+        "RU-RPK_Original_PTMetalSilver": "RU-RPK_ReceiverMain_PTMetalSilver",
+        "RU-RPK_Original_PTODGreen": "RU-RPK_ReceiverMain_PTODGreen",
+        "RU-RPK_Original_PTOriginal": "RU-RPK_ReceiverMain_PTOriginal",
+        "RU-RPK_Original_PTPrism": "RU-RPK_ReceiverMain_PTPrism",
+        "RU-RPK_Original_PTTwitch": "RU-RPK_ReceiverMain_PTTwitch",
+        "RU-RPK_Original_PTUrbanGrey": "RU-RPK_ReceiverMain_PTUrbanGrey"
+      }
+    },
+    "SkinSaigaOriginal": {
+      "skin": "PartOri",
+      "paints": {
+        "RU-SAIGA12_Original_PTBPOrange": "RU-SAIGA12_ReceiverMain_PTBPOrange",
+        "RU-SAIGA12_Original_PTDigitalTriangle": "RU-SAIGA12_ReceiverMain_PTDigitalTriangle",
+        "RU-SAIGA12_Original_PTElectroRed": "RU-SAIGA12_ReceiverMain_PTElectroRed",
+        "RU-SAIGA12_Original_PTForgedCarbonBlue": "RU-SAIGA12_ReceiverMain_PTForgedCarbonBlue",
+        "RU-SAIGA12_Original_PTForgedCarbonPink": "RU-SAIGA12_ReceiverMain_PTForgedCarbonPink",
+        "RU-SAIGA12_Original_PTGalaxyWP": "RU-SAIGA12_ReceiverMain_PTGalaxyWP",
+        "RU-SAIGA12_Original_PTMetalCopper": "RU-SAIGA12_ReceiverMain_PTMetalCopper",
+        "RU-SAIGA12_Original_PTMetalGold": "RU-SAIGA12_ReceiverMain_PTMetalGold",
+        "RU-SAIGA12_Original_PTMetalSilver": "RU-SAIGA12_ReceiverMain_PTMetalSilver",
+        "RU-SAIGA12_Original_PTODGreen": "RU-SAIGA12_ReceiverMain_PTODGreen",
+        "RU-SAIGA12_Original_PTOriginal": "RU-SAIGA12_ReceiverMain_PTOriginal",
+        "RU-SAIGA12_Original_PTPrism": "RU-SAIGA12_ReceiverMain_PTPrism",
+        "RU-SAIGA12_Original_PTTwitch": "RU-SAIGA12_ReceiverMain_PTTwitch",
+        "RU-SAIGA12_Original_PTUrbanGrey": "RU-SAIGA12_ReceiverMain_PTUrbanGrey"
+      }
+    },
+    "SkinSVDOriginal": {
+      "skin": "PartOri",
+      "paints": {
+        "RU-SVD_Original_PTBPOrange": "RU-SVD_ReceiverMain_PTBPOrange",
+        "RU-SVD_Original_PTDigitalTriangle": "RU-SVD_ReceiverMain_PTDigitalTriangle",
+        "RU-SVD_Original_PTElectroRed": "RU-SVD_ReceiverMain_PTElectroRed",
+        "RU-SVD_Original_PTForgedCarbonBlue": "RU-SVD_ReceiverMain_PTForgedCarbonBlue",
+        "RU-SVD_Original_PTForgedCarbonPink": "RU-SVD_ReceiverMain_PTForgedCarbonPink",
+        "RU-SVD_Original_PTGalaxyWP": "RU-SVD_ReceiverMain_PTGalaxyWP",
+        "RU-SVD_Original_PTMetalCopper": "RU-SVD_ReceiverMain_PTMetalCopper",
+        "RU-SVD_Original_PTMetalGold": "RU-SVD_ReceiverMain_PTMetalGold",
+        "RU-SVD_Original_PTMetalSilver": "RU-SVD_ReceiverMain_PTMetalSilver",
+        "RU-SVD_Original_PTODGreen": "RU-SVD_ReceiverMain_PTODGreen",
+        "RU-SVD_Original_PTOriginal": "RU-SVD_ReceiverMain_PTOriginal",
+        "RU-SVD_Original_PTPrism": "RU-SVD_ReceiverMain_PTPrism",
+        "RU-SVD_Original_PTTwitch": "RU-SVD_ReceiverMain_PTTwitch",
+        "RU-SVD_Original_PTUrbanGrey": "RU-SVD_ReceiverMain_PTUrbanGrey"
+      }
+    },
+    "SkinTP82Original": {
+      "skin": "PartOri",
+      "paints": {
+        "RU-TP82_Original_PTBPOrange": "RU-TP82_ReceiverMain_PTBPOrange",
+        "RU-TP82_Original_PTDigitalTriangle": "RU-TP82_ReceiverMain_PTDigitalTriangle",
+        "RU-TP82_Original_PTElectroRed": "RU-TP82_ReceiverMain_PTElectroRed",
+        "RU-TP82_Original_PTForgedCarbonBlue": "RU-TP82_ReceiverMain_PTForgedCarbonBlue",
+        "RU-TP82_Original_PTForgedCarbonPink": "RU-TP82_ReceiverMain_PTForgedCarbonPink",
+        "RU-TP82_Original_PTGalaxyWP": "RU-TP82_ReceiverMain_PTGalaxyWP",
+        "RU-TP82_Original_PTMetalCopper": "RU-TP82_ReceiverMain_PTMetalCopper",
+        "RU-TP82_Original_PTMetalGold": "RU-TP82_ReceiverMain_PTMetalGold",
+        "RU-TP82_Original_PTMetalSilver": "RU-TP82_ReceiverMain_PTMetalSilver",
+        "RU-TP82_Original_PTODGreen": "RU-TP82_ReceiverMain_PTODGreen",
+        "RU-TP82_Original_PTOriginal": "RU-TP82_ReceiverMain_PTOriginal",
+        "RU-TP82_Original_PTPrism": "RU-TP82_ReceiverMain_PTPrism",
+        "RU-TP82_Original_PTTwitch": "RU-TP82_ReceiverMain_PTTwitch",
+        "RU-TP82_Original_PTUrbanGrey": "RU-TP82_ReceiverMain_PTUrbanGrey"
+      }
+    }
+  }
+}

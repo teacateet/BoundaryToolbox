@@ -1,0 +1,35 @@
+diff --git a/ProjectReboundMainDLL/BrtInventory/OwnerLogin.cpp b/ProjectReboundMainDLL/BrtInventory/OwnerLogin.cpp
+--- a/ProjectReboundMainDLL/BrtInventory/OwnerLogin.cpp
++++ b/ProjectReboundMainDLL/BrtInventory/OwnerLogin.cpp
+@@ -5,2 +5,3 @@
+ #include "PreorderReady.hpp"
++#include "OwnerFieldMenu.hpp"
+ #include <cstdio>
+@@ -36,3 +37,4 @@
+ 
+-        brt::preorder::Queue(player, owner, *room, menu->member, *rows);
++        if (brt::preorder::Queue(player, owner, *room, menu->member, *rows))
++            brt::field_menu::Bind();
+     } catch (const std::exception&) {
+diff --git a/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp b/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp
+--- a/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp
++++ b/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp
+@@ -14,2 +14,3 @@
+ #include "../BrtInventory/BirthTrace.hpp"
++#include "../BrtInventory/OwnerFieldMenu.hpp"
+ #include "../SDK/Engine_parameters.hpp"
+@@ -28,2 +29,14 @@
+     brt::birth_trace::Scope birthTrace(Object, EventInfo.FullName, Parms);
++    if (EventInfo.FullName == "Function ProjectBoundary.PBPlayerState.ClientInitFieldMod")
++    {
++        auto menu = brt::field_menu::Prepare(Object, Parms);
++        if (menu)
++        {
++            ProcessEvent.call(Object, Function, &menu->args);
++            birthTrace.OriginalReturned();
++            brt::field_menu::Forwarded(menu->restored);
++            return;
++        }
++    }
++    brt::field_menu::ControllerEvent(Object, EventInfo.FullName);
+     if (EventInfo.ServerKind == EServerProcessEventKind::MatchHasEnded)

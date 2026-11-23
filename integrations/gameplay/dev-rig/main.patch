@@ -1,0 +1,38 @@
+diff --git a/ProjectReboundMainDLL/Hooking/ClientHooks.cpp b/ProjectReboundMainDLL/Hooking/ClientHooks.cpp
+index 662e492..44f21d3 100644
+--- a/ProjectReboundMainDLL/Hooking/ClientHooks.cpp
++++ b/ProjectReboundMainDLL/Hooking/ClientHooks.cpp
+@@ -9,6 +9,7 @@
+ #include "../Client/AutoConnect.h"
+ #include "../API/APIInternal.h"
+ #include "../Loadout/LoadoutFix.h"
++#include "../BrtInventory/Rig.hpp"
+ #include <Windows.h>
+ #include <thread>
+ 
+@@ -83,4 +84,5 @@ void ProcessEventHookClient(UObject *Object, UFunction *Function, void *Parms)
+     HandleEquipErrorSwallow(Object, Function, Parms, EventInfo.FullName);
+ 
+     ProcessEventClient.call(Object, Function, Parms);
++    brt::rig::Event(false, Object, EventInfo.FullName);
+ 
+diff --git a/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp b/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp
+index 4c029d7..bdd5330 100644
+--- a/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp
++++ b/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp
+@@ -13,6 +13,7 @@
+ #include "../BrtInventory/BirthTrace.hpp"
+ #include "../BrtInventory/OwnerFieldMenu.hpp"
+ #include "../BrtInventory/Birth.hpp"
++#include "../BrtInventory/Rig.hpp"
+ #include "../SDK/Engine_parameters.hpp"
+ 
+ extern uintptr_t BaseAddress;
+@@ -28,6 +29,7 @@ void ProcessEventHook(UObject *Object, UFunction *Function, void *Parms)
+ {
+     const FCachedProcessEventInfo& EventInfo = GetProcessEventInfo(Function);
+     brt::birth_trace::Scope birthTrace(Object, EventInfo.FullName, Parms);
++    struct RigScope { UObject* object; const std::string& name; ~RigScope() { brt::rig::Event(true, object, name); } } rigScope{Object, EventInfo.FullName};
+     if (EventInfo.FullName == "Function ProjectBoundary.PBPlayerState.ClientInitFieldMod")
+     {
+         auto menu = brt::field_menu::Prepare(Object, Parms);

@@ -1,0 +1,71 @@
+--- a/ProjectReboundMainDLL/BrtInventory/Birth.cpp
++++ b/ProjectReboundMainDLL/BrtInventory/Birth.cpp
+@@ -1,4 +1,5 @@
+ #include "Birth.hpp"
++#include "FittedParts.hpp"
+ #include "BirthWindow.hpp"
+ #include "BoundaryInventory.hpp"
+ #include "RolePaths.hpp"
+@@ -168,48 +169,6 @@
+     return true;
+ }
+ 
+-bool SameParts(const FPBWeaponNetworkConfig& actual, const FPBWeaponNetworkConfig& desired) {
+-    const auto count = actual.WeaponPartConfigs.Num();
+-    if (actual.WeaponID != desired.WeaponID || actual.WeaponClassID != desired.WeaponClassID ||
+-        actual.OrnamentID != desired.OrnamentID || count != actual.WeaponPartSlotTypeArray.Num() ||
+-        count != desired.WeaponPartConfigs.Num() || count != desired.WeaponPartSlotTypeArray.Num()) return false;
+-    std::array<bool, 13> seen{};
+-    for (int i = 0; i < count; ++i) {
+-        const auto slot = static_cast<unsigned>(actual.WeaponPartSlotTypeArray[i]);
+-        if (!slot || slot >= seen.size() || seen[slot]) return false;
+-        seen[slot] = true;
+-        int j = 0;
+-        while (j < count && desired.WeaponPartSlotTypeArray[j] != actual.WeaponPartSlotTypeArray[i]) ++j;
+-        if (j == count) return false;
+-        const auto& a = actual.WeaponPartConfigs[i];
+-        const auto& b = desired.WeaponPartConfigs[j];
+-        if (a.WeaponPartID != b.WeaponPartID || a.WeaponPartSkinID != b.WeaponPartSkinID ||
+-            a.WeaponPartSkinPaintingID != b.WeaponPartSkinPaintingID || a.WeaponPartSpecialSkinID != b.WeaponPartSpecialSkinID) return false;
+-    }
+-    return true;
+-}
+-
+-// 读回与期望的第一处差异，供同场日志定位。
+-std::string FirstDifference(const FPBWeaponNetworkConfig& actual, const FPBWeaponNetworkConfig& desired) {
+-    if (actual.WeaponID != desired.WeaponID) return "weapon-id";
+-    if (actual.WeaponClassID != desired.WeaponClassID) return "class-id";
+-    if (actual.OrnamentID != desired.OrnamentID) return "ornament";
+-    if (actual.WeaponPartConfigs.Num() != actual.WeaponPartSlotTypeArray.Num()) return "actual-arrays";
+-    for (int j = 0; j < desired.WeaponPartSlotTypeArray.Num() && j < desired.WeaponPartConfigs.Num(); ++j) {
+-        const auto slot = static_cast<int>(desired.WeaponPartSlotTypeArray[j]);
+-        int i = 0;
+-        while (i < actual.WeaponPartSlotTypeArray.Num() && actual.WeaponPartSlotTypeArray[i] != desired.WeaponPartSlotTypeArray[j]) ++i;
+-        if (i >= actual.WeaponPartConfigs.Num()) return "slot-missing-" + std::to_string(slot);
+-        const auto& a = actual.WeaponPartConfigs[i];
+-        const auto& b = desired.WeaponPartConfigs[j];
+-        if (a.WeaponPartID != b.WeaponPartID) return "part-" + std::to_string(slot);
+-        if (a.WeaponPartSkinID != b.WeaponPartSkinID) return "skin-" + std::to_string(slot);
+-        if (a.WeaponPartSkinPaintingID != b.WeaponPartSkinPaintingID) return "paint-" + std::to_string(slot);
+-        if (a.WeaponPartSpecialSkinID != b.WeaponPartSpecialSkinID) return "special-" + std::to_string(slot);
+-    }
+-    return actual.WeaponPartConfigs.Num() != desired.WeaponPartConfigs.Num() ? "count" : "none";
+-}
+-
+ enum class BirthStep { Waiting, Finished };
+ BirthStep ApplyAtBirth(Watched& session, APBPlayerController& pc, APBPlayerState& state, APBCharacter& pawn, bool first) {
+     if (first) {
+@@ -265,10 +224,11 @@
+             if (!Build(*plans[i], *weapon, config)) { Skipped(session.life, "weapon-config-incompatible"); return false; }
+             // 配件由确认干员前写入的原生档案带出；这里只读回新生实体，不再对已创建的枪调用 InitWeapon。
+             const auto actual = weapon->GetPBWeaponPartSaveConfig();
+-            const bool readback = SameParts(actual, config);
++            const auto result = brt::archive::CompareFittedParts(actual, config, Intern(None));
++            const bool readback = result.difference == "none";
+             ArchiveLog("event=born-weapon life=%llu slot=%u gun=%s actual-parts=%d desired-parts=%d same=%d first-difference=%s",
+                 static_cast<unsigned long long>(session.life), i + 1, weapon->GetWeaponId().ToString().c_str(),
+-                actual.WeaponPartConfigs.Num(), config.WeaponPartConfigs.Num(), readback, FirstDifference(actual, config).c_str());
++                result.actual, result.desired, readback, result.difference.c_str());
+             std::printf("[BRT-INVENTORY] newborn-weapon life=%llu slot=%u submitted=0 parts-readback=%d\n",
+                 static_cast<unsigned long long>(session.life), i + 1, readback);
+             std::fflush(stdout);

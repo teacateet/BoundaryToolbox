@@ -1,0 +1,114 @@
+{
+  "node": "v24.22.1",
+  "patchSha256": "7798ce14d4ba8e274e6aecf29010b297889b190580d59f7141eab630855bf2cc",
+  "control": {
+    "source": "local-archive-3961c933",
+    "entrySha256": "bcdc8fd56bbf53d8387d3270dae332aa8d84b621b15f7ad95f0c3b07e121c5fd",
+    "storeSha256": "bdd80ac9e02433b2b372495f642d9248c8d74d4328837c52a22a7a60778a6c40",
+    "scopedEquipment": [
+      "PEACE_RU-SVD",
+      "PEACE_GSW-DMR"
+    ],
+    "baseEquipment": [
+      "PEACE_RU-SVD",
+      "PEACE_GSW-DMR"
+    ],
+    "weaponOrnamentOnBaseWrite": "WO-NONE",
+    "roleAppearance": [
+      "PROBE_ORIGINAL",
+      "PROBE_ORIGINAL_PTMetalGold",
+      "",
+      ""
+    ],
+    "suitWithoutPaint": "PEACE_TIGER_PTTigerSergeyev",
+    "reopenedAndRestarted": true,
+    "otherRolesAndAccountIsolated": true
+  },
+  "fixed": [
+    {
+      "source": "projectrebound-release-v0.8.4",
+      "entrySha256": "40dcedbd92e9487b1bf6b747e8cbd904de19ec38d7e0161ba15551b650e613b2",
+      "storeSha256": "503b548a1f50ec336759445cc11fcd47c0e222b74f2dafad753701899eb88df5",
+      "scopedEquipment": [
+        "PEACE_RU-SVD",
+        "PEACE_GSW-DMR"
+      ],
+      "baseEquipment": [
+        "PEACE_GSW-DMR",
+        "PEACE_RU-SVD"
+      ],
+      "weaponOrnamentOnBaseWrite": "WO-SUN",
+      "roleAppearance": [
+        "PROBE_ORIGINAL",
+        "PROBE_ORIGINAL_PTMetalGold",
+        "ABGNoEntry",
+        "HOGoatHorn"
+      ],
+      "suitWithoutPaint": "",
+      "reopenedAndRestarted": true,
+      "otherRolesAndAccountIsolated": true,
+      "legacy": {
+        "baseSlotAndArchiveRestored": true,
+        "exactArchivePreferred": true,
+        "readsPreservedDisk": true
+      }
+    },
+    {
+      "source": "metaserver-main-007850d0",
+      "entrySha256": "40dcedbd92e9487b1bf6b747e8cbd904de19ec38d7e0161ba15551b650e613b2",
+      "storeSha256": "503b548a1f50ec336759445cc11fcd47c0e222b74f2dafad753701899eb88df5",
+      "scopedEquipment": [
+        "PEACE_RU-SVD",
+        "PEACE_GSW-DMR"
+      ],
+      "baseEquipment": [
+        "PEACE_GSW-DMR",
+        "PEACE_RU-SVD"
+      ],
+      "weaponOrnamentOnBaseWrite": "WO-SUN",
+      "roleAppearance": [
+        "PROBE_ORIGINAL",
+        "PROBE_ORIGINAL_PTMetalGold",
+        "ABGNoEntry",
+        "HOGoatHorn"
+      ],
+      "suitWithoutPaint": "",
+      "reopenedAndRestarted": true,
+      "otherRolesAndAccountIsolated": true,
+      "legacy": {
+        "baseSlotAndArchiveRestored": true,
+        "exactArchivePreferred": true,
+        "readsPreservedDisk": true
+      }
+    },
+    {
+      "source": "local-archive-3961c933",
+      "entrySha256": "40dcedbd92e9487b1bf6b747e8cbd904de19ec38d7e0161ba15551b650e613b2",
+      "storeSha256": "503b548a1f50ec336759445cc11fcd47c0e222b74f2dafad753701899eb88df5",
+      "scopedEquipment": [
+        "PEACE_RU-SVD",
+        "PEACE_GSW-DMR"
+      ],
+      "baseEquipment": [
+        "PEACE_GSW-DMR",
+        "PEACE_RU-SVD"
+      ],
+      "weaponOrnamentOnBaseWrite": "WO-SUN",
+      "roleAppearance": [
+        "PROBE_ORIGINAL",
+        "PROBE_ORIGINAL_PTMetalGold",
+        "ABGNoEntry",
+        "HOGoatHorn"
+      ],
+      "suitWithoutPaint": "",
+      "reopenedAndRestarted": true,
+      "otherRolesAndAccountIsolated": true,
+      "legacy": {
+        "baseSlotAndArchiveRestored": true,
+        "exactArchivePreferred": true,
+        "readsPreservedDisk": true
+      }
+    }
+  ],
+  "status": "PASS"
+}

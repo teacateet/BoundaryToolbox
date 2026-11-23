@@ -1,0 +1,42 @@
+diff --git a/integrations/loadout/room-spawn.cjs b/integrations/loadout/room-spawn.cjs
+index d952b61..505f5b9 100644
+--- a/integrations/loadout/room-spawn.cjs
++++ b/integrations/loadout/room-spawn.cjs
+@@ -264,6 +264,37 @@ function installRoomSpawn(app, getStore, type, configured = process.env.BRT_SPAW
+                 return res.json({ version:1, roomId:room.id, connectionId:body.connectionId,
+                     authenticatedSteamId:room.owner, life:body.life, loadout });
+             }
++            case 'session-menu': {
++                shape(body, ['connectionId', 'previousConnectionId', 'authenticatedSteamId']);
++                if (!room.owner || room.owner !== body.authenticatedSteamId) fail(403, 'wrong-local-player');
++                const { connectionId, previousConnectionId } = body;
++                if (!uuid.test(connectionId) || (previousConnectionId !== null && !uuid.test(previousConnectionId)) ||
++                    previousConnectionId === connectionId) fail(400, 'invalid-login-request');
++                const previous = room.loginSession;
++                const active = room.sessions.get(room.accounts.get(room.owner));
++                if (previous && previous.connectionId === connectionId) {
++                    if (previous.previousConnectionId !== previousConnectionId || previous.applied) fail(409, 'initial-menu-already-used');
++                    return res.json(previous.snapshot);
++                }
++                if (previous ? previous.connectionId !== previousConnectionId :
++                    previousConnectionId !== null || room.loginMenuSent || active?.menu || active?.life)
++                    fail(409, 'login-connection-mismatch');
++                const roles = initialMenu(getStore(), room.owner, room.owner);
++                const snapshot = {version:1, roomId:room.id, connectionId, authenticatedSteamId:room.owner, roles};
++                room.loginSession = {connectionId, previousConnectionId, applied:false, snapshot};
++                room.loginMenuSent = true;
++                return res.json(snapshot);
++            }
++            case 'session-menu-applied': {
++                shape(body, ['connectionId', 'authenticatedSteamId']);
++                if (!room.owner || room.owner !== body.authenticatedSteamId) fail(403, 'wrong-local-player');
++                if (!uuid.test(body.connectionId)) fail(400, 'invalid-login-request');
++                if (!room.loginSession || room.loginSession.connectionId !== body.connectionId)
++                    fail(409, 'login-connection-mismatch');
++                room.loginSession.applied = true;
++                delete room.loginSession.snapshot;
++                return res.status(204).end();
++            }
+             case 'login-menu': {
+                 shape(body, ['connectionId', 'authenticatedSteamId']);
+                 if (!room.owner || room.owner !== body.authenticatedSteamId) fail(403, 'wrong-local-player');

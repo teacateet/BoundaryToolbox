@@ -1,0 +1,29 @@
+diff --git a/index.js b/index.js
+--- a/index.js
++++ b/index.js
+@@ -1,1 +1,3 @@
+ const { mergeWeaponUpdate } = require('./spawn-parts.cjs');
++const {createClientReader,forCommunity} = require('./legacy-client.cjs');
++const communityLoadout = createClientReader();
+@@ -2,2 +4,14 @@
+-app.get("/api/loadout/:playerId", (req, res) => {
++app.get("/api/loadout/:playerId", async (req, res, next) => {
+     const store = getLoadoutStore();
++    if (communityLoadout.matches(req)) {
++        try {
++            res.set('Cache-Control','no-store');
++            const owner = await communityLoadout.owner(req);
++            const data = owner && forCommunity(store,owner);
++            if (!data) return res.status(404).json({error:'No verified local player loadout'});
++            return res.status(200).json(data);
++        } catch (error) {
++            return next(error);
++        }
++    }
++
+@@ -3,1 +17,2 @@
+   socket.once('close', () => roomSession.reset());
++  communityLoadout.watch(socket);
+@@ -4,1 +19,2 @@
+         socket.playerId = gateSessions.get(RPCPath);
++        communityLoadout.bind(socket);
