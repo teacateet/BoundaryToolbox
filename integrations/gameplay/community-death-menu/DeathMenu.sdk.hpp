@@ -65,7 +65,7 @@ inline void ReturnFromSelection(SDK::APBPlayerController* pc, SDK::APBPlayerStat
                                !(state->SelectedCharacterID == selection.initialRole));
     if (pc->bShowSelectRole)
     {
-        if (selection.closing || (!accepted && !state->IsInPlayerLifeStatus(EPBPlayerLifeStatus::Alive)))
+        if (selection.closing || !accepted)
             return;
         // 等原生角色选择得到确认后才走正常的关闭流程，下一次采样再读菜单栈。
         selection.closing = true;

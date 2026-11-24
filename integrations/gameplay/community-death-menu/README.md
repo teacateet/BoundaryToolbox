@@ -1,5 +1,7 @@
 # Local PvE death menu
 
+In the split client used for live39, clicking a visible, enabled role card selects that card even if the pointer never hovered over it. Both the card and the deploy button use the current local match's role list. The stock deploy callback receives the selected role, then the stock controller takes game input back after selection. A restart request from an inactive controller still goes through the server's normal spawn checks. See [live39 verification](../../../docs/BRT-LIVE39.md).
+
 Both community clients can open the original role selection screen when a dead local player presses their configured in-game menu action and the game presents its Leave Match confirmation. The original widget handles Back first. Role selection opens once its prompt has left the stack and the controller still permits role selection.
 
 If no prompt appears, the same local death action now opens role selection after the observed press and release on an otherwise empty screen. A player who releases during cooldown can wait up to three seconds for the original permission; another menu, another press or respawn cancels that request. The OSS retail session confirmed the local PvE UI scope; it did not record the prompt stack at the instant of the death key.

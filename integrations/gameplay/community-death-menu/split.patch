@@ -1,5 +1,5 @@
 diff --git a/ProjectReboundMainDLL/Client/AutoConnect.cpp b/ProjectReboundMainDLL/Client/AutoConnect.cpp
-index 9d9cfa7..2eb386a 100644
+index 9d9cfa7..7b3ca4c 100644
 --- a/ProjectReboundMainDLL/Client/AutoConnect.cpp
 +++ b/ProjectReboundMainDLL/Client/AutoConnect.cpp
 @@ -8,6 +8,7 @@
@@ -10,10 +10,43 @@ index 9d9cfa7..2eb386a 100644
  
  #include <Windows.h>
  
-@@ -125,6 +126,12 @@ bool NotifyClientLoginCompleted()
+@@ -125,6 +126,45 @@ bool NotifyClientLoginCompleted()
      return !loginCompleted.exchange(true);
  }
  
++void BrtPrepareDeployment(SDK::UObject* sender)
++{
++    if (!loginCompleted.load() || gameThreadId.load() != GetCurrentThreadId())
++        return;
++    auto* pc = BrtDeathMenu::selection.owner;
++    if (!pc || !pc->bShowSelectRole || !sender ||
++        !sender->IsA(UPBItemFieldModWidget_Character::StaticClass()))
++        return;
++    auto* item = static_cast<UPBItemFieldModWidget_Character*>(sender);
++    if (item->GetOwningPlayer() != pc || !item->IsVisible()) return;
++    auto* field = static_cast<UPBFieldModManager*>(USubsystemBlueprintLibrary::GetWorldSubsystem(pc, UPBFieldModManager::StaticClass()));
++    if (!field) return;
++    const bool card = sender->IsA(UUMG_CharacterItem_C::StaticClass());
++    if (card && !item->GetIsEnabled()) return;
++    const FName selected = card ? item->ItemId : field->GetSelectCharacterID();
++    const auto available = field->GetCharacterDefinitionIDScopeInTheMatch();
++    for (int i = 0; i < available.Num(); ++i)
++    {
++        if (!(selected == available[i]) || selected == FName{}) continue;
++        if (card)
++        {
++            // 蓝图的点击回调可能只确认悬停项，先选中真正被点击的可用卡片。
++            if (!(field->GetSelectCharacterID() == selected)) item->SelectCharacter();
++        }
++        else
++        {
++            item->ItemId = selected;
++            item->RefreshOnSelectCharacter(selected);
++        }
++        return;
++    }
++}
++
 +void BrtRoleConfirmed(SDK::UObject* sender, const SDK::FName& role)
 +{
 +    if (loginCompleted.load() && gameThreadId.load() == GetCurrentThreadId())
@@ -23,7 +56,7 @@ index 9d9cfa7..2eb386a 100644
  void PumpPendingClientCommands()
  {
      static thread_local bool pumping = false;
-@@ -146,6 +153,8 @@ void PumpPendingClientCommands()
+@@ -146,6 +186,8 @@ void PumpPendingClientCommands()
      if (localPlayer == nullptr)
          return;
  
@@ -32,7 +65,7 @@ index 9d9cfa7..2eb386a 100644
      const auto now = std::chrono::steady_clock::now();
      bool enterRange = false;
      std::optional<std::string> connectTarget;
-@@ -186,6 +195,7 @@ void PumpPendingClientCommands()
+@@ -186,6 +228,7 @@ void PumpPendingClientCommands()
                  std::wstring(connectTarget->begin(), connectTarget->end());
              ClientDebugLog("[CLIENT] Connecting to match: " + *connectTarget);
              UKismetSystemLibrary::ExecuteConsoleCommand(world, command.c_str(), nullptr);
@@ -41,19 +74,29 @@ index 9d9cfa7..2eb386a 100644
          }
      }
 diff --git a/ProjectReboundMainDLL/Hooking/ClientHooks.cpp b/ProjectReboundMainDLL/Hooking/ClientHooks.cpp
-index 662e492..7f76034 100644
+index 662e492..7e02daa 100644
 --- a/ProjectReboundMainDLL/Hooking/ClientHooks.cpp
 +++ b/ProjectReboundMainDLL/Hooking/ClientHooks.cpp
-@@ -14,6 +14,8 @@
+@@ -14,6 +14,9 @@
  
  using namespace SDK;
  
++void BrtPrepareDeployment(SDK::UObject* sender);
 +void BrtRoleConfirmed(SDK::UObject* sender, const SDK::FName& role);
 +
  // ======================================================
  //  ProcessEventHookClient — client-side dispatch
  // ======================================================
-@@ -84,6 +86,10 @@ void ProcessEventHookClient(UObject *Object, UFunction *Function, void *Parms)
+@@ -79,11 +82,19 @@ void ProcessEventHookClient(UObject *Object, UFunction *Function, void *Parms)
+         HandleUICharacterClientEvent(Object, Function, Parms, EventInfo.FullName);
+     }
+ 
++    if (EventInfo.FullName == "Function UMG_DeployCharacter.UMG_DeployCharacter_C.BndEvt__UMG_DeployCharacter_UMG_STD_HotZone_K2Node_ComponentBoundEvent_3_OnClick__DelegateSignature" ||
++        EventInfo.FullName == "Function UMG_CharacterItem.UMG_CharacterItem_C.BndEvt__UMG_CharacterItem_UMG_STD_HotZone_K2Node_ComponentBoundEvent_0_OnClick__DelegateSignature")
++        BrtPrepareDeployment(Object);
++
+     // --- Equip error swallow (LoadoutFix) ---
+     HandleEquipErrorSwallow(Object, Function, Parms, EventInfo.FullName);
  
      ProcessEventClient.call(Object, Function, Parms);
  
