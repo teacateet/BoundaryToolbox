@@ -1,9 +1,10 @@
 #requires -Version 7.0
 [CmdletBinding()]
-param([string]$OutputDirectory)
+param([string]$OutputDirectory, [string]$Executable, [string]$Live39Component)
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
-$exe = Get-Item -LiteralPath (Join-Path $root 'target/release/BRT.exe')
+if (!$Executable) { $Executable = Join-Path $root 'target/release/BRT.exe' }
+$exe = Get-Item -LiteralPath $Executable
 $info = $exe.VersionInfo
 if ($info.ProductName -cne 'Boundary Resurrection Toolkit' -or $info.OriginalFilename -cne 'BRT.exe') { throw 'Unexpected Windows product metadata' }
 $version = [version]::Parse($info.ProductVersion).ToString()
@@ -18,6 +19,12 @@ $template = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'player-guide.temp
 if (!$template.Contains('<!--GUIDE-->') -or !$body.Contains('<table>')) { throw 'Unexpected player guide markup' }
 [IO.File]::WriteAllText($guidePath, $template.Replace('<!--GUIDE-->', $body), [Text.UTF8Encoding]::new($false))
 $files = [ordered]@{'BRT.exe' = $exe.FullName; $guide = $guidePath}
+if ([version]$version -ge [version]'19.20.35') {
+    if (!$Live39Component -or (Get-FileHash -LiteralPath $Live39Component).Hash -ne '6982f63b4542429157b3a48f99bf2daa38cf7616d3dc47e1381817f221c1a30e') {
+        throw 'Player release requires the verified distributable live39 component.'
+    }
+    $files['components/gameplay/live39/Payload.dll'] = (Resolve-Path -LiteralPath $Live39Component).Path
+}
 $files['components/SOURCES.txt'] = Join-Path $root 'tools/component-sources.txt'
 $files['components/vnt-LICENSE.txt'] = Join-Path $root 'vendor/vnt/LICENSE'
 $files['components/fixed-server/local-pve-host.cjs'] = Join-Path $root 'integrations/fixed-server/local-pve-host.cjs'

@@ -13,6 +13,8 @@ use std::{
 };
 use uuid::Uuid;
 use zip::ZipArchive;
+#[path = "live39_install.rs"]
+mod live39;
 
 pub const REPOSITORY: &str = "https://github.com/STanJK/ProjectRebound";
 const META: &str = "BoundaryMetaServer-main/";
@@ -66,6 +68,27 @@ fn check(cancel: &InstallCancelToken) -> Result<()> {
 mod tests {
     use super::*;
     use std::{process::Command, sync::Arc};
+    #[test]
+    fn retry_gateway_failure_but_return_permanent_error() -> Result<()> {
+        use std::{io::{BufRead, BufReader}, net::TcpListener};
+        let listener = TcpListener::bind("127.0.0.1:0")?;
+        let url = format!("http://{}/qa", listener.local_addr()?);
+        let server = std::thread::spawn(move || -> Result<()> {
+            for status in ["502 Bad Gateway", "200 OK", "404 Not Found"] {
+                let (mut peer, _) = listener.accept()?;
+                let mut lines = BufReader::new(peer.try_clone()?).lines();
+                while let Some(line) = lines.next() { if line?.is_empty() { break; } }
+                write!(peer, "HTTP/1.1 {status}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")?;
+            }
+            Ok(())
+        });
+        let client = reqwest::blocking::Client::builder().no_proxy().timeout(Duration::from_secs(4)).build()?;
+        assert!(get_archive(&client, &url, &InstallCancelToken::new())?.status().is_success());
+        let err = get_archive(&client, &url, &InstallCancelToken::new()).unwrap_err();
+        assert_eq!(err.downcast_ref::<reqwest::Error>().and_then(|e| e.status()).map(|s| s.as_u16()), Some(404));
+        server.join().expect("test server")?;
+        Ok(())
+    }
     #[test]
     fn excludes_player_data_and_legacy_tools() {
         for path in [
@@ -127,10 +150,14 @@ mod tests {
         fs::create_dir_all(&dst)?;
         fs::copy(&game, dst.join(crate::core::GAME_EXE))?;
         let mut core = InstallerCore::new(Arc::new(|_| {}))?;
+        core.runtime_dir = PathBuf::from(
+            std::env::var_os("BOUNDARY_QA_BUNDLE_DIR").context("Missing extracted BRT directory: BOUNDARY_QA_BUNDLE_DIR")?,
+        );
         core.installer_home = qa.join("community-install-cache");
         let progress: ProgressReporter = Arc::new(|_| {});
         let first = core.install_community(&dst, progress.clone(), InstallCancelToken::new())?;
         assert!(first.contains("已补齐"));
+        assert_eq!(hash(&dst.join("Payload.dll"))?, live39::SHA);
         let files = crate::core::process::launch_files(&dst);
         let config: serde_json::Value = serde_json::from_slice(&fs::read(dst.join("ServerLauncher/serverconfig.json"))?)?;
         assert_eq!(config["difficulty"], "normal");
@@ -203,6 +230,24 @@ fn selected(group: usize, name: &str) -> Option<&str> {
     }
 }
 
+fn get_archive(client: &reqwest::blocking::Client, url: &str, cancel: &InstallCancelToken) -> Result<reqwest::blocking::Response> {
+    for attempt in 0..3 {
+        check(cancel)?;
+        match client.get(url).header("User-Agent", "Boundary-Resurrection-Toolkit").send().and_then(|r| r.error_for_status()) {
+            Ok(response) => return Ok(response),
+            Err(err) => {
+                let transient = err.is_connect() || err.is_timeout() || err.status().is_some_and(|s| matches!(s.as_u16(), 408 | 502 | 503 | 504));
+                if attempt == 2 || !transient { return Err(err.into()); }
+                for _ in 0..10 * (attempt + 1) {
+                    check(cancel)?;
+                    std::thread::sleep(Duration::from_millis(100));
+                }
+            }
+        }
+    }
+    unreachable!()
+}
+
 fn obtain(
     cache: &Path,
     art: Artifact,
@@ -220,11 +265,7 @@ fn obtain(
             .connect_timeout(Duration::from_secs(15))
             .timeout(Duration::from_secs(210))
             .build()?;
-        let mut response = client
-            .get(art.url)
-            .header("User-Agent", "Boundary-Resurrection-Toolkit")
-            .send()?
-            .error_for_status()?;
+        let mut response = get_archive(&client, art.url, cancel)?;
         let mut file = File::create_new(&tmp)?;
         let total = response.content_length().unwrap_or(0);
         let mut written = 0u64;
@@ -404,8 +445,13 @@ impl InstallerCore {
             "请选择游戏本体所在的 Win64 目录"
         );
         check(&cancel)?;
+        let bundled = live39::validated_bundle(&self.runtime_dir, target)?;
+        let payload = live39::inspect(target)?;
         if present(target) {
-            return Ok("已检测到社区环境所需文件；现有组件和玩家配装均保持不变。".into());
+            let changed = live39::finish(target, &bundled, &payload)?;
+            return Ok(if changed {
+                "已更新本地人机玩法至 live39，已备份旧组件并保留玩家配装。".into()
+            } else { "已安装 live39；现有组件和玩家配装均保持不变。".into() });
         }
         let cache = self.installer_home.join("downloads/community");
         fs::create_dir_all(&cache)?;
@@ -438,17 +484,24 @@ impl InstallerCore {
         fs::create_dir(&stage)?;
         let result = (|| -> Result<String> {
             notify(0.77, "校验安装文件", "正在检查现有组件与档案。");
-            let files = extract(&archives, &stage, &cancel)?;
+            let mut files = extract(&archives, &stage, &cancel)?;
+            if payload.is_some() {
+                files.retain(|p| p != Path::new("Payload.dll"));
+            } else {
+                fs::copy(&bundled, stage.join("Payload.dll"))?;
+                ensure!(hash(&stage.join("Payload.dll"))? == live39::SHA, "玩法组件校验失败");
+            }
             let add = pending(target, &stage, &files)?;
             check(&cancel)?;
             notify(0.90, "安装社区组件", "仅补齐缺失文件，保留现有房间配置。");
             publish(&stage, target, &add, &cancel)?;
+            live39::finish(target, &bundled, &payload)?;
             if !present(target) {
                 bail!("安装目录的文件在操作期间发生变化，请重新检查");
             }
-            notify(1.0, "安装完成", "ProjectRebound V0.8.4");
+            notify(1.0, "安装完成", "ProjectRebound V0.8.4 · BRT live39");
             Ok(format!(
-                "社区环境安装完成：已补齐 {} 个文件。现在可以进入原版大厅。",
+                "社区环境安装完成：已补齐 {} 个文件，live39 已就绪。现在可以进入原版大厅。",
                 add.len()
             ))
         })();
