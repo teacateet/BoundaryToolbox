@@ -6,6 +6,7 @@ use std::io::{ErrorKind, Read, Seek, SeekFrom, Write};
 use std::os::windows::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
+use std::sync::atomic::{AtomicU8, Ordering};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -23,6 +24,20 @@ const STATE: &str = "orbital-host.json";
 const PVP_MODE: &str =
     "[SERVER] Mode: /Game/Online/GameMode/PBGameMode_Rush_BP.PBGameMode_Rush_BP_C";
 const DEADLINE: Duration = Duration::from_secs(90);
+
+#[derive(Default)]
+pub(crate) struct StartAttempt(AtomicU8);
+
+impl StartAttempt {
+    // 启动完成与取消争用同一次决定。复用已有房间时不会取得其进程所有权。
+    pub(crate) fn cancel(&self) -> bool {
+        self.0.compare_exchange(0, 1, Ordering::AcqRel, Ordering::Acquire).is_ok()
+    }
+    fn cancelled(&self) -> bool { self.0.load(Ordering::Acquire) == 1 }
+    fn accept_ready(&self) -> bool {
+        self.0.compare_exchange(0, 2, Ordering::AcqRel, Ordering::Acquire).is_ok()
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 struct Owner {
@@ -209,11 +224,11 @@ fn startup_log(room: &Path, baseline: &HashMap<PathBuf, u64>, map: &str, mode_li
 }
 
 pub(crate) fn start(target: &Path, port: u16) -> Result<()> {
-    start_room(target, port, false)
+    start_room(target, port, false, &StartAttempt::default()).map(|_| ())
 }
 
 pub(crate) fn start_pve(target: &Path, port: u16) -> Result<()> {
-    start_room(target, port, true)
+    start_room(target, port, true, &StartAttempt::default()).map(|_| ())
 }
 
 fn coop_path(target: &Path, port: u16) -> PathBuf {
@@ -255,7 +270,8 @@ fn coop_config(target: &Path, room: &Path, port: u16) -> Result<(String, String,
     Ok((map, format!("[SERVER] Mode: /Game/Online/GameMode/{bp}.{bp}_C"), turn))
 }
 
-fn start_room(target: &Path, port: u16, coop: bool) -> Result<()> {
+pub(crate) fn start_room(target: &Path, port: u16, coop: bool, attempt: &StartAttempt) -> Result<bool> {
+    if attempt.cancelled() { return Ok(false); }
     let room = room_path(target, port)?;
     let room = if coop { coop_path(target, port) } else { room };
     ensure!(
@@ -268,13 +284,14 @@ fn start_room(target: &Path, port: u16, coop: bool) -> Result<()> {
         Err(e) => return Err(e).context("创建固定服房间目录失败"),
     }
     let _lock = room_lock(&room)?;
+    if attempt.cancelled() { return Ok(false); }
     if let Some(owner) = saved_owner(&room)? {
         if is_owner(&owner, target, &room) {
             ensure!(
                 game_has_port(target, owner.pid, port)?,
                 "此房间进程仍在切图，请稍后重试"
             );
-            return Ok(());
+            return Ok(attempt.accept_ready());
         }
         fs::remove_file(room.join(STATE))?;
     }
@@ -289,6 +306,7 @@ fn start_room(target: &Path, port: u16, coop: bool) -> Result<()> {
         ("Warehouse".to_owned(), PVP_MODE.to_owned(), 0)
     };
     let baseline = log_ends(&room)?;
+    if attempt.cancelled() { return Ok(false); }
     let token = Uuid::new_v4().simple().to_string();
     // 游戏按启动工作目录查找相对资源，房间必须与原 ServerLauncher 同级。
     let mut child = hidden_command(target.join(WRAPPER))
@@ -305,20 +323,22 @@ fn start_room(target: &Path, port: u16, coop: bool) -> Result<()> {
         token,
     };
     let state = room.join(STATE);
-    let result = (|| -> Result<()> {
+    let result = (|| -> Result<bool> {
         let mut proof = File::create_new(&state)?;
         proof.write_all(&serde_json::to_vec(&owner)?)?;
         proof.sync_all()?;
         let started = Instant::now();
         while started.elapsed() < DEADLINE {
+            if attempt.cancelled() { return Ok(false); }
             if let Some(status) = child.try_wait()? {
                 bail!("固定服启动器已退出，退出码 {status}");
             }
             if startup_log(&room, &baseline, &map, &mode)? && game_has_port(target, owner.pid, port)? {
+                if !attempt.accept_ready() { return Ok(false); }
                 if coop {
                     write_room_value(&room.join("rotation.json"), &serde_json::json!(turn + 1))?;
                 }
-                return Ok(());
+                return Ok(true);
             }
             thread::sleep(Duration::from_millis(500));
         }
@@ -327,7 +347,7 @@ fn start_room(target: &Path, port: u16, coop: bool) -> Result<()> {
             room.join("logs").display()
         );
     })();
-    if result.is_err() {
+    if !matches!(result, Ok(true)) {
         if child.try_wait()?.is_none() {
             kill_pids(&[child.id()])?;
             child.wait()?;
@@ -365,6 +385,45 @@ fn stop_room(target: &Path, room: &Path) -> Result<bool> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cancellation_never_adopts_or_stops_an_existing_room() {
+        let cancelled = StartAttempt::default();
+        assert!(cancelled.cancel());
+        assert!(!cancelled.accept_ready() && !cancelled.cancel());
+        let ready = StartAttempt::default();
+        assert!(ready.accept_ready());
+        assert!(!ready.cancel());
+    }
+
+    #[test]
+    #[ignore = "使用真实社区启动器验证建房取消、清理和同端口重试"]
+    fn installed_cancel_and_retry_same_port() -> Result<()> {
+        let target = PathBuf::from(std::env::var_os("BOUNDARY_QA_WIN64").context("Missing BOUNDARY_QA_WIN64")?);
+        let port: u16 = std::env::var("BOUNDARY_QA_PORT")?.parse()?;
+        let dir = room_path(&target, port)?;
+        ensure!(!dir.try_exists()? && udp_owners(port)?.is_empty(), "Test room must be unused");
+        let attempt = std::sync::Arc::new(StartAttempt::default());
+        let worker = {
+            let token = attempt.clone();
+            let target = target.clone();
+            thread::spawn(move || start_room(&target, port, false, &token))
+        };
+        let until = Instant::now() + Duration::from_secs(8);
+        while !dir.join(STATE).is_file() && Instant::now() < until && !worker.is_finished() {
+            thread::sleep(Duration::from_millis(15));
+        }
+        let spawned = dir.join(STATE).is_file();
+        let cancelled = attempt.cancel();
+        let result = worker.join().expect("room worker panicked")?;
+        ensure!(spawned && cancelled && !result, "Did not cancel a spawned room");
+        ensure!(!dir.join(STATE).exists() && udp_owners(port)?.is_empty(), "Cancellation left ownership or listener");
+        start(&target, port)?;
+        let listening = saved_owner(&dir)?.is_some_and(|owner| game_has_port(&target, owner.pid, port).unwrap_or(false));
+        let stopped = stop(&target, port)?;
+        ensure!(listening && stopped && udp_owners(port)?.is_empty(), "Retry or stop failed");
+        Ok(())
+    }
 
     #[test]
     fn readiness_requires_fresh_matching_native_messages() -> Result<()> {

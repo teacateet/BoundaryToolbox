@@ -22,6 +22,7 @@ export component VntPage inherits Workbench {
     in-out property <bool> vnt_rtx;
     in property <bool> can_start;
     in property <bool> vnt_busy;
+    in property <bool> stopping;
     in property <bool> vnt_running;
     in property <string> vnt_status_text;
     in property <string> vnt_detail_text;
@@ -43,6 +44,7 @@ export component VntPage inherits Workbench {
         Command { label: I18n.tr("刷新状态", "Refresh status", "状態を更新"); enabled: !root.vnt_busy; clicked => { root.vnt_refresh_clicked(); } }
     }
     Reading { label: I18n.tr("会话状态", "Session", "接続状態"); value: root.vnt_status_text + "   " + root.vnt_detail_text; }
+    Value { text: I18n.tr("异地联机：双方选同一组网服务器，输入相同房间号和密码。连接后房主到「房间」开服，队友从节点列表加入房主。", "Remote play: use the same network server, code and password. The host starts a game under Rooms; guests join the host from the peer list.", "同じサーバー・コード・パスワードで接続します。ホストは「ルーム」で起動し、参加者はノード一覧から参加します。"); }
     Reading { label: "IP / NAT"; value: root.vnt_ip_text + "   /   " + root.vnt_nat_text; }
     Reading { label: I18n.tr("联机服务器", "Network server", "接続サーバー"); value: root.vnt_running ? root.vnt_server_status_text : root.vnt_server_text; }
     Divider {}
@@ -63,7 +65,7 @@ export component VntPage inherits Workbench {
             label: root.can_start ? I18n.tr("启动联机", "Start network", "接続開始") : I18n.tr("启动需管理员", "Start (admin only)", "開始には管理者権限が必要");
             emphasis: true; accent: #7bdbba; enabled: root.can_start && root.editable; clicked => { root.vnt_start_clicked(); }
         }
-        if root.vnt_running: Command { label: I18n.tr("停止联机", "Stop network", "接続を停止"); enabled: !root.vnt_busy; clicked => { root.vnt_stop_clicked(); } }
+        if root.vnt_running || root.vnt_busy: Command { label: root.vnt_running ? I18n.tr("停止联机", "Stop network", "接続を停止") : I18n.tr("取消连接", "Cancel connection", "接続をキャンセル"); enabled: !root.stopping; clicked => { root.vnt_stop_clicked(); } }
         Command { label: root.options-open ? I18n.tr("收起配置", "Hide options", "設定を閉じる") : I18n.tr("连接配置", "Connection options", "接続設定");
             clicked => { root.options-open = !root.options-open; } }
     }

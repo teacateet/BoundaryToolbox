@@ -430,7 +430,7 @@ mod tests {
     fn path_text_match_key_strips_windows_extended_prefix() {
         assert_eq!(
             path_text_match_key(r#"\\?\C:\BrtWork\SteamLibrary\steamapps\common\Boundary"#),
-            r#"C:\BrtWork\SteamLibrary\steamapps\common\boundary"#
+            r#"c:\brtwork\steamlibrary\steamapps\common\boundary"#
         );
         assert_eq!(
             path_text_match_key(r#"\\?\UNC\server\share\Boundary"#),

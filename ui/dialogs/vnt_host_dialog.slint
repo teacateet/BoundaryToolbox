@@ -105,6 +105,7 @@ export component VntHostDialog inherits Rectangle {
     in property <[VntPeerRow]> peers;
     callback host_selected(address: string);
     callback host_cancelled();
+    callback disconnect();
 
     Rectangle {
         width: parent.width;
@@ -178,6 +179,11 @@ export component VntHostDialog inherits Rectangle {
 
                     Rectangle { horizontal-stretch: 1; background: #00000000; }
 
+                    Action {
+                        width: 132px;
+                        label: I18n.tr("取消连接", "Disconnect", "接続を取消");
+                        sub: ""; clicked => { root.disconnect(); }
+                    }
                     Action {
                         width: 132px;
                         label: I18n.tr("我是房主", "I Am Host", "自分がホスト");

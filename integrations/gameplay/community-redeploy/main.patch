@@ -1,0 +1,38 @@
+diff --git a/ProjectReboundMainDLL/BrtInventory/Birth.cpp b/ProjectReboundMainDLL/BrtInventory/Birth.cpp
+index 72985e4..4dc20be 100644
+--- a/ProjectReboundMainDLL/BrtInventory/Birth.cpp
++++ b/ProjectReboundMainDLL/BrtInventory/Birth.cpp
+@@ -6,6 +6,7 @@
+ #include "OwnerBirthGate.hpp"
+ #include "NativeArchive.hpp"
+ #include "NativeRoleTable.hpp"
++#include "OwnerRedeploy.hpp"
+ #include <chrono>
+ #include "RoomHttp.hpp"
+ #include "SDK/ProjectBoundary_classes.hpp"
+@@ -46,6 +47,7 @@ struct Watched {
+     std::string fetchedReply;
+     std::array<APBWeapon*, 2> fetchedActors{};
+     std::uint64_t archiveRequests{};
++    brt::redeploy::Pending redeploy;
+ };
+ std::shared_ptr<Watched> watched;
+ 
+@@ -328,6 +330,7 @@ void BrtArchiveBeforeConfirm(SDK::UObject* controller, void* params) noexcept {
+         if (row == session->rows.end()) { ArchiveLog("event=skipped reason=role-outside-owner-menu"); return; }
+         auto* value = brt::native_archive::RoleValue(image, state, RawOf(role));
+         if (!value) { ArchiveLog("event=skipped role=%s reason=native-role-entry-missing", row->id.c_str()); return; }
++        brt::redeploy::Confirm(session->redeploy, *state, role);
+         const int before = brt::native_archive::WeaponCount(value);
+         // 档案条目与两张预订表通常一致；不一致时各自的主副枪都补上，由原生按最终选择取用。
+         std::vector<GunPair> wanted{{brt::native_archive::NameAt(value, brt::native_archive::FirstWeapon),
+@@ -408,6 +411,9 @@ void BrtTickOwnerBirth() noexcept {
+         auto& pc = *static_cast<APBPlayerController*>(object);
+         if (!pc.HasAuthority() || !pc.PlayerState || !pc.PlayerState->IsA(APBPlayerState::StaticClass())) return;
+         auto& state = *static_cast<APBPlayerState*>(pc.PlayerState);
++        brt::redeploy::Tick(session->redeploy, pc, state, session->loginState == &state &&
++            pc.PBPlayerState == &state && pc.NetConnection && pc.NetConnection == session->loginTransport &&
++            pc.NetConnection->PlayerController == &pc);
+         auto* pawn = pc.GetPBCharacter();
+         const auto counts = CurrentCounts(state);
+         const float now = UGameplayStatics::GetTimeSeconds(&pc);

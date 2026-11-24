@@ -188,10 +188,21 @@ fn workbench_actions_as_standard_user() -> Result<()> {
     online_tab(&w, 640, true);
     frame(&w, 640, 480);
     click(&w, 530., 132.);
-    click(&w, 105., 375.);
+    // 窄窗口会将新版联机说明折行；根据管理员按钮的实际渲染位置点击。
+    ui.set_is_admin(true);
+    let rendered = frame(&w, 640, 480);
+    let start_y = (280..470).find(|&y| {
+        let b = rendered.as_bytes();
+        let at = (y * 640 + 50) * 3;
+        b[at..at+3] == [0x7b, 0xdb, 0xba]
+    }).expect("Network start button must be visible") as f32 + 12.;
+    ui.set_is_admin(false);
+    frame(&w, 640, 480);
+    click(&w, 105., start_y);
     assert_eq!(*events.borrow(), ["refresh-network"]);
     ui.set_is_admin(true);
-    click(&w, 105., 375.);
+    frame(&w, 640, 480);
+    click(&w, 105., start_y);
     assert_eq!(events.borrow().last().unwrap(), "start-network");
 
     nav(&w, 640, 3);
@@ -223,9 +234,9 @@ fn workbench_actions_as_standard_user() -> Result<()> {
     click(&w, 180., 214.);
     type_text(&w, "192.0.2.9:18777");
     click(&w, 1160., 215.);
-    click(&w, 1160., 368.);
-    click(&w, 1120., 458.);
-    click(&w, 1195., 458.);
+    click(&w, 1160., 395.);
+    click(&w, 1120., 485.);
+    click(&w, 1195., 485.);
     assert_eq!(
         &events.borrow()[3..],
         [

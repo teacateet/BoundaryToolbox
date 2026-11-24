@@ -31,10 +31,20 @@ struct UObject
 #define TEST_SDK_CLASS(id) static int StaticClass() { return id; } int Type() const override { return id; }
 struct APBPlayerController;
 struct UPBLocalPlayer;
+struct APBCharacter : UObject {
+    APBPlayerController* owner{};
+    bool alive{true}, firstPerson{true};
+    APBPlayerController* GetController() const { return owner; }
+    bool IsAlive() const { return alive; }
+    bool IsInKilledStatus() const { return !alive; }
+    bool IsFirstPerson() const { return firstPerson; }
+};
 struct APBPlayerState : UObject
 {
     TEST_SDK_CLASS(1)
     EPBPlayerLifeStatus life = EPBPlayerLifeStatus::Death;
+    int deaths{};
+    int GetDeaths() const { return deaths; }
     FName SelectedCharacterID{L"PROBE"};
     bool IsInPlayerLifeStatus(EPBPlayerLifeStatus expected) const { return life == expected; }
 };
@@ -49,6 +59,16 @@ struct APBPlayerController : UObject
     int openings{};
     int closings{}, gameFocus{};
     int restartRequests{};
+    APBCharacter* pawn{};
+    APBCharacter* GetPBCharacter() const { return pawn; }
+    APBCharacter* K2_GetPawn() const { return pawn; }
+    bool gameLocked{}, moveLocked{}, lookLocked{};
+    bool IsGameInputIgnored() const { return gameLocked; }
+    bool IsMoveInputIgnored() const { return moveLocked; }
+    bool IsLookInputIgnored() const { return lookLocked; }
+    void ResetIgnoreGameInput() { gameLocked=false; }
+    void ResetIgnoreMoveInput() { moveLocked=false; }
+    void ResetIgnoreLookInput() { lookLocked=false; }
     FName StateName{L"Inactive"};
     void ServerRestartPlayer() { ++restartRequests; }
     bool bShowMouseCursor{};
@@ -64,6 +84,7 @@ struct APBPlayerController : UObject
 struct UWidgetBlueprintLibrary
 {
     static void SetInputMode_GameOnly(APBPlayerController* pc) { ++pc->gameFocus; }
+    static void SetFocusToGameViewport() {}
 };
 struct UPBLocalPlayer { APBPlayerController* PlayerController{}; };
 struct APBGameState : UObject
@@ -236,6 +257,13 @@ struct Scene
     void key(const wchar_t* k=L"Escape") { pc.pressed = {k}; pc.down = {k}; }
     void release() { pc.down.clear(); pc.pressed.clear(); }
     void show(UCommonActivatableWidget* w) { prompts.current = w; }
+    APBCharacter newPawn;
+    void possess() {
+        state.life=EPBPlayerLifeStatus::Alive; pc.StateName=L"Playing"; pc.pawn=&newPawn;
+        newPawn.owner=&pc; pc.gameLocked=pc.moveLocked=pc.lookLocked=true;
+        pc.bShowMouseCursor=true;
+    }
+    void settle() { tick(); std::this_thread::sleep_for(205ms); tick(); }
     void play(const wchar_t* k=L"Escape")
     {
         tick(); key(k); show(&leave); tick(); release(); tick();
@@ -380,6 +408,63 @@ int main()
     check("unrelated modal keeps focus", [](Scene& s){
         s.play(); EntryConfirm(&s.pc,L"PROBE"); s.show(&s.otherPrompt); s.tick(); s.tick();
         return s.pc.bShowSelectRole && s.pc.bShowMouseCursor && !s.pc.closings && !s.pc.gameFocus;
+    });
+    check("possession after early menu close restores all input", [](Scene& s){
+        s.play(); EntryConfirm(&s.pc,L"PROBE"); s.tick(); s.tick();
+        if(s.pc.restartRequests!=1) return false;
+        s.possess(); s.settle(); s.tick();
+        return s.pc.gameFocus==2 && !s.pc.bShowMouseCursor && !s.pc.gameLocked && !s.pc.moveLocked && !s.pc.lookLocked;
+    });
+    check("early native close waits for the acknowledged role", [](Scene& s){
+        s.play(); EntryConfirm(&s.pc,L"PEACE"); s.pc.bShowSelectRole=false; s.tick();
+        if(s.pc.gameFocus) return false;
+        s.state.SelectedCharacterID=L"PEACE"; s.tick(); s.possess(); s.settle();
+        return s.pc.gameFocus==2 && !s.pc.gameLocked;
+    });
+    check("missing selection layout and input survive possession", [](Scene& s){
+        s.play(); EntryConfirm(&s.pc,L"PEACE"); s.pc.PlayerInput=nullptr; s.tick();
+        s.pc.PlayerInput=&s.inputs; s.manager.MainMenuLayout=nullptr; s.tick();
+        s.manager.MainMenuLayout=&s.layout; s.state.SelectedCharacterID=L"PEACE"; s.tick(); s.tick();
+        s.possess(); s.settle(); return s.pc.gameFocus==2 && !s.pc.lookLocked;
+    });
+    check("stock death selection restores a late input lock only once", [](Scene& s){
+        s.state.deaths=1; s.pc.OpenInGameSelectRoleMenu(); s.tick();
+        EntryConfirm(&s.pc,L"PROBE"); s.tick(); s.tick(); s.possess(); s.settle();
+        s.pc.moveLocked=true; s.tick(); if(s.pc.moveLocked || s.pc.gameFocus!=3) return false;
+        s.pc.lookLocked=true; s.tick(); return s.pc.lookLocked && s.pc.gameFocus==3;
+    });
+    check("new modal after deployment retains its input", [](Scene& s){
+        s.play(); EntryConfirm(&s.pc,L"PROBE"); s.tick(); s.tick(); s.possess(); s.show(&s.otherPrompt);
+        s.settle(); s.show(nullptr); s.settle(); return s.pc.gameLocked && s.pc.gameFocus==1;
+    });
+    check("foreign pawn never receives redeploy focus", [](Scene& s){
+        s.play(); EntryConfirm(&s.pc,L"PROBE"); s.tick(); s.tick(); s.possess(); s.newPawn.owner=&s.other;
+        s.settle(); return s.pc.gameLocked && s.pc.gameFocus==1;
+    });
+    check("confirmed deployment waits for inactive before its single restart", [](Scene& s){
+        s.pc.StateName=L"Playing"; s.play(); EntryConfirm(&s.pc,L"PEACE");
+        s.state.SelectedCharacterID=L"PEACE"; s.tick(); s.tick();
+        if(s.pc.bShowSelectRole || s.pc.restartRequests) return false;
+        s.pc.StateName=L"Inactive"; s.tick(); s.tick();
+        s.possess(); s.settle(); return s.pc.restartRequests==1 && !s.pc.moveLocked && !s.pc.lookLocked;
+    });
+    check("pending death restart cannot cross a role change", [](Scene& s){
+        s.pc.StateName=L"Playing"; s.play(); EntryConfirm(&s.pc,L"PEACE");
+        s.state.SelectedCharacterID=L"PEACE"; s.tick(); s.tick();
+        s.state.SelectedCharacterID=L"PROBE"; s.pc.StateName=L"Inactive"; s.tick(); s.tick();
+        return s.pc.closings==1 && !s.pc.restartRequests;
+    });
+    check("unacknowledged client restart is not issued twice", [](Scene& s){
+        s.play(); EntryConfirm(&s.pc,L"PROBE"); s.tick(); s.tick(); s.tick();
+        if(s.pc.restartRequests!=1) return false;
+        s.pc.StateName=L"Playing"; s.tick(); s.pc.StateName=L"Inactive"; s.tick();
+        return s.pc.restartRequests==1;
+    });
+    check("blocked restart never follows another death", [](Scene& s){
+        s.pc.StateName=L"Playing"; s.play(); EntryConfirm(&s.pc,L"PROBE"); s.tick(); s.tick();
+        if(s.pc.closings!=1) return false;
+        ++s.state.deaths; s.pc.StateName=L"Inactive"; s.tick(); s.tick();
+        return !s.pc.restartRequests;
     });
 #endif
 #ifdef TEST_V084

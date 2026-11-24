@@ -5,6 +5,10 @@ use super::*;
 impl AppController {
     /// 统一处理窗口关闭请求；返回 true 表示可以立即关闭窗口。
     pub(super) fn request_window_close(&mut self) -> bool {
+        if self.fixed_room_start.is_some() {
+            self.request_fixed_room(fixed_room::RoomAction::Stop);
+            return false; // 等待自己的后台启动器完成清理，随后可正常关闭。
+        }
         if let Some(text) = self.running_game_close_warning_text() {
             self.show_confirm_dialog(
                 self.tr("游戏仍在运行", "Game Still Running", "ゲーム実行中"),

@@ -188,6 +188,7 @@ struct AppController {
     session_log_file: File,
     current_target: Option<PathBuf>,
     active_fixed_room: Option<(PathBuf, u16)>,
+    fixed_room_start: Option<Arc<core::fixed_host::StartAttempt>>,
     // Slint 列表模型在启动时创建一次，后续原地更新，避免 ListView 绑定被替换。
     drive_model: Rc<VecModel<DriveRow>>,
     port_model: Rc<VecModel<PortRow>>,

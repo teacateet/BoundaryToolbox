@@ -12,6 +12,7 @@ pub(super) enum RoomOutcome {
     Open,
     Closed,
     AlreadyClosed,
+    Cancelled,
 }
 
 fn room_port(text: &str) -> Option<u16> {
@@ -33,16 +34,11 @@ impl RoomAction {
         }
     }
 
-    fn execute(self, target: &Path, port: u16) -> Result<RoomOutcome> {
+    fn execute(self, target: &Path, port: u16, start: &core::fixed_host::StartAttempt) -> Result<RoomOutcome> {
         match self {
-            Self::Start => {
-                core::fixed_host::start(target, port)?;
-                Ok(RoomOutcome::Open)
-            }
-            Self::StartPve => {
-                core::fixed_host::start_pve(target, port)?;
-                Ok(RoomOutcome::Open)
-            }
+            Self::Start | Self::StartPve => Ok(if core::fixed_host::start_room(target, port, self == Self::StartPve, start)? {
+                RoomOutcome::Open
+            } else { RoomOutcome::Cancelled }),
             Self::Stop => match core::fixed_host::stop(target, port)? {
                 true => Ok(RoomOutcome::Closed),
                 false => Ok(RoomOutcome::AlreadyClosed),
@@ -53,6 +49,20 @@ impl RoomAction {
 
 impl AppController {
     pub(super) fn request_fixed_room(&mut self, action: RoomAction) {
+        if action == RoomAction::Stop {
+            if let Some(start) = self.fixed_room_start.as_ref() {
+                if start.cancel() {
+                    self.ui.set_fixed_room_can_cancel(false);
+                    self.ui.set_fixed_room_status(self.tr("正在取消建房…", "Cancelling room…", "起動をキャンセル中…").into());
+                }
+                return;
+            }
+            if !self.ui.get_busy() && self.ui.get_fixed_room_error() && self.active_fixed_room.is_none() {
+                self.ui.set_fixed_room_error(false);
+                self.ui.set_fixed_room_status(self.tr("未开房", "No room", "未起動").into());
+                return;
+            }
+        }
         if self.ui.get_busy() || (action != RoomAction::Stop && self.active_fixed_room.is_some()) {
             return;
         }
@@ -81,6 +91,11 @@ impl AppController {
         self.ui.set_fixed_room_port(port.to_string().into());
         self.ui.set_fixed_room_error(false);
         self.ui.set_busy(true);
+        let start = Arc::new(core::fixed_host::StartAttempt::default());
+        if action != RoomAction::Stop {
+            self.fixed_room_start = Some(start.clone());
+            self.ui.set_fixed_room_can_cancel(true);
+        }
         let status = match action {
             RoomAction::Start | RoomAction::StartPve => self.tr("正在启动", "Starting", "起動中"),
             RoomAction::Stop => self.tr("正在关闭", "Stopping", "停止中"),
@@ -90,7 +105,7 @@ impl AppController {
         let tx = self.tx.clone();
         thread::spawn(move || {
             let result = action
-                .execute(&target, port)
+                .execute(&target, port, &start)
                 .map_err(|error| format!("{error:#}"));
             let _ = tx.send(AppMessage::FixedRoomFinished {
                 target,
@@ -108,6 +123,8 @@ impl AppController {
         action: RoomAction,
         result: std::result::Result<RoomOutcome, String>,
     ) {
+        self.fixed_room_start = None;
+        self.ui.set_fixed_room_can_cancel(false);
         self.ui.set_busy(false);
         let outcome = match result {
             Ok(outcome) => outcome,
@@ -122,6 +139,7 @@ impl AppController {
         let state = match outcome {
             RoomOutcome::Open => self.tr("房间已开启", "Room open", "ルーム起動済み"),
             RoomOutcome::Closed => self.tr("房间已关闭", "Room closed", "ルーム停止済み"),
+            RoomOutcome::Cancelled => self.tr("建房已取消，可以重试", "Cancelled. Ready to retry", "キャンセルしました。再試行できます"),
             RoomOutcome::AlreadyClosed => self.tr(
                 "此端口没有运行中的固定房间",
                 "No managed room on this port",
@@ -250,7 +268,8 @@ mod tests {
             .collect();
         assert!(colors.len() > 50, "Expected a rendered server page");
         ui.set_fixed_room_port("0".into());
-        click(&window, 800., 310.);
+        let start = ui.invoke_room_action_center(true);
+        click(&window, start.x, start.y);
         assert!(
             ui.get_fixed_room_error(),
             "Start button did not validate the port"
@@ -276,7 +295,8 @@ mod tests {
             let center = ui.invoke_room_mode_center(true);
             click(&window, center.x, center.y);
             assert!(ui.get_fixed_room_pve());
-            click(&window, 800., 310.);
+            let start = ui.invoke_room_action_center(true);
+            click(&window, start.x, start.y);
             assert!(ui.get_busy());
             assert!(ui.get_fixed_room_status().contains(&port.to_string()));
             assert!(ui.get_fixed_room_status().contains("PvE"));
@@ -285,9 +305,10 @@ mod tests {
             assert!(ui.get_app_dialog_text().contains(&format!("UDP {port}")));
             controller.borrow_mut().hide_app_dialog();
             assert_eq!(ui.get_server_status_text(), before);
-            click(&window, 900., 310.);
-            assert!(ui.get_busy(), "Stop button did not dispatch");
-            wait_for_room(&controller, &ui);
+            paint(&window, 980, 600);
+            let back = ui.invoke_room_action_center(false);
+            click(&window, back.x, back.y);
+            assert!(!ui.get_busy(), "Returning from failure must not stop unrelated processes");
             assert!(!ui.get_fixed_room_running() && !ui.get_fixed_room_error());
             let peer = UdpSocket::bind(("127.0.0.1", 0))?;
             peer.send_to(b"alive", foreign.local_addr()?)?;
@@ -295,6 +316,27 @@ mod tests {
             let mut received = [0; 5];
             foreign.recv_from(&mut received)?;
             assert_eq!(&received, b"alive");
+
+            // 工作线程尚未回报时，真实页面的取消按钮应接收点击；第二次点击不能重复取消。
+            let attempt = Arc::new(core::fixed_host::StartAttempt::default());
+            controller.borrow_mut().fixed_room_start = Some(attempt.clone());
+            ui.set_busy(true);
+            ui.set_fixed_room_can_cancel(true);
+            paint(&window, 980, 600);
+            let cancel = ui.invoke_room_action_center(false);
+            click(&window, cancel.x, cancel.y);
+            assert!(!ui.get_fixed_room_can_cancel() && !attempt.cancel());
+            assert!(ui.get_busy());
+            assert_eq!(ui.get_fixed_room_status().as_str(),
+                controller.borrow().tr("正在取消建房…", "Cancelling room…", "起動をキャンセル中…"));
+            controller.borrow_mut().finish_fixed_room(
+                target.clone(), port, RoomAction::StartPve, Ok(RoomOutcome::Cancelled));
+            assert!(!ui.get_busy() && !ui.get_fixed_room_error());
+
+            // 注册失败与主动取消同一拍到达，取消后不应再弹“启动失败”。
+            ui.set_vnt_stopping(true);
+            controller.borrow_mut().apply_vnt_event(VntEvent::Failed("registration closed".into()));
+            assert!(!ui.get_vnt_stopping() && !ui.get_vnt_busy() && !ui.get_show_app_dialog());
 
             // 成功回执与系统端口冲突分别覆盖 UI 消费队列和核心工作线程。
             let tx = controller.borrow().tx.clone();

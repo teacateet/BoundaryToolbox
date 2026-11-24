@@ -251,9 +251,16 @@ async fn run_vnt(
     let (task_group, task_group_guard) = task_group_manager
         .create_task()
         .context("创建 VNT 任务组失败")?;
-    let mut network_manager = NetworkManager::create_network(Box::new(config), task_group.clone())
-        .await
-        .context("创建 VNT 网络失败")?;
+    let mut network_manager = tokio::select! {
+        biased;
+        _ = &mut stop_rx => {
+            task_group.stop();
+            sink(VntEvent::Stopped("已取消启动".into()));
+            return Ok(());
+        }
+        created = NetworkManager::create_network(Box::new(config), task_group.clone()) =>
+            created.context("创建 VNT 网络失败")?,
+    };
     let api = network_manager.vnt_api();
 
     sink(VntEvent::Snapshot(VntSnapshot {
@@ -315,14 +322,18 @@ async fn run_vnt(
             servers: server_rows_from_api(&api),
             ..idle_snapshot()
         }));
-        network_manager
-            .start_tun()
-            .await
-            .context("创建 TUN 虚拟网卡失败")?;
-        network_manager
-            .set_tun_network_ip(reg_msg.ip, reg_msg.prefix_len)
-            .await
-            .context("设置虚拟网卡 IP 失败")?;
+        tokio::select! {
+            biased;
+            _ = &mut stop_rx => {
+                task_group.stop();
+                sink(VntEvent::Stopped("已取消启动".into()));
+                return Ok(());
+            }
+            configured = async {
+                network_manager.start_tun().await.context("创建 TUN 虚拟网卡失败")?;
+                network_manager.set_tun_network_ip(reg_msg.ip, reg_msg.prefix_len).await.context("设置虚拟网卡 IP 失败")
+            } => configured?,
+        }
     }
 
     let local_device_name = resolved_device_name(&options.username);
@@ -807,6 +818,41 @@ fn extract_wintun_dll() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cancel_registration_to_a_silent_local_server_then_retry() -> Result<()> {
+        use std::net::TcpListener;
+        use std::sync::mpsc;
+        use std::time::Instant;
+        let listener = TcpListener::bind(("127.0.0.1", 0))?;
+        for _ in 0..2 {
+            let options = VntLaunchOptions {
+                server_text: format!("tcp://{}", listener.local_addr()?), username: "qa".into(),
+                network_code: "brt-local-qa".into(), password: String::new(), no_tun: true,
+                port_mapping_host: None, compress: false, rtx: false, no_punch: true,
+            };
+            let (tx, rx) = mpsc::channel();
+            let mut session = VntSession::start(options, Arc::new(move |e| { let _ = tx.send(e); }))?;
+            let until = Instant::now() + Duration::from_secs(10);
+            loop {
+                match rx.recv_timeout(until.saturating_duration_since(Instant::now()))? {
+                    VntEvent::Snapshot(s) if s.status == "注册中" || s.status == "重试中" => break,
+                    VntEvent::Failed(e) => bail!("{e}"),
+                    _ => {}
+                }
+            }
+            session.stop();
+            let until = Instant::now() + Duration::from_secs(3);
+            loop {
+                match rx.recv_timeout(until.saturating_duration_since(Instant::now()))? {
+                    VntEvent::Stopped(reason) => { anyhow::ensure!(reason.contains("取消"), "Unexpected stop: {reason}"); break; }
+                    VntEvent::Failed(e) => bail!("{e}"),
+                    _ => {}
+                }
+            }
+        }
+        Ok(())
+    }
 
     #[test]
     fn vnt_room_session_route_matches_core_config_without_starting_vnt() -> Result<()> {

@@ -15,6 +15,7 @@ export component ServersPage inherits Workbench {
     in property <string> fixed_room_status;
     in property <bool> fixed_room_running;
     in property <bool> fixed_room_error;
+    in property <bool> fixed_room_can_cancel;
     callback start_fixed_room_clicked();
     callback stop_fixed_room_clicked();
     callback refresh_servers_clicked();
@@ -27,9 +28,13 @@ export component ServersPage inherits Workbench {
                    : { x: pvp-button.absolute-position.x + pvp-button.width / 2,
                        y: pvp-button.absolute-position.y + pvp-button.height / 2 };
     }
+    public pure function room-action-center(start: bool) -> Point {
+        return start ? { x: start-button.absolute-position.x + start-button.width / 2, y: start-button.absolute-position.y + start-button.height / 2 }
+                     : { x: stop-button.absolute-position.x + stop-button.width / 2, y: stop-button.absolute-position.y + stop-button.height / 2 };
+    }
 
     OnlineTabs { busy: root.busy; switch-page(page) => { root.switch-page(page); } }
-    Caption { text: I18n.tr("好友直连 · LAN 或联机地址", "Direct join · LAN or network address", "直接参加 · LAN または接続先"); }
+    Caption { text: I18n.tr("加入好友：填写房主的地址和游戏端口", "Join a friend: enter the host’s address and game port", "参加：ホストのアドレスとゲームポートを入力"); }
     HorizontalLayout { spacing: 8px;
         endpoint := Field { placeholder: "192.168.1.20:7777"; enabled: !root.busy;
             accepted => { if self.enabled && self.text != "" { root.join_clicked(self.text); } }
@@ -49,9 +54,10 @@ export component ServersPage inherits Workbench {
         Field { text <=> root.fixed_room_port; input-type: InputType.number; enabled: !root.busy && !root.fixed_room_running;
             accepted => { if self.enabled { root.start_fixed_room_clicked(); } }
         }
-        Command { label: I18n.tr("开启房间", "Start room", "ルームを起動"); enabled: !root.busy && !root.fixed_room_running; clicked => { root.start_fixed_room_clicked(); } }
-        Command { label: I18n.tr("停止房间", "Stop room", "ルームを停止"); enabled: !root.busy; clicked => { root.stop_fixed_room_clicked(); } }
+        start-button := Command { label: root.fixed_room_error && !root.fixed_room_running ? I18n.tr("重新建房", "Retry room", "再試行") : I18n.tr("开启房间", "Start room", "ルームを起動"); enabled: !root.busy && !root.fixed_room_running; clicked => { root.start_fixed_room_clicked(); } }
+        stop-button := Command { label: root.fixed_room_can_cancel ? I18n.tr("取消建房", "Cancel start", "起動をキャンセル") : root.fixed_room_error && !root.fixed_room_running ? I18n.tr("返回", "Back", "戻る") : I18n.tr("停止房间", "Stop room", "ルームを停止"); enabled: root.fixed_room_can_cancel || !root.busy; clicked => { root.stop_fixed_room_clicked(); } }
     }
+    Value { text: I18n.tr("房主先开启房间。同一局域网的队友用房主的局域网 IP 和端口加入；异地玩家先到「网络」连接同一房间号。", "Host a room first. LAN guests join the host’s LAN IP and port. For remote play, connect to the same code under Network first.", "ホストがルームを開き、LAN の参加者はホストの IP とポートを入力します。遠隔プレイは先に「ネットワーク」で同じコードに接続します。"); }
     Divider {}
     HorizontalLayout { height: 36px; spacing: 12px;
         Caption { text: I18n.tr("社区服务器", "Community servers", "コミュニティサーバー"); horizontal-stretch: 1; }

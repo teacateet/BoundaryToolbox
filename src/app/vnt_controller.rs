@@ -98,6 +98,7 @@ impl AppController {
 
         self.vnt_host_selection_pending = select_host_after_start && options.no_tun;
         self.ui.set_show_vnt_host_dialog(false);
+        self.ui.set_vnt_stopping(false);
         self.ui.set_vnt_busy(true);
         self.ui
             .set_vnt_status_text(self.tr("启动中", "Starting", "起動中").into());
@@ -143,6 +144,7 @@ impl AppController {
         self.ui.set_show_vnt_host_dialog(false);
         if let Some(session) = self.vnt_session.as_mut() {
             session.stop();
+            self.ui.set_vnt_stopping(true);
             self.ui.set_vnt_busy(true);
             self.ui
                 .set_vnt_status_text(self.tr("停止中", "Stopping", "停止中").into());
@@ -179,8 +181,13 @@ impl AppController {
     /// 应用 VNT 工作线程发出的生命周期事件。
     pub(super) fn apply_vnt_event(&mut self, event: VntEvent) {
         match event {
+            VntEvent::Snapshot(_) if self.ui.get_vnt_stopping() => {}
             VntEvent::Snapshot(snapshot) => self.apply_vnt_snapshot(snapshot),
             VntEvent::Failed(error) => {
+                if self.ui.get_vnt_stopping() {
+                    self.apply_vnt_event(VntEvent::Stopped("已取消启动".into()));
+                    return;
+                }
                 self.vnt_session = None;
                 self.vnt_host_selection_pending = false;
                 self.vnt_restart_after_stop = None;
@@ -196,6 +203,7 @@ impl AppController {
                 self.show_error_dialog(self.tr("联机", "Network", "ネットワーク"), &error);
             }
             VntEvent::Stopped(reason) => {
+                self.ui.set_vnt_stopping(false);
                 self.vnt_session = None;
                 self.ui.set_show_vnt_host_dialog(false);
                 if let Some(options) = self.vnt_restart_after_stop.take() {

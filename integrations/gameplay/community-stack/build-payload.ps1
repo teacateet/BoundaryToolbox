@@ -105,7 +105,7 @@ if ($IncludePreorderReady) { $ownerModules += 'community-preorder-ready' }
 if ($IncludeOwnerGameplay) { $ownerModules += @('community-owner-menu', 'community-owner-birth') }
 if ($IncludeNativeArchive) { $ownerModules += @('community-native-archive', 'community-archive-readback') }
 if ($Version -eq 'main') { $ownerModules += 'community-local-login' }
-if ($IncludePveLayers) { $ownerModules += @('community-pve-layers','community-world-driver','community-airlock','community-grapple-delivery','community-disconnected-player') }
+if ($IncludePveLayers) { $ownerModules += @('community-pve-layers','community-world-driver','community-airlock','community-grapple-delivery','community-disconnected-player','community-redeploy') }
 if ($IncludeFirstLoadout) { $ownerModules += 'community-first-loadout' }
 # 开发探针只用于本机联调，带探针的构建不得安装给玩家。
 if ($IncludeDevRig) { $ownerModules += 'dev-rig' }

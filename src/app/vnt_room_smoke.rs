@@ -74,17 +74,17 @@ fn vnt_room_real_page_and_picker_accept_guest_port_offscreen() {
     assert_eq!(ui.get_page_port(), "7777");
     assert_eq!(ui.get_dialog_port(), "7777");
     ui.set_online(false);
-    click(&window, 936., 415.);
+    click(&window, 936., 442.);
     assert!(ui.get_joined().is_empty());
     ui.set_online(true);
-    click(&window, 936., 415.);
+    click(&window, 936., 442.);
     assert_eq!(ui.get_joined(), "10.26.0.8:7777");
 
     ui.set_page_port("".into());
-    click(&window, 930., 350.);
+    click(&window, 930., 377.);
     type_port(&window, "18777");
     assert_eq!(ui.get_page_port(), "18777");
-    click(&window, 936., 415.);
+    click(&window, 936., 442.);
     assert_eq!(ui.get_joined(), "10.26.0.8:18777");
 
     ui.set_dialog(true);

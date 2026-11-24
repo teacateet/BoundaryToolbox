@@ -47,7 +47,12 @@ $expectedBaseline = @(
     'death press during cooldown opens roles when allowed','two deaths each open roles only on their own press',
     'death press on an empty stack opens roles without a leave prompt','empty stack death press waits for original role permission',
     'changed role returns game focus once','same role explicit confirmation returns focus','server role acknowledgment precedes closing',
-    'cancelled selection returns focus','confirmed role deactivates only owned role widget','unrelated modal keeps focus'
+    'cancelled selection returns focus','confirmed role deactivates only owned role widget','unrelated modal keeps focus',
+    'possession after early menu close restores all input','early native close waits for the acknowledged role',
+    'missing selection layout and input survive possession','stock death selection restores a late input lock only once',
+    'new modal after deployment retains its input','foreign pawn never receives redeploy focus',
+    'confirmed deployment waits for inactive before its single restart','pending death restart cannot cross a role change',
+    'unacknowledged client restart is not issued twice','blocked restart never follows another death'
 )
 $results = [ordered]@{}
 foreach($kind in 'original','candidate'){
@@ -78,7 +83,7 @@ inline void EntryConfirm(SDK::UObject* sender,const SDK::FName& role){$confirmed
     [IO.File]::WriteAllLines((Join-Path $d 'tests.log'),[string[]]$lines,$utf8)
     $passed = @($lines -match '^PASS ')
     $failed = @($lines -match '^FAIL ' | ForEach-Object {$_.Substring(5)})
-    if($passed.Count+$failed.Count -ne 66 -or $lines.Count -ne 66){throw "Incomplete $kind results"}
+    if($passed.Count+$failed.Count -ne 76 -or $lines.Count -ne 76){throw "Incomplete $kind results"}
     if($kind -eq 'original'){
         if($code -ne 1 -or (Compare-Object $expectedBaseline $failed)){throw "Unexpected original results in $d"}
     }elseif($code -ne 0 -or $failed.Count){throw "Candidate failures in $d"}
@@ -86,4 +91,4 @@ inline void EntryConfirm(SDK::UObject* sender,const SDK::FName& role){$confirmed
 }
 $receipt = [ordered]@{source=$sourceRel;sourcePatch=(Get-FileHash -LiteralPath $patch).Hash;logic=(Get-FileHash -LiteralPath (Join-Path $dest 'DeathMenu.hpp')).Hash;adapter=(Get-FileHash -LiteralPath (Join-Path $dest 'DeathMenu.sdk.hpp')).Hash;reversible=$true;results=$results}
 [IO.File]::WriteAllText((Join-Path $run 'receipt.json'),($receipt|ConvertTo-Json -Depth 7),$utf8)
-Write-Output ("Original {0}/66, candidate {1}/66. {2}" -f $results.original.passed,$results.candidate.passed,$run)
+Write-Output ("Original {0}/76, candidate {1}/76. {2}" -f $results.original.passed,$results.candidate.passed,$run)

@@ -1,5 +1,7 @@
 # Local PvE death menu
 
+In live42, closing the menu and regaining control are tracked separately. A confirmed local deployment survives a late role acknowledgement or a delayed transition into the inactive controller state. Once the player possesses their own live first-person character, the client restores game input and viewport focus; an unrelated menu keeps its focus. If the player remains dead without a pawn, the [local server component](../community-redeploy/OwnerRedeploy.hpp) checks the owner, death, selected role and active PvE round before using the game mode's normal restart. See [live42 verification](../../../docs/BRT-LIVE42.md).
+
 In the split client used for live39, clicking a visible, enabled role card selects that card even if the pointer never hovered over it. Both the card and the deploy button use the current local match's role list. The stock deploy callback receives the selected role, then the stock controller takes game input back after selection. A restart request from an inactive controller still goes through the server's normal spawn checks. See [live39 verification](../../../docs/BRT-LIVE39.md).
 
 Both community clients can open the original role selection screen when a dead local player presses their configured in-game menu action and the game presents its Leave Match confirmation. The original widget handles Back first. Role selection opens once its prompt has left the stack and the controller still permits role selection.

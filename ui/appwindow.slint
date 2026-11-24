@@ -88,9 +88,11 @@ export component AppWindow inherits Window {
     public pure function room-mode-center(pve: bool) -> Point {
         return rooms.mode-button-center(pve);
     }
+    public pure function room-action-center(start: bool) -> Point { return rooms.room-action-center(start); }
     in-out property <string> fixed_room_status: I18n.tr("待操作", "Idle", "待機中");
     in property <bool> fixed_room_running;
     in property <bool> fixed_room_error;
+    in property <bool> fixed_room_can_cancel;
     in-out property <string> server_status_text: I18n.tr("服务器列表：未刷新", "Server list: not refreshed", "サーバー一覧: 未更新");
     in-out property <bool> update_checking: false;
     in-out property <string> update_status_text: I18n.tr("更新：未检查", "Update: not checked", "更新: 未確認");
@@ -113,6 +115,7 @@ export component AppWindow inherits Window {
     in-out property <bool> vnt_compress: false;
     in-out property <bool> vnt_rtx: false;
     in-out property <bool> vnt_busy: false;
+    in property <bool> vnt_stopping;
     in-out property <bool> vnt_running: false;
     in-out property <string> vnt_status_text: I18n.tr("未连接", "Disconnected", "未接続");
     in-out property <string> vnt_detail_text: I18n.tr("填写房间号后启动联机平台", "Enter a room code before starting", "ルーム番号を入力してから起動してください");
@@ -335,6 +338,7 @@ export component AppWindow inherits Window {
                     vnt_compress <=> root.vnt_compress;
                     vnt_rtx <=> root.vnt_rtx;
                     vnt_busy: root.vnt_busy;
+                    stopping: root.vnt_stopping;
                     vnt_running: root.vnt_running;
                     vnt_status_text: root.vnt_status_text;
                     vnt_detail_text: root.vnt_detail_text;
@@ -388,6 +392,7 @@ export component AppWindow inherits Window {
                     fixed_room_status: root.fixed_room_status;
                     fixed_room_running: root.fixed_room_running;
                     fixed_room_error: root.fixed_room_error;
+                    fixed_room_can_cancel: root.fixed_room_can_cancel;
                     start_fixed_room_clicked => { root.start_fixed_room_clicked(); }
                     stop_fixed_room_clicked => { root.stop_fixed_room_clicked(); }
                     refresh_servers_clicked => { root.refresh_servers_clicked(); }
@@ -454,6 +459,7 @@ export component AppWindow inherits Window {
             vnt_game_port <=> root.vnt_game_port;
             host_selected(address) => { root.vnt_host_selected(address); }
             host_cancelled => { root.vnt_host_cancelled(); }
+            disconnect => { root.vnt_stop_clicked(); }
         }
 
         if show_app_dialog : AppDialog {

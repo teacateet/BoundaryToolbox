@@ -285,6 +285,7 @@ impl AppController {
             session_log_file,
             current_target: None,
             active_fixed_room: None,
+            fixed_room_start: None,
             drive_model,
             port_model,
             server_model,
