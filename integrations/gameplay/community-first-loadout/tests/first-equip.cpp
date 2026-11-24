@@ -6,6 +6,7 @@ namespace SDK {
 struct Type { static const void* StaticClass(){return nullptr;} bool IsA(const void*){return true;} };
 struct APBPlayerController; struct APBWeapon; struct UPBLocalPlayer;
 enum class EPBHandsState { EmptyHand, DeployedWeapon, DoingMelee };
+enum class EViewTargetBlendFunction { VTBlend_Linear };
 struct APBPlayerState : Type { int deaths{}; int GetDeaths(){return deaths;} };
 struct APBCharacter {
     APBPlayerController* controller{}; APBWeapon *CurrentWeapon{}, *PendingWeapon{};
@@ -19,10 +20,16 @@ struct APBCharacter {
 struct APBWeapon { APBPlayerController* TopOwner{}; APBCharacter* pawn{}; bool bIsDropped{};
     auto GetPawnOwner(){return pawn;}
 };
+struct Camera { struct { void* Target{}; } PendingViewTarget; };
 struct APBPlayerController : Type {
-    UPBLocalPlayer* Player{}; APBPlayerState* PlayerState{}; APBCharacter *pawn{}, *view{}; bool bShowSelectRole{};
-    bool IsLocalPlayerController(){return true;} bool IsInGameMenuOpened(){return false;}
+    UPBLocalPlayer* Player{}; APBPlayerState* PlayerState{}; APBCharacter* pawn{}; void* view{};
+    Camera camera{}; Camera* PlayerCameraManager{&camera};
+    bool bShowSelectRole{}, menu{}; int restoredViews{};
+    bool IsLocalPlayerController(){return true;} bool IsInGameMenuOpened(){return menu;}
     auto GetPBCharacter(){return pawn;} auto K2_GetPawn(){return pawn;} auto GetViewTarget(){return view;}
+    void SetViewTargetWithBlend(APBCharacter* target,float time,EViewTargetBlendFunction,float,bool){
+        assert(target==pawn && time==0.0f); view=target; ++restoredViews;
+    }
 };
 struct UPBLocalPlayer { APBPlayerController* PlayerController{}; };
 struct APBGameState : Type {
@@ -57,7 +64,7 @@ struct Session {
         BrtDeathMenu::Clock::current={};
         BrtDeathMenu::room={&world,&local,this,&gs};
         gs.GameModeClass.ptr=&gs;
-        pawn.controller=&pc; pc.Player=&local; pc.PlayerState=&ps; pc.pawn=pc.view=&pawn;
+        pawn.controller=&pc; pc.Player=&local; pc.PlayerState=&ps; pc.pawn=&pawn; pc.view=&pawn;
         gun.TopOwner=&pc; gun.pawn=&pawn; pawn.Inventory.first=&gun;
     }
     void at(int ms) { BrtDeathMenu::Clock::current=BrtDeathMenu::Time{}+std::chrono::milliseconds(ms);
@@ -90,5 +97,16 @@ int main() {
     { Session s; s.gs.active=true; s.pawn.CurrentHandsState=s.pawn.PendingHandsState=SDK::EPBHandsState::DeployedWeapon;
       s.pawn.CurrentWeapon=&s.gun; s.at(0); s.at(2000); s.pawn.CurrentWeapon=nullptr;
       s.pawn.CurrentHandsState=s.pawn.PendingHandsState={}; s.at(2100); s.at(4000); assert(s.pawn.submissions==0); }
-    std::cout << "11 first-life scenarios passed\n";
+    { Session s; s.gs.active=true; s.pc.view=&s.pc; s.at(0); s.at(700); assert(s.pc.restoredViews==0);
+      s.at(800); assert(s.pc.view==&s.pawn && s.pc.restoredViews==1 && s.pawn.submissions==0);
+      s.at(1000); s.at(1800); assert(s.pawn.submissions==1); }
+    { Session s; s.gs.active=true; s.pc.view=&s.other; s.at(0); s.at(900); assert(s.pc.restoredViews==0);
+      s.pc.view=&s.pc; s.pc.camera.PendingViewTarget.Target=&s.other; s.at(1000); s.at(2400);
+      assert(s.pc.restoredViews==0); s.pc.camera.PendingViewTarget.Target=nullptr; s.at(2500); s.at(3300);
+      assert(s.pc.restoredViews==1); }
+    { Session s; s.gs.active=true; s.pc.view=&s.pc; s.at(0); s.pc.menu=true; s.at(750); s.pc.menu=false;
+      s.at(950); s.at(1650); assert(s.pc.restoredViews==0); s.ps.deaths=1; s.at(1800); assert(s.pc.restoredViews==0); }
+    { Session s; s.gs.active=true; s.pc.view=&s.pc; s.at(0); s.at(800); s.pc.view=&s.pc;
+      s.at(1000); s.at(2200); assert(s.pc.restoredViews==1); }
+    std::cout << "15 first-life scenarios passed\n";
 }

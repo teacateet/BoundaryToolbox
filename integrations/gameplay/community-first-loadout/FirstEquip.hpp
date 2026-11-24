@@ -13,6 +13,9 @@ struct Opening
     Time since{}, next{};
     APBWeapon* held{};
     Time heldSince{};
+    APBCharacter* fallbackPawn{};
+    Time fallbackSince{};
+    bool restoredView{};
     bool finished{};
 };
 inline Opening opening;
@@ -44,23 +47,46 @@ inline void Tick(UWorld* world, UPBLocalPlayer* local)
     if (!pawn || pawn != pc->K2_GetPawn() || pawn->GetController() != pc) {
         opening.observed = nullptr;
         opening.held = nullptr;
+        opening.fallbackPawn = nullptr;
         return;
     }
-    if (!pawn->IsAlive() || pawn->IsInKilledStatus()) return;
-    // 入场片段会暂时交还镜头。等回合真正开始，并等本人重新成为活动镜头。
+    // 入场片段、死亡相机和选角页都沿用游戏原有的镜头。
     auto* gs = world->GameState;
-    if (!gs || !gs->IsA(APBGameState::StaticClass()) || gs->GameModeClass.Get() != room.modeClass ||
-        !static_cast<APBGameState*>(gs)->IsRoundInProgress() || pc->GetViewTarget() != pawn ||
+    if (!pawn->IsAlive() || pawn->IsInKilledStatus() || !gs || !gs->IsA(APBGameState::StaticClass()) ||
+        gs->GameModeClass.Get() != room.modeClass || !static_cast<APBGameState*>(gs)->IsRoundInProgress() ||
         controller->bShowSelectRole || controller->IsInGameMenuOpened() || !pawn->IsFirstPerson())
     {
         opening.observed = nullptr;
         opening.held = nullptr;
+        opening.fallbackPawn = nullptr;
         return;
     }
     if (opening.firstPawn && opening.firstPawn != pawn) {
         opening.finished = true;
         return;
     }
+    auto* target = pc->GetViewTarget();
+    if (target != pawn)
+    {
+        opening.observed = nullptr;
+        opening.held = nullptr;
+        // 点击部署后，引擎有时把镜头留在控制器原点。只修复这一种稳定的后备视角。
+        if (target != pc || opening.restoredView || !pc->PlayerCameraManager ||
+            pc->PlayerCameraManager->PendingViewTarget.Target) {
+            opening.fallbackPawn = nullptr;
+            return;
+        }
+        if (opening.fallbackPawn != pawn) {
+            opening.fallbackPawn = pawn;
+            opening.fallbackSince = now;
+        } else if (now - opening.fallbackSince >= std::chrono::milliseconds(800)) {
+            opening.restoredView = true;
+            pc->SetViewTargetWithBlend(pawn, 0.0f, EViewTargetBlendFunction::VTBlend_Linear, 0.0f, false);
+            ClientDebugLog("[BRT-FIRST-VIEW] Restored owned first-person camera after deployment.");
+        }
+        return;
+    }
+    opening.fallbackPawn = nullptr;
     // 入场镜头、占有复制或短暂的空 Pawn 都不是另一条命。仅在可玩的首命绑定。
     opening.firstPawn = pawn;
     if (pawn->CurrentWeapon || pawn->PendingWeapon ||

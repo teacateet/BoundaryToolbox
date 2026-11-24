@@ -23,6 +23,7 @@ if ([version]$version -ge [version]'19.20.35') {
     $label, $sha = switch ($version) {
         '19.20.35' { 'live39', '6982f63b4542429157b3a48f99bf2daa38cf7616d3dc47e1381817f221c1a30e' }
         '19.20.36' { 'live40', '0c18c5bfc9d923be2bf6162e68ddc70f014eb0a79e4eec7a37f91bef9b860941' }
+        '19.20.37' { 'live41', 'b6195bf1a68e6ffe005888baf22dd12f91c4c8938e69de48702160dcad4b2bc0' }
         default { throw 'Unpinned player component version' }
     }
     if (!$GameplayComponent -or (Get-FileHash -LiteralPath $GameplayComponent).Hash -ne $sha) {

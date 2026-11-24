@@ -1,0 +1,2 @@
+# 构建脚本将上游源码统一为 LF，供 git apply 检查补丁上下文。
+integrations/gameplay/**/*.patch text eol=lf
