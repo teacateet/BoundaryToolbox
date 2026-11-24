@@ -1,6 +1,6 @@
 #requires -Version 7.0
 [CmdletBinding()]
-param([string]$OutputDirectory, [string]$Executable, [string]$Live39Component)
+param([string]$OutputDirectory, [string]$Executable, [string]$GameplayComponent)
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 if (!$Executable) { $Executable = Join-Path $root 'target/release/BRT.exe' }
@@ -20,10 +20,15 @@ if (!$template.Contains('<!--GUIDE-->') -or !$body.Contains('<table>')) { throw 
 [IO.File]::WriteAllText($guidePath, $template.Replace('<!--GUIDE-->', $body), [Text.UTF8Encoding]::new($false))
 $files = [ordered]@{'BRT.exe' = $exe.FullName; $guide = $guidePath}
 if ([version]$version -ge [version]'19.20.35') {
-    if (!$Live39Component -or (Get-FileHash -LiteralPath $Live39Component).Hash -ne '6982f63b4542429157b3a48f99bf2daa38cf7616d3dc47e1381817f221c1a30e') {
-        throw 'Player release requires the verified distributable live39 component.'
+    $label, $sha = switch ($version) {
+        '19.20.35' { 'live39', '6982f63b4542429157b3a48f99bf2daa38cf7616d3dc47e1381817f221c1a30e' }
+        '19.20.36' { 'live40', '0c18c5bfc9d923be2bf6162e68ddc70f014eb0a79e4eec7a37f91bef9b860941' }
+        default { throw 'Unpinned player component version' }
     }
-    $files['components/gameplay/live39/Payload.dll'] = (Resolve-Path -LiteralPath $Live39Component).Path
+    if (!$GameplayComponent -or (Get-FileHash -LiteralPath $GameplayComponent).Hash -ne $sha) {
+        throw 'Player release requires the verified distributable gameplay component.'
+    }
+    $files["components/gameplay/$label/Payload.dll"] = (Resolve-Path -LiteralPath $GameplayComponent).Path
 }
 $files['components/SOURCES.txt'] = Join-Path $root 'tools/component-sources.txt'
 $files['components/vnt-LICENSE.txt'] = Join-Path $root 'vendor/vnt/LICENSE'

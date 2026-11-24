@@ -69,7 +69,8 @@ int main() {
       s.gs.active=true; s.at(5000); s.pc.view=&s.pawn; s.at(6000); s.at(6700); assert(s.pawn.submissions==0);
       s.at(6800); s.at(12000); assert(s.pawn.submissions==1); }
     { Session s; s.gs.active=true; s.at(0); s.pawn.PendingWeapon=&s.gun; s.at(700);
-      s.pawn.PendingWeapon=nullptr; s.at(5000); assert(s.pawn.submissions==0); }
+      s.pawn.PendingWeapon=nullptr; s.at(5000); assert(s.pawn.submissions==0);
+      s.at(5800); assert(s.pawn.submissions==1); }
     { Session s; s.gs.active=true; s.at(0); s.pc.bShowSelectRole=true; s.at(1000); s.pc.bShowSelectRole=false;
       s.at(2000); assert(s.pawn.submissions==0); s.at(2800); assert(s.pawn.submissions==1); }
     { Session s; s.gs.active=true; s.gun.TopOwner=nullptr; s.at(0); s.at(1500); assert(s.pawn.submissions==0);
@@ -78,7 +79,16 @@ int main() {
       s.at(700); s.pawn.PendingHandsState={}; s.at(5000); assert(s.pawn.submissions==0); }
     { Session s; s.gs.active=true; s.at(0); s.ps.deaths=1; s.at(900); assert(s.pawn.submissions==0); }
     { Session s; s.gs.active=true; BrtDeathMenu::room.connection=nullptr; s.at(0); s.at(900); assert(s.pawn.submissions==0); }
-    { Session s; s.gs.active=true; s.at(0); s.pc.pawn=&s.other; s.at(200); s.pc.pawn=&s.pawn;
+    { Session s; s.gs.active=true; s.at(0); s.other.controller=&s.pc; s.pc.view=s.pc.pawn=&s.other;
+      s.at(200); s.pc.view=s.pc.pawn=&s.pawn;
       s.at(1400); assert(s.pawn.submissions==0); }
-    std::cout << "8 first-life scenarios passed\n";
+    { Session s; s.gs.active=true; s.at(0); s.pc.pawn=nullptr; s.at(300); s.pc.pawn=&s.pawn;
+      s.at(700); s.at(1500); assert(s.pawn.submissions==1); }
+    { Session s; s.gs.active=true; s.pawn.CurrentHandsState=s.pawn.PendingHandsState=SDK::EPBHandsState::DeployedWeapon;
+      s.pawn.CurrentWeapon=&s.gun; s.at(0); s.at(600); s.pawn.CurrentWeapon=nullptr;
+      s.pawn.CurrentHandsState=s.pawn.PendingHandsState={}; s.at(900); s.at(1700); assert(s.pawn.submissions==1); }
+    { Session s; s.gs.active=true; s.pawn.CurrentHandsState=s.pawn.PendingHandsState=SDK::EPBHandsState::DeployedWeapon;
+      s.pawn.CurrentWeapon=&s.gun; s.at(0); s.at(2000); s.pawn.CurrentWeapon=nullptr;
+      s.pawn.CurrentHandsState=s.pawn.PendingHandsState={}; s.at(2100); s.at(4000); assert(s.pawn.submissions==0); }
+    std::cout << "11 first-life scenarios passed\n";
 }

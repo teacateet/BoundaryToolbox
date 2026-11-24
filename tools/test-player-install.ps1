@@ -1,13 +1,13 @@
 #requires -Version 7.0
 [CmdletBinding()]
 param([Parameter(Mandatory)][string]$Archive, [Parameter(Mandatory)][string]$RetailWin64,
-      [Parameter(Mandatory)][string]$EvidenceRoot)
+      [Parameter(Mandatory)][string]$EvidenceRoot, [string]$PreviousPlayerArchive, [string]$DownloadCache)
 $ErrorActionPreference = 'Stop'
 $run = Join-Path ([IO.Directory]::CreateDirectory($EvidenceRoot).FullName) ([guid]::NewGuid().ToString('N'))
 $player = Join-Path $run 'unpacked'
 $target = Join-Path $run 'QA 游戏目录/ProjectBoundary/Binaries/Win64'
 $ship = 'ProjectBoundarySteam-Win64-Shipping.exe'
-$expected = '6982f63b4542429157b3a48f99bf2daa38cf7616d3dc47e1381817f221c1a30e'
+$expected = '0c18c5bfc9d923be2bf6162e68ddc70f014eb0a79e4eec7a37f91bef9b860941'
 function Digest([string]$path) { (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() }
 function Check([bool]$condition, [string]$message) { if (!$condition) { throw $message } }
 function Install([string]$label, [bool]$success, [string]$message) {
@@ -22,12 +22,19 @@ function Install([string]$label, [bool]$success, [string]$message) {
 }
 [void][IO.Directory]::CreateDirectory($target)
 [IO.Compression.ZipFile]::ExtractToDirectory((Resolve-Path -LiteralPath $Archive).Path, $player)
+if ($DownloadCache) {
+    # 复测升级时，可复用先前首次安装的三个下载；安装器仍逐个验证上游 SHA-256。
+    $cache = [IO.Directory]::CreateDirectory((Join-Path $player 'orbital_profile/downloads/community')).FullName
+    foreach ($name in 'rebound-base-stable.zip','rebound-0.8.4.zip','node-v24.22.3-win-x64.zip') {
+        Copy-Item -LiteralPath (Join-Path $DownloadCache $name) -Destination (Join-Path $cache $name)
+    }
+}
 # 不操作 Steam 原目录，只复制测试所需的本体文件。
 Copy-Item -LiteralPath (Join-Path $RetailWin64 $ship) -Destination (Join-Path $target $ship)
 $gameHash = Digest (Join-Path $target $ship)
 Check ($gameHash -eq '181c49ffb522b3eb01014c84fd9d3a2a5c0b66ae80a6a6addff4bdd6f8125843') 'Unsupported game build'
 $dll = Join-Path $target 'Payload.dll'
-Install 'fresh' $true 'live39 已就绪'
+Install 'fresh' $true 'live40 已就绪'
 Check ((Digest $dll) -eq $expected) 'Fresh install used the wrong component'
 $server = Join-Path $target 'BoundaryMetaServer-main'
 $node = Join-Path $target 'nodejs/node.exe'
@@ -55,6 +62,15 @@ Install 'upgrade' $true '已备份旧组件'
 $backups = @(Get-ChildItem -LiteralPath (Join-Path $target '.brt-payload-backups') -Filter Payload.dll -Recurse -File)
 Check (($backups.Count -eq 1) -and ((Digest $backups[0].FullName) -eq $old) -and ((Digest $dll) -eq $expected)) 'Upgrade or backup verification failed'
 Install 'after-upgrade' $true '保持不变'
+if ($PreviousPlayerArchive) {
+    $previous = [IO.Compression.ZipFile]::OpenRead((Resolve-Path -LiteralPath $PreviousPlayerArchive).Path)
+    try { [IO.Compression.ZipFileExtensions]::ExtractToFile($previous.GetEntry('components/gameplay/live39/Payload.dll'), $dll, $true) } finally { $previous.Dispose() }
+    $from = Digest $dll
+    Check ($from -eq '6982f63b4542429157b3a48f99bf2daa38cf7616d3dc47e1381817f221c1a30e') 'Expected the public 19.20.35 player module'
+    Install 'upgrade-from-player-live39' $true '已备份旧组件'
+    $backups = @(Get-ChildItem -LiteralPath (Join-Path $target '.brt-payload-backups') -Filter Payload.dll -Recurse -File)
+    Check (($backups.Count -eq 2) -and (@($backups | Where-Object { (Digest $_.FullName) -eq $from }).Count -eq 1) -and ((Digest $dll) -eq $expected)) 'Previous player build was not backed up and upgraded'
+}
 [IO.File]::WriteAllText($dll, 'qa unknown component')
 $unknown = Digest $dll
 Install 'unknown' $false '已保留原文件'

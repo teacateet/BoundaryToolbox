@@ -11,6 +11,8 @@ struct Opening
     APBCharacter* firstPawn{};
     APBWeapon* observed{};
     Time since{}, next{};
+    APBWeapon* held{};
+    Time heldSince{};
     bool finished{};
 };
 inline Opening opening;
@@ -34,13 +36,16 @@ inline void Tick(UWorld* world, UPBLocalPlayer* local)
     auto* controller = static_cast<APBPlayerController*>(pc);
     auto* ps = static_cast<APBPlayerState*>(pc->PlayerState);
     auto* pawn = controller->GetPBCharacter();
-    if (ps->GetDeaths() > 0 || (opening.firstPawn && opening.firstPawn != pawn))
+    if (ps->GetDeaths() > 0)
     {
         opening.finished = true;
         return;
     }
-    if (!pawn || pawn != pc->K2_GetPawn() || pawn->GetController() != pc) return;
-    opening.firstPawn = pawn;
+    if (!pawn || pawn != pc->K2_GetPawn() || pawn->GetController() != pc) {
+        opening.observed = nullptr;
+        opening.held = nullptr;
+        return;
+    }
     if (!pawn->IsAlive() || pawn->IsInKilledStatus()) return;
     // 入场片段会暂时交还镜头。等回合真正开始，并等本人重新成为活动镜头。
     auto* gs = world->GameState;
@@ -49,14 +54,29 @@ inline void Tick(UWorld* world, UPBLocalPlayer* local)
         controller->bShowSelectRole || controller->IsInGameMenuOpened() || !pawn->IsFirstPerson())
     {
         opening.observed = nullptr;
+        opening.held = nullptr;
         return;
     }
-    if (pawn->CurrentWeapon || pawn->PendingWeapon ||
-        pawn->CurrentHandsState != EPBHandsState::EmptyHand || pawn->PendingHandsState != EPBHandsState::EmptyHand)
-    {
+    if (opening.firstPawn && opening.firstPawn != pawn) {
         opening.finished = true;
         return;
     }
+    // 入场镜头、占有复制或短暂的空 Pawn 都不是另一条命。仅在可玩的首命绑定。
+    opening.firstPawn = pawn;
+    if (pawn->CurrentWeapon || pawn->PendingWeapon ||
+        pawn->CurrentHandsState != EPBHandsState::EmptyHand || pawn->PendingHandsState != EPBHandsState::EmptyHand)
+    {
+        opening.observed = nullptr;
+        // 正在切枪或开场动画暂时把枪交到手上，不代表复制结束。只在持续持枪后结束观察。
+        auto* held = pawn->CurrentWeapon;
+        if (!held || pawn->CurrentHandsState != EPBHandsState::DeployedWeapon ||
+            pawn->PendingHandsState != EPBHandsState::DeployedWeapon ||
+            (pawn->PendingWeapon && pawn->PendingWeapon != held)) opening.held = nullptr;
+        else if (opening.held != held) { opening.held = held; opening.heldSince = now; }
+        else if (now - opening.heldSince >= std::chrono::seconds(2)) opening.finished = true;
+        return;
+    }
+    opening.held = nullptr;
     auto* primary = pawn->Inventory.Num() ? pawn->Inventory[0] : nullptr;
     if (!primary || !UKismetSystemLibrary::IsValid(primary) || primary->GetPawnOwner() != pawn ||
         primary->TopOwner != pc || primary->bIsDropped)

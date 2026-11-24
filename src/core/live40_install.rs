@@ -4,10 +4,12 @@ use std::{fs, io, os::windows::ffi::OsStrExt, path::{Path, PathBuf}};
 use uuid::Uuid;
 use windows::{Win32::Storage::FileSystem::{ReplaceFileW, REPLACE_FILE_FLAGS}, core::PCWSTR};
 
-pub(super) const SHA: &str = "6982f63b4542429157b3a48f99bf2daa38cf7616d3dc47e1381817f221c1a30e";
+pub(super) const SHA: &str = "0c18c5bfc9d923be2bf6162e68ddc70f014eb0a79e4eec7a37f91bef9b860941";
 const RETAIL: &str = "181c49ffb522b3eb01014c84fd9d3a2a5c0b66ae80a6a6addff4bdd6f8125843";
-const VERIFIED_LIVE39: &str = "cf5ae98d7a5ba835b3f7f98eaeddad778079be98e3a46c3c546fdf6a4ecc9bb9";
+const VERIFIED_LIVE40: &str = "8cd64aa31e0ab2b200dd04893567a8a4641d98b8742bf0f454f549a310c056c0";
 const UPGRADABLE: &[&str] = &[
+    "6982f63b4542429157b3a48f99bf2daa38cf7616d3dc47e1381817f221c1a30e", // 19.20.35 玩家包
+    "cf5ae98d7a5ba835b3f7f98eaeddad778079be98e3a46c3c546fdf6a4ecc9bb9", // live39 原始发布构建
     "acaaaf17837ac418cf1350c586ca7c06c8d62f04348e0a9dc3e4d6c77d43e455", // 上游 V0.8.4
     "7bbb6bb2a8225fc71d8a8ac5deac0a4e1356e422afb7fcc7d0acc0f7957fc24c", // 上游 Stable
     "c1771cf3fdb95cd409778e8f4c46bea025032be4347f1dca071ac5476a94a61c",
@@ -19,7 +21,7 @@ const UPGRADABLE: &[&str] = &[
 ];
 
 pub(super) fn validated_bundle(runtime: &Path, target: &Path) -> Result<PathBuf> {
-    let file = runtime.join("components/gameplay/live39/Payload.dll");
+    let file = runtime.join("components/gameplay/live40/Payload.dll");
     ensure!(hash(&file).context("未能读取随包玩法组件，请完整解压新版 BRT")? == SHA,
         "随包玩法组件校验失败，请重新完整解压");
     ensure!(hash(&target.join(crate::core::GAME_EXE))? == RETAIL,
@@ -35,7 +37,7 @@ pub(super) fn inspect(target: &Path) -> Result<Option<String>> {
     };
     ensure!(!linked(&meta) && meta.is_file(), "玩法组件路径无效");
     let h = hash(&dest)?;
-    ensure!(h == SHA || h == VERIFIED_LIVE39 || UPGRADABLE.contains(&h.as_str()),
+    ensure!(h == SHA || h == VERIFIED_LIVE40 || UPGRADABLE.contains(&h.as_str()),
         "现有 Payload.dll 并非受支持的社区版本，已保留原文件");
     Ok(Some(h))
 }
@@ -44,7 +46,7 @@ pub(super) fn inspect(target: &Path) -> Result<Option<String>> {
 pub(super) fn finish(target: &Path, bundled: &Path, before: &Option<String>) -> Result<bool> {
     let dest = target.join("Payload.dll");
     let current = inspect(target)?.context("玩法组件缺失")?;
-    if current == SHA || current == VERIFIED_LIVE39 { return Ok(false); }
+    if current == SHA || current == VERIFIED_LIVE40 { return Ok(false); }
     ensure!(before.as_deref() == Some(current.as_str()), "安装期间原组件被更改");
     ensure!(crate::core::process::runtime_image_pids(&[crate::core::GAME_EXE, "ProjectReboundServerLauncher.exe"]).is_empty(),
         "请先关闭游戏和专服，再点安装社区环境");
