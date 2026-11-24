@@ -1,56 +1,49 @@
-# Boundary Resurrection Toolkit
+# Boundary Resurrection Toolkit（BRT）
 
-**BRT 工具箱**是基于 Boundary 社区工具箱独立开发的 Windows 启动器，运行玩家自己安装的 Steam 版《边境》。从[玩家安装与联机指南](docs/PLAYER_GUIDE.md)开始；新玩家可以从出发页安装社区组件。BRT 的启动页、标识和验收工作由本项目维护，社区对局组件来源与许可见[来源清单](tools/component-sources.txt)。
+BRT 是为 Steam《边境》（Boundary）玩家制作的非官方 Windows 工具箱。它把社区组件安装、本机开房和原版大厅连在一起：你可以在大厅里选干员、调整配装，再用这套配装进入本机人机对局。压缩包不含游戏本体，需要先用拥有《边境》的 Steam 账号安装游戏。
 
-## 近期更新
+**[下载 Windows x64 玩家工具箱（ZIP，19.20.35）](https://github.com/teacateet/BoundaryToolbox/releases/download/v19.20.35/BRT-19.20.35-preview-win64.zip)** · [版本说明与校验值](https://github.com/teacateet/BoundaryToolbox/releases/tag/v19.20.35) · [玩家指南](docs/PLAYER_GUIDE.md)
 
-- 开放 VNT 联机页面，移除暂未开放遮罩，可直接配置并启动联机平台。
-- 联机页新增 P2P 直连 / 中转连接选项，支持按网络环境切换连接方式。
-- 优化联机页布局和节点列表显示，提升运行状态、服务器和联机节点信息的可读性。
-- 下载代理选择增加自动选择入口，并按测速延迟优先排列可用节点。
+## 开始一局本机人机
 
-## 快速入口
+1. 确认已安装 Steam 版《边境》**Build 14530908**。退出游戏、旧工具箱和专服，把下载的 ZIP 完整解压到新文件夹。
+2. 打开 `BRT.exe`，确认 Steam 游戏目录，点一次 **「安装社区环境」**。首次安装需要联网；老玩家更新也要点这一步。看到 `live39` 已就绪或已安装后再继续。
+3. 打开 **「本机人机匹配」→「进入原版大厅」**，在游戏里选 **「人机对战」** 和难度。首次提示选择地区时选「东亚（香港）」。点匹配后保持工具箱开着，等地图加载、角色出生。
 
-- 架构说明：[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- 代码地图：[docs/CODE_MAP.md](docs/CODE_MAP.md)
-- 代码规范：[docs/STYLE.md](docs/STYLE.md)
-- 本地开发：[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
-- 发布流程：[docs/RELEASE.md](docs/RELEASE.md)
-- 常见问题排查：[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
+## 它是怎么工作的？
 
-## 技术栈
+| 环节 | BRT 的做法 |
+| --- | --- |
+| 安装与升级 | Rust／Slint 启动器识别 Steam 安装目录，下载固定版本的社区基础组件并核对 SHA-256。玩法修复 live39 随 ZIP 分发。升级已识别的旧版本会备份原 DLL，保留玩家配装和房间设置。 |
+| 从大厅进入对局 | 本机运行 Node.js 档案服务，把角色、武器和配件提供给原版大厅。玩家选好难度后，工具箱启动对应地图的社区专服，等房间就绪，再把这次匹配交给它。 |
+| 首次出生与死亡换人 | 在 ProjectRebound 的 C++ 玩法组件上做定向修复：首命已经拿到主枪但双手持续空闲时，触发游戏原有的装备动作；死亡选角完成后关闭残留菜单，把键鼠输入交还给新角色。 |
+| 和朋友联机 | 联机页提供局域网房间和 VNT 组网入口。当前发布验证集中在本机人机，尚未用两台电脑完成跨网联机验收。 |
 
-- UI：Slint 1.16
-- 主逻辑：Rust 2024
-- 网络：blocking `reqwest`，后台线程执行
-- 压缩包：`zip`
-- 运行时诊断：`sysinfo`、`netstat2`
-- Windows 集成：`windows`、`winreg`
-- VNT 联机：本地 vendored `vendor/vnt`
+**这版实际验证了什么？** 从成品 ZIP 在无下载缓存的目录完成首次安装，验证了旧版升级、重复安装和保留配装。玩法方面，在普通难度 CircularX 实测：PEACE 首命能看到 AKM；死亡换成 PROBE 后持 DMR，键盘移动和鼠标转向均有效。[首命与换人的验收记录](docs/BRT-LIVE39.md)
 
-## 常用命令
+## 使用的社区项目
+
+感谢下面这些上游项目。BRT 复用了社区已有的启动器、专服和档案服务，在它们之上补了本机匹配、配装衔接、玩法修复和安装校验。
+
+| 项目 | 在 BRT 中的用途 |
+| --- | --- |
+| [STanJK/rust-boundary-tool-box](https://github.com/STanJK/rust-boundary-tool-box) | Windows 工具箱基底，提供 Rust／Slint 界面及安装、联机代码。 |
+| [STanJK/ProjectRebound](https://github.com/STanJK/ProjectRebound) | 社区运行环境和专服启动器。BRT 使用 Stable、V0.8.4 发行组件；live39 在其 C++ 源码和 SDK 上构建。 |
+| [STanJK/BoundaryMetaServer](https://github.com/STanJK/BoundaryMetaServer) | 角色和配装档案服务。BRT 适配 ProjectRebound V0.8.4 随附的版本。 |
+| [vnt-dev/vnt](https://github.com/vnt-dev/vnt) | 联机页的虚拟组网和 P2P 通道。 |
+| [slint-ui/slint](https://github.com/slint-ui/slint) · [nodejs/node](https://github.com/nodejs/node) · [subframe7536/maple-font](https://github.com/subframe7536/maple-font) | 分别用于桌面界面、档案服务运行时，以及可选的中文字体。 |
+
+[完整资源清单与固定版本](docs/UPSTREAM-SOURCES.md)列出了直接使用的项目、VNT 的间接依赖，以及只用于协议对照的仓库。第三方组件的来源和许可证说明见[随包来源清单](tools/component-sources.txt)。
+
+## 从源码构建启动器
+
+在 Windows x64 上准备 Rust（MSVC 工具链）、Node.js 和 `tar`。下载 [ProjectRebound V0.8.4 的 Release.zip](https://github.com/STanJK/ProjectRebound/releases/tag/V0.8.4)，从仓库根目录运行：
 
 ```powershell
-cargo fmt --check
-cargo test --locked --bin BRT
+node integrations/profile-runtime/pack-release.cjs "C:\Downloads\Release.zip"
 cargo build --locked --release --bin BRT
 ```
 
-此分支默认生成独立启动器 `target/release/BRT.exe`。玩家测试包不内嵌私有载荷、Node.js、玩家档案或游戏文件。验收边界见[协作交接](docs/HANDOFF.md)。
+第一条命令先核对上游包的 SHA-256，再提取编译所需的档案服务源码；第二条生成 `target/release/BRT.exe`。只想游玩的玩家请使用上方完整 ZIP。开发者可继续阅读[项目架构](docs/ARCHITECTURE.md)和[代码地图](docs/CODE_MAP.md)。
 
-## 重要约束
-
-- 不要在 Slint 回调里做耗时文件、网络或进程操作；放到后台线程，通过 `AppMessage` 回到 UI。
-- 不要把在线下载的 ProjectRebound、BoundaryMetaServer、Node.js 目录放进内嵌 payload。
-- BRT 使用手动更新，与基底的同版本发布资产相互独立。
-- 不要上传 PowerShell 脚本或本地临时构建文件。
-
-
-## 从源码构建
-
-首次编译前，请从 [ProjectRebound V0.8.4](https://github.com/STanJK/ProjectRebound/releases/tag/V0.8.4) 获取 Release.zip，在仓库根目录运行下面的命令。命令核对上游 SHA-256，再生成档案服务所需的公开源码组件。生成文件仅保留于本机。
-
-    node integrations/profile-runtime/pack-release.cjs <Release.zip的路径>
-    cargo build --locked --release --bin BRT
-
-运行特定实机测试时，向对应脚本传入 Steam 安装目录、固定版本的社区 SDK 或档案服务目录。
+遇到问题可以[提交 Issue](https://github.com/teacateet/BoundaryToolbox/issues)，注明工具箱版本、地图、难度和出现问题的步骤。截图或日志请先遮住 Steam 账号、外网地址和房间密码。

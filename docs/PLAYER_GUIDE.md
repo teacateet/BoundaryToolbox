@@ -1,6 +1,6 @@
 # BRT 玩家指南
 
-**Windows x64 · BRT 19.20.35 · live39。** 此包适用于 Steam《边境》Build 14530908，包含本地人机的玩法修复。无需下载私密仓库或手动复制 DLL。
+**Windows x64 · BRT 19.20.35 · live39。** 此包适用于 Steam《边境》Build 14530908，包含本地人机的玩法修复。[下载 Windows x64 玩家包](https://github.com/teacateet/BoundaryToolbox/releases/download/v19.20.35/BRT-19.20.35-preview-win64.zip)，无需手动复制 DLL。
 
 登录拥有《边境》的 Steam 账号并装好游戏。完整解压本包到新文件夹，退出旧工具箱、游戏和专服，再打开新文件夹里的 `BRT.exe`。**新玩家和旧版玩家都要在首页点一次「安装社区环境」**。首次安装需要联网下载基础组件。已装过的玩家选回原来的 Steam 游戏目录；更新保留原配装并备份旧的已识别玩法组件。
 
