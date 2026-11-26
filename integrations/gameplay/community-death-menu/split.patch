@@ -1,5 +1,5 @@
 diff --git a/ProjectReboundMainDLL/Client/AutoConnect.cpp b/ProjectReboundMainDLL/Client/AutoConnect.cpp
-index 9d9cfa7..7b3ca4c 100644
+index 9d9cfa7..9e4b571 100644
 --- a/ProjectReboundMainDLL/Client/AutoConnect.cpp
 +++ b/ProjectReboundMainDLL/Client/AutoConnect.cpp
 @@ -8,6 +8,7 @@
@@ -10,7 +10,7 @@ index 9d9cfa7..7b3ca4c 100644
  
  #include <Windows.h>
  
-@@ -125,6 +126,45 @@ bool NotifyClientLoginCompleted()
+@@ -125,6 +126,51 @@ bool NotifyClientLoginCompleted()
      return !loginCompleted.exchange(true);
  }
  
@@ -18,12 +18,12 @@ index 9d9cfa7..7b3ca4c 100644
 +{
 +    if (!loginCompleted.load() || gameThreadId.load() != GetCurrentThreadId())
 +        return;
-+    auto* pc = BrtDeathMenu::selection.owner;
-+    if (!pc || !pc->bShowSelectRole || !sender ||
-+        !sender->IsA(UPBItemFieldModWidget_Character::StaticClass()))
++    if (!sender || !sender->IsA(UPBItemFieldModWidget_Character::StaticClass()))
 +        return;
 +    auto* item = static_cast<UPBItemFieldModWidget_Character*>(sender);
-+    if (item->GetOwningPlayer() != pc || !item->IsVisible()) return;
++    if (!item->IsVisible()) return;
++    auto* pc = BrtDeathMenu::ObserveNativeSelection(item->GetOwningPlayer());
++    if (!pc || !pc->bShowSelectRole) return;
 +    auto* field = static_cast<UPBFieldModManager*>(USubsystemBlueprintLibrary::GetWorldSubsystem(pc, UPBFieldModManager::StaticClass()));
 +    if (!field) return;
 +    const bool card = sender->IsA(UUMG_CharacterItem_C::StaticClass());
@@ -53,10 +53,16 @@ index 9d9cfa7..7b3ca4c 100644
 +        BrtDeathMenu::Confirmed(sender, role);
 +}
 +
++void BrtOptionClicked(SDK::UObject* sender, int option)
++{
++    if (loginCompleted.load() && gameThreadId.load() == GetCurrentThreadId())
++        BrtDeathMenu::OptionClicked(sender, option);
++}
++
  void PumpPendingClientCommands()
  {
      static thread_local bool pumping = false;
-@@ -146,6 +186,8 @@ void PumpPendingClientCommands()
+@@ -146,6 +192,8 @@ void PumpPendingClientCommands()
      if (localPlayer == nullptr)
          return;
  
@@ -65,7 +71,7 @@ index 9d9cfa7..7b3ca4c 100644
      const auto now = std::chrono::steady_clock::now();
      bool enterRange = false;
      std::optional<std::string> connectTarget;
-@@ -186,6 +228,7 @@ void PumpPendingClientCommands()
+@@ -186,6 +234,7 @@ void PumpPendingClientCommands()
                  std::wstring(connectTarget->begin(), connectTarget->end());
              ClientDebugLog("[CLIENT] Connecting to match: " + *connectTarget);
              UKismetSystemLibrary::ExecuteConsoleCommand(world, command.c_str(), nullptr);
@@ -74,35 +80,47 @@ index 9d9cfa7..7b3ca4c 100644
          }
      }
 diff --git a/ProjectReboundMainDLL/Hooking/ClientHooks.cpp b/ProjectReboundMainDLL/Hooking/ClientHooks.cpp
-index 662e492..7e02daa 100644
+index 662e492..5dc566f 100644
 --- a/ProjectReboundMainDLL/Hooking/ClientHooks.cpp
 +++ b/ProjectReboundMainDLL/Hooking/ClientHooks.cpp
-@@ -14,6 +14,9 @@
+@@ -12,8 +12,14 @@
+ #include <Windows.h>
+ #include <thread>
  
++#include "../Client/DeathMenu.hpp"
++
  using namespace SDK;
  
 +void BrtPrepareDeployment(SDK::UObject* sender);
 +void BrtRoleConfirmed(SDK::UObject* sender, const SDK::FName& role);
++void BrtOptionClicked(SDK::UObject* sender, int option);
 +
  // ======================================================
  //  ProcessEventHookClient — client-side dispatch
  // ======================================================
-@@ -79,11 +82,19 @@ void ProcessEventHookClient(UObject *Object, UFunction *Function, void *Parms)
+@@ -79,11 +85,26 @@ void ProcessEventHookClient(UObject *Object, UFunction *Function, void *Parms)
          HandleUICharacterClientEvent(Object, Function, Parms, EventInfo.FullName);
      }
  
-+    if (EventInfo.FullName == "Function UMG_DeployCharacter.UMG_DeployCharacter_C.BndEvt__UMG_DeployCharacter_UMG_STD_HotZone_K2Node_ComponentBoundEvent_3_OnClick__DelegateSignature" ||
-+        EventInfo.FullName == "Function UMG_CharacterItem.UMG_CharacterItem_C.BndEvt__UMG_CharacterItem_UMG_STD_HotZone_K2Node_ComponentBoundEvent_0_OnClick__DelegateSignature")
++    const bool roleClick = EventInfo.FullName == "Function UMG_DeployCharacter.UMG_DeployCharacter_C.BndEvt__UMG_DeployCharacter_UMG_STD_HotZone_K2Node_ComponentBoundEvent_3_OnClick__DelegateSignature" ||
++        EventInfo.FullName == "Function UMG_CharacterItem.UMG_CharacterItem_C.BndEvt__UMG_CharacterItem_UMG_STD_HotZone_K2Node_ComponentBoundEvent_0_OnClick__DelegateSignature";
++    const bool roleConfirm = Parms && (EventInfo.FullName == "Function ProjectBoundary.PBPlayerController.ConfirmRoleSelection" ||
++        EventInfo.FullName == "Function ProjectBoundary.PBPlayerController.ServerConfirmRoleSelection");
++    BrtDeathMenu::NativeRoleAction roleAction(roleClick || roleConfirm);
++    if (roleClick)
 +        BrtPrepareDeployment(Object);
++    if (roleConfirm)
++        BrtRoleConfirmed(Object, *static_cast<const FName*>(Parms));
++    if (Parms && (EventInfo.FullName == "Function ProjectBoundary.PBPopUpWidget.OnOptionButtonClick" ||
++        EventInfo.FullName == "Function UMG_Prompt.UMG_Prompt_C.CustomEvent_1"))
++        BrtOptionClicked(Object, *static_cast<const int*>(Parms));
 +
      // --- Equip error swallow (LoadoutFix) ---
      HandleEquipErrorSwallow(Object, Function, Parms, EventInfo.FullName);
  
      ProcessEventClient.call(Object, Function, Parms);
  
-+    if (Parms && (EventInfo.FullName == "Function ProjectBoundary.PBPlayerController.ConfirmRoleSelection" ||
-+        EventInfo.FullName == "Function ProjectBoundary.PBPlayerController.ServerConfirmRoleSelection"))
-+        BrtRoleConfirmed(Object, *static_cast<const FName*>(Parms));
++    roleAction.Finish();
 +
      // Execute pipe-originated Unreal work only after the original callback,
      // on the game thread captured by the login-complete event.

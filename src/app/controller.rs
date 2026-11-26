@@ -295,6 +295,7 @@ impl AppController {
             vnt_peer_model,
             vnt_session: None,
             vnt_host_selection_pending: false,
+            invite_auto_route: None,
             vnt_restart_after_stop: None,
             system_report: None,
             app_prefs,
@@ -531,8 +532,24 @@ impl AppController {
         {
             let controller = Rc::clone(controller);
             app.on_join_server_clicked(move |address| {
-                controller.borrow_mut().start_join_match(address.as_str());
+                controller.borrow_mut().join_friend_input(address.as_str());
             });
+        }
+        {
+            let c = Rc::clone(controller);
+            app.on_join_clipboard_clicked(move || c.borrow_mut().join_clipboard_invite());
+        }
+        {
+            let c = Rc::clone(controller);
+            app.on_copy_room_invite_clicked(move |vnt| c.borrow_mut().copy_room_invite(vnt));
+        }
+        {
+            let c = Rc::clone(controller);
+            app.on_join_own_room_clicked(move || c.borrow_mut().join_own_room());
+        }
+        {
+            let c = Rc::clone(controller);
+            app.on_cancel_room_invite_clicked(move || c.borrow_mut().cancel_friend_invite());
         }
         {
             let controller = Rc::clone(controller);
@@ -716,6 +733,7 @@ impl AppController {
     }
 
     pub(super) fn on_page_changed(&mut self, page: i32) {
+        if page != 3 { self.invite_auto_route = None; }
         if self.ui.get_busy() {
             let locked_page = self.active_page.load(Ordering::Relaxed);
             if page != locked_page {

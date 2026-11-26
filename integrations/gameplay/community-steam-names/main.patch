@@ -1,0 +1,42 @@
+diff --git a/ProjectReboundMainDLL/Client/AutoConnect.cpp b/ProjectReboundMainDLL/Client/AutoConnect.cpp
+index 3911cc4..1215545 100644
+--- a/ProjectReboundMainDLL/Client/AutoConnect.cpp
++++ b/ProjectReboundMainDLL/Client/AutoConnect.cpp
+@@ -13,4 +13,5 @@
+ 
+ #include <Windows.h>
++#include "../BrtInventory/SteamPersona.hpp"
+ 
+ #include <atomic>
+@@ -188,3 +189,4 @@ void PumpPendingClientCommands()
+         return;
+ 
++    brt::steam_names::Tick(world, localPlayer);
+     BrtDeathMenu::Tick(world, localPlayer);
+diff --git a/ProjectReboundMainDLL/Hooking/ServerLogicHooks.cpp b/ProjectReboundMainDLL/Hooking/ServerLogicHooks.cpp
+index 552cc39..c5ccbf7 100644
+--- a/ProjectReboundMainDLL/Hooking/ServerLogicHooks.cpp
++++ b/ProjectReboundMainDLL/Hooking/ServerLogicHooks.cpp
+@@ -165,5 +165,4 @@ void TickFlushHook(UNetDriver *NetDriver, float DeltaTime)
+     NoteServerGameTick();
+ 
+-    UserNameFix_DrainPending();
+     PVECamFix_Tick(NetDriver, DeltaTime);
+ 
+@@ -311,6 +310,4 @@ void *PostLogin(AGameMode *GameMode, APBPlayerController *PC)
+     ServerDebugLog("[POST-LOGIN] Player #" + std::to_string(NumPlayersJoined) + " connected");
+ 
+-    UserNameFix_OnPostLogin(GameMode, PC);
+-
+     // LateJoin detection
+     if (gLateJoinManager && gLateJoinManager->OnPostLogin(GameMode, PC))
+diff --git a/ProjectReboundMainDLL/Payload.vcxproj b/ProjectReboundMainDLL/Payload.vcxproj
+index 74f9d06..94d200d 100644
+--- a/ProjectReboundMainDLL/Payload.vcxproj
++++ b/ProjectReboundMainDLL/Payload.vcxproj
+@@ -179,5 +179,4 @@
+     <ClCompile Include="Server\NetDriverAccess.cpp" />
+     <ClCompile Include="Server\Replication.cpp" />
+-    <ClCompile Include="Server\PlayerNaming.cpp" />
+     <ClCompile Include="Server\PvECamera.cpp" />
+     <ClCompile Include="Server\SideMountFixServer.cpp" />

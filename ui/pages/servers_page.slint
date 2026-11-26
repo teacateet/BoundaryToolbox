@@ -16,11 +16,16 @@ export component ServersPage inherits Workbench {
     in property <bool> fixed_room_running;
     in property <bool> fixed_room_error;
     in property <bool> fixed_room_can_cancel;
+    in property <bool> vnt_ready;
+    in-out property <string> friend_input;
     callback start_fixed_room_clicked();
     callback stop_fixed_room_clicked();
     callback refresh_servers_clicked();
     callback copy_server_address_clicked(address: string);
     callback join_clicked(address: string);
+    callback join_clipboard_clicked();
+    callback copy_room_invite_clicked(vnt: bool);
+    callback join_own_room_clicked();
 
     public pure function mode-button-center(pve: bool) -> Point {
         return pve ? { x: pve-button.absolute-position.x + pve-button.width / 2,
@@ -34,13 +39,13 @@ export component ServersPage inherits Workbench {
     }
 
     OnlineTabs { busy: root.busy; switch-page(page) => { root.switch-page(page); } }
-    Caption { text: I18n.tr("加入好友：填写房主的地址和游戏端口", "Join a friend: enter the host’s address and game port", "参加：ホストのアドレスとゲームポートを入力"); }
+    Caption { text: I18n.tr("加入好友", "Join a friend", "フレンドに参加"); }
     HorizontalLayout { spacing: 8px;
-        endpoint := Field { placeholder: "192.168.1.20:7777"; enabled: !root.busy;
+        endpoint := Field { text <=> root.friend_input; placeholder: I18n.tr("粘贴好友的邀请，或输入 IP:端口", "Paste a friend’s invite or enter IP:port", "招待または IP:ポートを入力"); enabled: !root.busy;
             accepted => { if self.enabled && self.text != "" { root.join_clicked(self.text); } }
         }
-        Command { label: I18n.tr("加入对局", "Join match", "対戦に参加"); emphasis: true;
-            enabled: !root.busy && endpoint.text != ""; clicked => { root.join_clicked(endpoint.text); } }
+        Command { label: endpoint.text == "" ? I18n.tr("粘贴并加入", "Paste and join", "貼り付けて参加") : I18n.tr("加入对局", "Join match", "対戦に参加"); emphasis: true;
+            enabled: !root.busy; clicked => { if endpoint.text == "" { root.join_clipboard_clicked(); } else { root.join_clicked(endpoint.text); } } }
     }
     Divider {}
     HorizontalLayout { min-height: 26px; spacing: 12px;
@@ -57,7 +62,12 @@ export component ServersPage inherits Workbench {
         start-button := Command { label: root.fixed_room_error && !root.fixed_room_running ? I18n.tr("重新建房", "Retry room", "再試行") : I18n.tr("开启房间", "Start room", "ルームを起動"); enabled: !root.busy && !root.fixed_room_running; clicked => { root.start_fixed_room_clicked(); } }
         stop-button := Command { label: root.fixed_room_can_cancel ? I18n.tr("取消建房", "Cancel start", "起動をキャンセル") : root.fixed_room_error && !root.fixed_room_running ? I18n.tr("返回", "Back", "戻る") : I18n.tr("停止房间", "Stop room", "ルームを停止"); enabled: root.fixed_room_can_cancel || !root.busy; clicked => { root.stop_fixed_room_clicked(); } }
     }
-    Value { text: I18n.tr("房主先开启房间。同一局域网的队友用房主的局域网 IP 和端口加入；异地玩家先到「网络」连接同一房间号。", "Host a room first. LAN guests join the host’s LAN IP and port. For remote play, connect to the same code under Network first.", "ホストがルームを開き、LAN の参加者はホストの IP とポートを入力します。遠隔プレイは先に「ネットワーク」で同じコードに接続します。"); }
+    if root.fixed_room_running : HorizontalLayout { spacing: 8px; alignment: start;
+        Command { label: I18n.tr("进入自己的房间", "Join my room", "自分のルームに参加"); emphasis: true; enabled: !root.busy; clicked => { root.join_own_room_clicked(); } }
+        Command { label: I18n.tr("复制局域网邀请", "Copy LAN invite", "LAN 招待をコピー"); enabled: !root.busy; clicked => { root.copy_room_invite_clicked(false); } }
+        if root.vnt_ready : Command { label: I18n.tr("复制组网邀请", "Copy network invite", "仮想 LAN 招待をコピー"); enabled: !root.busy; clicked => { root.copy_room_invite_clicked(true); } }
+    }
+    Value { text: I18n.tr("同一局域网：开房后复制邀请发给朋友。异地：双方先在「网络」连接同一组网，再分享组网邀请。", "On the same LAN, open a room and send its invite. For remote play, connect to the same private network first and share a network invite.", "同じ LAN ではルームの招待を共有します。遠隔ではまず「ネットワーク」で同じ仮想 LAN に接続してください。"); }
     Divider {}
     HorizontalLayout { height: 36px; spacing: 12px;
         Caption { text: I18n.tr("社区服务器", "Community servers", "コミュニティサーバー"); horizontal-stretch: 1; }

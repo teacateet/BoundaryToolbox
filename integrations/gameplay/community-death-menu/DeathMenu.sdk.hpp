@@ -7,7 +7,15 @@ namespace BrtDeathMenu
 inline Room room;
 inline Gesture gesture;
 inline Time nextSample{};
+inline Time nextAliveUi{};
 inline thread_local bool reading = false;
+
+struct ReadingScope
+{
+    bool previous = reading;
+    ReadingScope() { reading = true; }
+    ~ReadingScope() { reading = previous; }
+};
 
 struct OpenSelection
 {
@@ -17,8 +25,27 @@ struct OpenSelection
     bool confirmed{}, closing{};
     SDK::UCommonActivatableWidget* escapePrompt{};
     Time promptGrace{}, confirmUntil{};
+    int deaths{};
+    SDK::UCommonActivatableWidget* pooledOpening{};
+    bool dismissedOpening{}, openingLeftStack{}, passiveClose{};
+    Time closeUntil{}, nextOpeningReview{};
 };
 inline OpenSelection selection;
+
+// 仅记录游戏原生第二项 Cancel；指针只作身份比对，永远不通过保存的地址访问控件。
+struct CancelledLeave {
+    SDK::APBPlayerController* owner{};
+    SDK::APBPlayerState* state{};
+    SDK::UCommonActivatableWidget* widget{};
+    int deaths{};
+    bool leftStack{};
+    Time dismissed{};
+    SDK::APBCharacter* witnessedPawn{};
+    SDK::FName witnessedRole{};
+    Time checkUntil{}, missingSince{};
+    bool afterCompletedRole{};
+};
+inline CancelledLeave cancelled;
 
 // 关闭选角页并不等于新角色已能接收输入。只跟踪这一次部署及其本机所有者。
 struct InputReturn {
@@ -26,8 +53,8 @@ struct InputReturn {
     SDK::APBPlayerState* state{};
     SDK::APBCharacter* pawn{};
     Time expires{}, stable{};
-    bool applied{}, retried{};
-    SDK::FName restartRole{};
+    bool applied{}, retried{}, restartSent{}, modalBeforeBirth{};
+    SDK::FName restartRole{}, expectedRole{}, confirmedRole{};
     int deaths{};
 };
 inline InputReturn inputReturn;
@@ -46,21 +73,30 @@ inline void RequestPendingRestart(SDK::APBPlayerController* pc, SDK::APBPlayerSt
     static const auto inactive = UKismetStringLibrary::Conv_StringToName(L"Inactive");
     if (pc->StateName == inactive) {
         role = {};
+        inputReturn.restartSent = true;
         pc->ServerRestartPlayer();
     }
 }
 
 inline void OpenRoles(SDK::APBPlayerController* pc, SDK::APBPlayerState* state)
 {
+    const int deaths=state->GetDeaths();
+    auto* priorLeave=(cancelled.owner==pc && cancelled.state==state && cancelled.leftStack &&
+        static_cast<long long>(deaths)-cancelled.deaths==1 && cancelled.widget==gesture.closing) ? cancelled.widget : nullptr;
+    cancelled = {};
     selection = {pc, state, state->SelectedCharacterID};
+    selection.deaths = deaths;
+    selection.pooledOpening = priorLeave;
     selection.escapePrompt = static_cast<SDK::UCommonActivatableWidget*>(const_cast<void*>(gesture.closing));
     selection.promptGrace = Clock::now() + std::chrono::milliseconds(900);
     pc->OpenInGameSelectRoleMenu();
 }
 
+inline SDK::APBPlayerController* ObserveNativeSelection(SDK::UObject* sender);
+
 inline void Confirmed(SDK::UObject* sender, SDK::FName role)
 {
-    if (selection.owner && sender == selection.owner && !(role == SDK::FName{}))
+    if (!(role == SDK::FName{}) && ObserveNativeSelection(sender))
     {
         selection.requestedRole = role;
         selection.confirmed = true;
@@ -69,6 +105,37 @@ inline void Confirmed(SDK::UObject* sender, SDK::FName role)
 }
 
 inline Prompt Classify(SDK::UCommonActivatableWidget*, SDK::APBPlayerController*);
+inline void ReadAction(SDK::APBPlayerController*, Frame&);
+
+inline bool OtherMenuLayer(SDK::APBPlayerController* pc, SDK::UCommonActivatableWidget* menu, SDK::UCommonActivatableWidget* inGame)
+{
+    return (menu && menu->Class->GetName() != "UMG_MainMenuGuardian_C") ||
+        (inGame && (inGame->GetOwningPlayer() != pc || inGame->Class->GetName() != "InGameOption_V2_C" ||
+                    inGame->IsActivated() || inGame->IsVisible()));
+}
+
+inline bool ReturnedCancel(SDK::APBPlayerController* pc, SDK::APBPlayerState* state, SDK::UCommonActivatableWidget* top)
+{
+    return top && cancelled.owner == pc && cancelled.state == state && cancelled.leftStack && top == cancelled.widget &&
+        cancelled.deaths == state->GetDeaths() && !pc->IsInGameMenuOpened() && !pc->bShowMouseCursor &&
+        !pc->bShowSelectRole && top->GetOwningPlayer() == pc && top->IsVisible() && top->IsActivated() &&
+        Classify(top, pc) == Prompt::Leave;
+}
+
+inline bool OwnsConfirmedRole(SDK::APBPlayerController* pc, SDK::APBPlayerState* state)
+{
+    using namespace SDK;
+    const auto& s=selection;
+    if (!s.confirmed || s.requestedRole==FName{} ||
+        !(s.requestedRole==state->SelectedCharacterID) || !(s.requestedRole==state->PossessedCharacterId) ||
+        !state->IsInPlayerLifeStatus(EPBPlayerLifeStatus::Alive) || state->bOnlySpectator || state->bIsSpectator || state->bIsABot) return false;
+    static const auto playing=UKismetStringLibrary::Conv_StringToName(L"Playing");
+    auto* pawn=pc->GetPBCharacter();
+    return pc->StateName==playing && pawn && pawn==pc->K2_GetPawn() && pawn==state->PawnPrivate &&
+        UKismetSystemLibrary::IsValid(pawn) && pawn->PlayerState==state && pawn->GetController()==pc &&
+        pawn->IsAlive() && !pawn->IsInKilledStatus() && pawn->IsFirstPerson() && pc->GetViewTarget()==pawn &&
+        !pc->IsGameInputIgnored() && !pc->IsMoveInputIgnored() && !pc->IsLookInputIgnored();
+}
 
 inline void FinishInputReturn(SDK::APBPlayerController* pc, SDK::APBPlayerState* state,
     SDK::UCommonActivatableWidget* prompt, SDK::UCommonActivatableWidget* menu,
@@ -76,15 +143,35 @@ inline void FinishInputReturn(SDK::APBPlayerController* pc, SDK::APBPlayerState*
 {
     using namespace SDK;
     auto& r = inputReturn;
-    if (r.owner != pc || r.state != state || now >= r.expires || prompt || pc->IsInGameMenuOpened() ||
-        pc->bShowSelectRole || (menu && menu->Class->GetName() != "UMG_MainMenuGuardian_C") ||
-        (inGame && (inGame->GetOwningPlayer() != pc || inGame->Class->GetName() != "InGameOption_V2_C"))) {
+    if (r.owner != pc || r.state != state || state->GetDeaths() != r.deaths || now >= r.expires) {
         r = {};
+        return;
+    }
+    // 有效控制已经自然回来，旧的 Cancel 弹窗只是又被放回栈顶；结束等待，立即恢复死亡按键观察。
+    if (prompt && cancelled.leftStack && cancelled.widget == prompt && !pc->bShowMouseCursor && !pc->bShowSelectRole &&
+        !pc->IsInGameMenuOpened() && !OtherMenuLayer(pc,menu,inGame) && state->IsInPlayerLifeStatus(EPBPlayerLifeStatus::Alive) &&
+        !(r.confirmedRole == FName{}) && state->PossessedCharacterId == r.confirmedRole && state->SelectedCharacterID == r.confirmedRole) {
+        auto* current = pc->GetPBCharacter();
+        static const auto playing = UKismetStringLibrary::Conv_StringToName(L"Playing");
+        if (pc->StateName == playing && current && current == pc->K2_GetPawn() && current == state->PawnPrivate &&
+            current->PlayerState == state && current->GetController() == pc && current->IsAlive() && !current->IsInKilledStatus() &&
+            current->IsFirstPerson() && pc->GetViewTarget() == current && !pc->IsGameInputIgnored() &&
+            !pc->IsMoveInputIgnored() && !pc->IsLookInputIgnored() && ReturnedCancel(pc,state,prompt)) {
+            r = {};
+            return;
+        }
+    }
+    if (prompt || pc->IsInGameMenuOpened() || pc->bShowSelectRole ||
+        (menu && menu->Class->GetName() != "UMG_MainMenuGuardian_C") ||
+        (inGame && (inGame->GetOwningPlayer() != pc || inGame->Class->GetName() != "InGameOption_V2_C"))) {
+        // 等待出生时短暂出现的菜单只暂停交还。接管角色后玩家新开的菜单仍保留自己的输入。
+        if (!r.pawn && state->IsInPlayerLifeStatus(EPBPlayerLifeStatus::Death)) r.modalBeforeBirth = true;
+        else if (!r.modalBeforeBirth) r = {};
         return;
     }
     RequestPendingRestart(pc, state);
     auto* pawn = pc->GetPBCharacter();
-    if (!state->IsInPlayerLifeStatus(EPBPlayerLifeStatus::Alive) ||
+    if (!state->IsInPlayerLifeStatus(EPBPlayerLifeStatus::Alive) || !(state->PossessedCharacterId == r.expectedRole) ||
         !pawn || pawn != pc->K2_GetPawn() || pawn->GetController() != pc ||
         !pawn->IsAlive() || pawn->IsInKilledStatus() || !pawn->IsFirstPerson()) {
         if (r.pawn) r = {}; // 已离开刚才接管的角色，不继承到下一条命。
@@ -109,6 +196,8 @@ inline void FinishInputReturn(SDK::APBPlayerController* pc, SDK::APBPlayerState*
         UWidgetBlueprintLibrary::SetFocusToGameViewport();
         r.retried = r.applied;
         r.applied = true;
+        // 弹窗会短暂离开栈再返回；直到正确 Pawn 真能接收输入，才结束这段跨出生等待。
+        r.modalBeforeBirth = false;
     }
     if (r.retried || age >= std::chrono::milliseconds(1200)) r = {};
 }
@@ -118,16 +207,60 @@ inline void ReturnFromSelection(SDK::APBPlayerController* pc, SDK::APBPlayerStat
     SDK::UCommonActivatableWidget* inGame)
 {
     using namespace SDK;
-    if (selection.owner != pc || selection.state != state)
+    if (selection.owner != pc || selection.state != state || selection.deaths != state->GetDeaths())
     {
         selection = {};
+        return;
+    }
+    auto& s=selection;
+    const auto now=Clock::now();
+    if (s.pooledOpening && !s.passiveClose &&
+        (s.confirmed ? now>=s.confirmUntil : now>s.promptGrace+std::chrono::seconds(20))) s.pooledOpening=nullptr;
+    if (s.dismissedOpening && s.pooledOpening) {
+        // 选择页打开后，原生处理同一个旧 Leave。必须随后亲眼见到提示退栈，而非凭地址猜测它是背景。
+        if (!s.openingLeftStack) {
+            if (!prompt && !pc->bShowMouseCursor && !pc->IsInGameMenuOpened()) s.openingLeftStack=true;
+            else if (prompt && prompt!=s.pooledOpening) s.pooledOpening=nullptr;
+        } else {
+            Frame key{};ReadAction(pc,key);
+            if (key.pressed || key.down || pc->IsInGameMenuOpened() || pc->bShowMouseCursor ||
+                (prompt && (prompt!=s.pooledOpening || prompt->GetOwningPlayer()!=pc)) ||
+                (menu && menu->Class->GetName()!="UMG_MainMenuGuardian_C") ||
+                (inGame && (inGame->GetOwningPlayer()!=pc || inGame->Class->GetName()!="InGameOption_V2_C"))) s.pooledOpening=nullptr;
+            else if (prompt && now>=s.nextOpeningReview) {
+                s.nextOpeningReview=now+std::chrono::milliseconds(120);
+                if (prompt->IsActivated() && Classify(prompt,pc)==Prompt::Other) s.pooledOpening=nullptr;
+            }
+        }
+    }
+    if (s.passiveClose) {
+        if (pc->bShowSelectRole && now < s.closeUntil) return;
+        // Close 已处理；即使旧提示仍留在栈里也不能卡住此次选角。新菜单保留自己的焦点。
+        if (!pc->bShowSelectRole && s.pooledOpening && s.openingLeftStack &&
+            !pc->bShowMouseCursor && !pc->IsInGameMenuOpened() && !OtherMenuLayer(pc,menu,inGame) &&
+            (!prompt || (prompt==s.pooledOpening && prompt->IsVisible() && Classify(prompt,pc)==Prompt::Leave)) && OwnsConfirmedRole(pc,state)) {
+            // 只把已证实的旧提示身份交给紧接的死亡按键；此记录绝不能授权占有核对。
+            cancelled={pc,state,s.pooledOpening,s.deaths,true,now};cancelled.afterCompletedRole=true;
+        }
+        s={};
         return;
     }
     if (prompt && prompt == selection.escapePrompt && Clock::now() <= selection.promptGrace &&
         Classify(prompt, pc) == Prompt::Leave)
     {
+        if (prompt==s.pooledOpening && prompt->IsVisible()) s.dismissedOpening=true;
         selection.escapePrompt = nullptr;
         static_cast<UUMG_Prompt_C*>(prompt)->OnOptionButtonClick(1);
+        return;
+    }
+    if (s.pooledOpening && s.openingLeftStack && prompt==s.pooledOpening && s.confirmed && !s.closing &&
+        pc->bShowSelectRole && now<s.confirmUntil && !pc->IsInGameMenuOpened() && !pc->bShowMouseCursor &&
+        !OtherMenuLayer(pc,menu,inGame) && OwnsConfirmedRole(pc,state) && pc->CanSelectRole() &&
+        prompt->GetOwningPlayer()==pc && prompt->IsVisible() && prompt->IsActivated() && Classify(prompt,pc)==Prompt::Leave) {
+        Frame key{};ReadAction(pc,key);
+        if (!key.keySampled || key.pressed || key.down) return;
+        s.closing=s.passiveClose=true;s.closeUntil=now+std::chrono::milliseconds(1200);
+        pc->CloseInGameSelectRoleMenu();
         return;
     }
     if (prompt || pc->IsInGameMenuOpened() ||
@@ -157,10 +290,15 @@ inline void ReturnFromSelection(SDK::APBPlayerController* pc, SDK::APBPlayerStat
         return;
     }
     if (accepted) {
-        inputReturn = {pc, state, nullptr, Clock::now() + std::chrono::seconds(35)};
-        if (selection.confirmed && state->IsInPlayerLifeStatus(EPBPlayerLifeStatus::Death)) {
+        const int deaths = state->GetDeaths();
+        if (inputReturn.owner != pc || inputReturn.state != state || inputReturn.deaths != deaths) {
+            inputReturn = {pc, state, nullptr, Clock::now() + std::chrono::seconds(35)};
+            inputReturn.deaths = deaths;
+        }
+        inputReturn.expectedRole = state->SelectedCharacterID;
+        inputReturn.confirmedRole = selection.confirmed ? selection.requestedRole : FName{};
+        if (selection.confirmed && !inputReturn.restartSent && state->IsInPlayerLifeStatus(EPBPlayerLifeStatus::Death)) {
             inputReturn.restartRole = selection.requestedRole;
-            inputReturn.deaths = state->GetDeaths();
         }
     }
     selection = {};
@@ -168,12 +306,6 @@ inline void ReturnFromSelection(SDK::APBPlayerController* pc, SDK::APBPlayerStat
     UWidgetBlueprintLibrary::SetInputMode_GameOnly(pc);
     if (accepted) RequestPendingRestart(pc, state);
 }
-
-struct ReadingScope
-{
-    ReadingScope() { reading = true; }
-    ~ReadingScope() { reading = false; }
-};
 
 inline void Travel(SDK::UWorld* world, SDK::UPBLocalPlayer* local, std::string_view target)
 {
@@ -184,7 +316,9 @@ inline void Travel(SDK::UWorld* world, SDK::UPBLocalPlayer* local, std::string_v
     gesture = {};
     selection = {};
     inputReturn = {};
+    cancelled = {};
     nextSample = {};
+    nextAliveUi = {};
 }
 
 inline bool TextMatches(const SDK::FText& value, const wchar_t* nameSpace, const wchar_t* key)
@@ -221,6 +355,78 @@ inline Prompt Classify(SDK::UCommonActivatableWidget* top, SDK::APBPlayerControl
     return Prompt::Leave;
 }
 
+inline void OptionClicked(SDK::UObject* sender, int option)
+{
+    using namespace SDK;
+    auto& r = inputReturn;
+    if (reading || option != 1 || !r.owner || !r.state || !r.modalBeforeBirth || r.applied ||
+        !sender || !sender->IsA(UUMG_Prompt_C::StaticClass())) return;
+    ReadingScope scope;
+    if (!r.owner->IsInGameMenuOpened() || r.deaths != r.state->GetDeaths() ||
+        r.owner->PlayerState != r.state || UWorld::GetWorld() != room.playWorld) return;
+    auto* top = static_cast<UUMG_Prompt_C*>(sender);
+    if (top->GetOwningPlayer() != r.owner || !top->IsActivated() || !top->IsVisible() ||
+        Classify(top,r.owner) != Prompt::Leave) return;
+    auto* manager = static_cast<UPBMainMenuManager_BP_C*>(USubsystemBlueprintLibrary::GetLocalPlayerSubSystemFromPlayerController(
+        r.owner, UPBMainMenuManager_BP_C::StaticClass()));
+    if (!manager || !manager->MainMenuLayout || !manager->MainMenuLayout->PromptStack) return;
+    UCommonActivatableWidget* active{};
+    manager->GetTopPromptWidget(&active);
+    if (active != top) return;
+    // 蓝图的按钮委托与原生事件有时都能到达；同一次取消只能记一次，不能刷新见证或计时。
+    if (!cancelled.afterCompletedRole && cancelled.owner == r.owner && cancelled.state == r.state && cancelled.widget == top && cancelled.deaths == r.deaths) return;
+    cancelled = {r.owner, r.state, top, r.deaths};
+    if (r.confirmedRole == FName{} || !(r.confirmedRole == r.expectedRole) ||
+        !(r.state->SelectedCharacterID == r.expectedRole) || !(r.state->PossessedCharacterId == r.expectedRole) ||
+        r.state->bOnlySpectator || r.state->bIsSpectator || r.state->bIsABot ||
+        !r.state->IsInPlayerLifeStatus(EPBPlayerLifeStatus::Alive)) return;
+    // 真 Cancel 的原生回调前，记下本人此刻已经实际占有的第一人称角色，只用于以后比对。
+    auto* pawn = r.owner->GetPBCharacter();
+    if (!pawn || pawn != r.owner->K2_GetPawn() || pawn != r.state->PawnPrivate || !UKismetSystemLibrary::IsValid(pawn) ||
+        pawn->PlayerState != r.state || pawn->GetController() != r.owner ||
+        !pawn->IsAlive() || pawn->IsInKilledStatus() || !pawn->IsFirstPerson()) return;
+    cancelled.witnessedPawn = pawn;
+    cancelled.witnessedRole = r.expectedRole;
+    cancelled.checkUntil = Clock::now() + std::chrono::seconds(4);
+}
+
+inline void CheckLostPossession(SDK::APBPlayerController* pc, SDK::APBPlayerState* state,
+    SDK::UCommonActivatableWidget* top, SDK::UCommonActivatableWidget* menu,
+    SDK::UCommonActivatableWidget* inGame, Time now)
+{
+    using namespace SDK;
+    auto& c = cancelled;
+    if (c.afterCompletedRole || !c.witnessedPawn) return;
+    // 每次先从当前 PlayerState 取引用；不通过跨帧保存的地址读角色。
+    auto* current = state->PawnPrivate;
+    if (now >= c.checkUntil || pc != c.owner || state != c.state || state->GetDeaths() != c.deaths ||
+        !state->IsInPlayerLifeStatus(EPBPlayerLifeStatus::Alive) || state->bOnlySpectator || state->bIsSpectator || state->bIsABot ||
+        !(state->SelectedCharacterID == c.witnessedRole) || !(state->PossessedCharacterId == c.witnessedRole) ||
+        current != c.witnessedPawn || !UKismetSystemLibrary::IsValid(current) || current->PlayerState != state) {
+        c.witnessedPawn = nullptr;
+        return;
+    }
+    if (!c.leftStack) return;
+    Frame action{};
+    ReadAction(pc,action);
+    if (action.pressed || action.down || pc->IsInGameMenuOpened() || pc->bShowMouseCursor || pc->bShowSelectRole ||
+        OtherMenuLayer(pc,menu,inGame) || (top && top != c.widget)) { c.witnessedPawn = nullptr; return; }
+    static const auto inactive = UKismetStringLibrary::Conv_StringToName(L"Inactive");
+    auto* pawn = static_cast<APBCharacter*>(current);
+    if (!(pc->StateName == inactive) || pc->K2_GetPawn() || pc->GetPBCharacter() || pc->AcknowledgedPawn ||
+        pc->GetViewTarget() != pc || pawn->GetController() || !pawn->IsAlive() || pawn->IsInKilledStatus() || pawn->IsFirstPerson()) {
+        c.missingSince = {};
+        return;
+    }
+    // 同一个控件也可能复用为 Quit 或其他选项。只接受 真 Cancel → 空栈 → 同一原版 Leave。
+    if (top && !ReturnedCancel(pc,state,top)) { c.witnessedPawn = nullptr; return; }
+    if (c.missingSince == Time{}) { c.missingSince = now; return; }
+    if (now - c.missingSince < std::chrono::milliseconds(450)) return;
+    c.witnessedPawn = nullptr;
+    // 原生无参数 RPC 由本人连接的专服核对当前角色。客户端不指定 Pawn、不写 ACK、不重生、不处理焦点。
+    pc->ServerCheckClientPossessionReliable();
+}
+
 inline SDK::FKey NamedKey(const wchar_t* name)
 {
     SDK::FKey key{};
@@ -253,6 +459,8 @@ inline void ReadAction(SDK::APBPlayerController* pc, Frame& f)
     if (keys.Num() == 0) keys = options->GetKeysFromActionName(name);
     auto add = [&](const SDK::FKey& key)
     {
+        if (key.KeyName == SDK::FName{}) return;
+        f.keySampled = true;
         const bool pressed = pc->WasInputKeyJustPressed(key);
         const bool down = pc->IsInputKeyDown(key);
         if (!pressed && !down)
@@ -287,46 +495,88 @@ inline void ReadAction(SDK::APBPlayerController* pc, Frame& f)
     }
 }
 
-inline bool Sample(SDK::UWorld* world, SDK::UPBLocalPlayer* local, Time now)
+struct RoomPlayer
+{
+    SDK::APBPlayerController* pc{};
+    SDK::APBPlayerState* state{};
+    SDK::APBGameState* game{};
+};
+
+inline RoomPlayer ResolveRoomPlayer(SDK::UWorld* world, SDK::UPBLocalPlayer* local, Time now)
 {
     using namespace SDK;
+    if (!world || !local) return {};
     auto* server = world->NetDriver ? world->NetDriver->ServerConnection : nullptr;
     if (!room.Check(world, world->OwningGameInstance, local, server, now))
-        return false;
+        return {};
     auto* controller = local->PlayerController;
     if (!controller || !controller->IsA(APBPlayerController::StaticClass()) ||
         controller->Player != local || !controller->IsLocalPlayerController() ||
         (server->OwningActor != controller && server->PlayerController != controller))
-        return false;
+        return {};
     auto* pc = static_cast<APBPlayerController*>(controller);
     auto* base = world->GameState;
     if (!base || !base->IsA(APBGameState::StaticClass()) || !base->GameModeClass.Get())
-        return false;
+        return {};
     auto* gs = static_cast<APBGameState*>(base);
     if (!room.playWorld)
     {
         if (!IsPveClass(UKismetSystemLibrary::GetPathName(gs->GameModeClass.Get()).ToString()))
         {
             room = {};
-            return false;
+            return {};
         }
         room.Bind(world, server, gs->GameModeClass.Get());
     }
     if (room.modeClass != gs->GameModeClass.Get())
     {
         room = {};
-        return false;
+        return {};
     }
     if (!pc->PlayerState || !pc->PlayerState->IsA(APBPlayerState::StaticClass()))
-        return false;
+        return {};
     auto* state = static_cast<APBPlayerState*>(pc->PlayerState);
+    if (state->bOnlySpectator) return {};
+    return {pc, state, gs};
+}
+
+// 按钮和确认可以在同一帧内开关原生选角。只在本人已经打开的死亡选角页上补记开始。
+inline SDK::APBPlayerController* ObserveNativeSelection(SDK::UObject* sender)
+{
+    using namespace SDK;
+    if (!sender || !room.origin) return nullptr;
+    if (selection.owner) return selection.owner == sender ? selection.owner : nullptr;
+    if (reading) return nullptr;
+    ReadingScope scope;
+    auto* world = UWorld::GetWorld();
+    auto* gi = world ? world->OwningGameInstance : nullptr;
+    if (!gi || gi->LocalPlayers.Num() != 1) return nullptr;
+    auto who = ResolveRoomPlayer(world, static_cast<UPBLocalPlayer*>(gi->LocalPlayers[0]), Clock::now());
+    if (!who.pc || who.pc != sender || !who.pc->bShowSelectRole || !who.game->HasMatchStarted() ||
+        who.game->HasMatchEnded() || !who.game->IsRoundInProgress() ||
+        !who.state->IsInPlayerLifeStatus(EPBPlayerLifeStatus::Death) || who.state->GetDeaths() <= 0)
+        return nullptr;
+    selection = {who.pc, who.state, who.state->SelectedCharacterID};
+    selection.deaths = who.state->GetDeaths();
+    return who.pc;
+}
+
+inline bool Sample(SDK::UWorld* world, SDK::UPBLocalPlayer* local, Time now)
+{
+    using namespace SDK;
+    const auto [pc, state, gs] = ResolveRoomPlayer(world, local, now);
+    if (!pc) return false;
     if (inputReturn.owner && (inputReturn.owner != pc || inputReturn.state != state || now >= inputReturn.expires))
         inputReturn = {};
     const bool dead = state->IsInPlayerLifeStatus(EPBPlayerLifeStatus::Death);
-    if (!selection.owner && !inputReturn.owner && !dead)
+    bool observeAlive = !selection.owner && !inputReturn.owner && !dead;
+    if (observeAlive)
     {
         nextSample = now + std::chrono::milliseconds(30);
-        return false;
+        if (!state->IsInPlayerLifeStatus(EPBPlayerLifeStatus::Alive)) return false;
+        // 存活时仅低频记录本机菜单和按键的干净状态；不打开控件、不改焦点。
+        if (now < nextAliveUi) return true;
+        nextAliveUi = now + std::chrono::milliseconds(120);
     }
     if (!gs->HasMatchStarted() || gs->HasMatchEnded() || !gs->IsRoundInProgress())
         return false;
@@ -344,31 +594,68 @@ inline bool Sample(SDK::UWorld* world, SDK::UPBLocalPlayer* local, Time now)
     manager->GetTopPromptWidget(&top);
     manager->GetTopMenuWidget(&mainMenu);
     manager->GetTopInGameWidget(&inGameMenu);
+    if (cancelled.owner) {
+        const auto delta = static_cast<long long>(state->GetDeaths()) - cancelled.deaths;
+        if (pc != cancelled.owner || state != cancelled.state || delta < 0 || delta > 1) cancelled = {};
+        else if (!cancelled.leftStack && !top && !pc->bShowMouseCursor && !pc->IsInGameMenuOpened()) {
+            // 原生 Cancel 后要先真正退出过提示栈，不能只凭同一 UObject 推断已关窗。
+            cancelled.leftStack = true;
+            cancelled.dismissed = now;
+        } else if (cancelled.leftStack && ((top && (top != cancelled.widget || top->GetOwningPlayer() != pc)) ||
+                   (!dead && now - cancelled.dismissed > std::chrono::milliseconds(300) &&
+                    (pc->bShowMouseCursor || pc->IsInGameMenuOpened())))) cancelled = {};
+    }
+    CheckLostPossession(pc, state, top, mainMenu, inGameMenu, now);
     // 原生流程也能先于 Esc 观察器打开选角。首命不接管，真正死亡后的本机选角才跟踪。
     if (!selection.owner && pc->bShowSelectRole && dead && state->GetDeaths() > 0) {
-        inputReturn = {};
         selection = {pc, state, state->SelectedCharacterID};
+        selection.deaths = state->GetDeaths();
     }
     if (selection.owner)
     {
+        const bool completingPassive=selection.passiveClose && !pc->bShowSelectRole;
         ReturnFromSelection(pc, state, top, mainMenu, inGameMenu);
-        return true;
+        if (!completingPassive || selection.owner || dead || !state->IsInPlayerLifeStatus(EPBPlayerLifeStatus::Alive)) return true;
+        observeAlive=true;nextSample=now+std::chrono::milliseconds(30);nextAliveUi=now+std::chrono::milliseconds(120);
     }
     if (inputReturn.owner) {
         FinishInputReturn(pc, state, top, mainMenu, inGameMenu, now);
-        if (!dead) return true;
+        gesture = {};
+        if (inputReturn.owner) return true;
+        if (!dead) {
+            if (!state->IsInPlayerLifeStatus(EPBPlayerLifeStatus::Alive)) return false;
+            observeAlive = true;
+            nextSample = now + std::chrono::milliseconds(30);
+            nextAliveUi = now + std::chrono::milliseconds(120);
+        }
     }
-    if (pc->bShowSelectRole) return false;
+    if (!observeAlive && pc->bShowSelectRole) return false;
     Frame frame{};
     frame.controller = pc;
     frame.state = pc->PlayerState;
     frame.layout = layout;
     frame.prompt = top;
     // Guardian 是切图后仍在栈底的大厅占位控件。
-    frame.menuInFront = (mainMenu && mainMenu->Class->GetName() != "UMG_MainMenuGuardian_C") || inGameMenu;
+    const bool hiddenOldOptions = inGameMenu && inGameMenu->GetOwningPlayer() == pc &&
+        inGameMenu->Class->GetName() == "InGameOption_V2_C" && !inGameMenu->IsActivated() && !inGameMenu->IsVisible();
+    frame.menuInFront = pc->bShowSelectRole || (mainMenu && mainMenu->Class->GetName() != "UMG_MainMenuGuardian_C") ||
+        (inGameMenu && !hiddenOldOptions);
     frame.regularMenuOpen = pc->IsInGameMenuOpened();
+    frame.deaths = state->GetDeaths();
+    const bool eligibleResidue = cancelled.owner == pc && cancelled.leftStack && top && top == cancelled.widget &&
+        top->GetOwningPlayer() == pc && !frame.menuInFront &&
+        (observeAlive ? frame.deaths == cancelled.deaths : static_cast<long long>(frame.deaths)-cancelled.deaths == 1);
+    if (observeAlive) {
+        frame.aliveSnapshot = true;
+        frame.cancelledResidue = eligibleResidue && !frame.regularMenuOpen && !pc->bShowMouseCursor;
+        if ((!frame.prompt || frame.cancelledResidue) && !frame.menuInFront && !frame.regularMenuOpen) ReadAction(pc, frame);
+        gesture.RememberAlive(frame, now);
+        return true;
+    }
     frame.canSelect = pc->CanSelectRole();
     ReadAction(pc, frame);
+    frame.cancelledResidue = eligibleResidue && !frame.regularMenuOpen && !pc->bShowMouseCursor &&
+        !frame.pressed && !frame.down;
     if (top)
     {
         const bool needsText = gesture.phase != Gesture::Phase::Idle ||
@@ -401,7 +688,7 @@ inline bool Sample(SDK::UWorld* world, SDK::UPBLocalPlayer* local, Time now)
 
 inline void Tick(SDK::UWorld* world, SDK::UPBLocalPlayer* local)
 {
-    if (!room.origin || reading)
+    if (!room.origin || reading || NativeRoleAction::depth)
         return;
     const Time now = Clock::now();
     if (now < nextSample)
@@ -413,6 +700,7 @@ inline void Tick(SDK::UWorld* world, SDK::UPBLocalPlayer* local)
         gesture = {};
         selection = {};
         inputReturn = {};
+        cancelled = {};
     }
 }
 }

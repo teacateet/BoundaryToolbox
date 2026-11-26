@@ -38,6 +38,7 @@ mod diagnostics;
 mod dialogs;
 mod drive_scan;
 mod fixed_room;
+mod friend_invite;
 mod font;
 mod i18n;
 mod logging;
@@ -199,6 +200,7 @@ struct AppController {
     vnt_peer_model: Rc<VecModel<VntPeerRow>>,
     vnt_session: Option<VntSession>,
     vnt_host_selection_pending: bool,
+    invite_auto_route: Option<(std::net::SocketAddrV4, std::time::Instant)>,
     vnt_restart_after_stop: Option<VntLaunchOptions>,
     system_report: Option<SystemCheckReport>,
     app_prefs: AppPrefs,

@@ -169,11 +169,67 @@ void replicatedMarks() {
     s.player.inside=true; marked.bMarked=false;
     s.pass(); check("expired_replicated_mark_removed",s.added()==0);
 }
+
+// 零售 SupplyPoint_BP 的 PBMarkable 是静态组件：原版开启 bLocalMarked，
+// 使用 InteractiveObj 和独立的 AmmoCase 纹理，无须先侦察或对准补给点。
+void supplyMarkers() {
+    Scene s; s.marks.IndicatorMap.Reset();
+    APBSupplyPoint box; UTexture2D ammo; UPBMarkableComponent key;
+    key.owner=&box; key.bLocalMarked=true; key.MarkableType=EPBMarkableType::InteractiveObj;
+    key.MiniMapTexture=&ammo; key.at={200,0,0};
+    s.marks.LocalMarkedArray.push_back(&key); s.player.inside=false; key.clear=false;
+    s.pass();
+    auto* dot=s.only();
+    check("static_supply_without_enemy_or_head_uses_original_ammo_brush",dot && dot->MiniMapIconInfo.Texture==&ammo &&
+          dot->MiniMapIconInfo.MarkableType==EPBMarkableType::InteractiveObj && dot->MiniMapIconInfo.Camp==EPBCamp::Neutral &&
+          dot->MiniMapIconInfo.position.X==0.6f);
+    Node stock;stock.parent=&s.panel;stock.owner=&s.player;stock.MiniMapIconInfo.Texture=&ammo;
+    stock.MiniMapIconInfo.MarkableType=EPBMarkableType::InteractiveObj;stock.MiniMapIconInfo.WorldLocation=key.at;
+    stock.MiniMapIconInfo.bMarked=false;stock.MiniMapIconInfo.position={0.59f,0.5f};
+    s.hud.DrewMap.push_back(&stock);s.pass();
+    check("visible_native_supply_takes_over_even_between_projection_frames",s.added()==0 && stock.parent==&s.panel);
+    s.hud.NotUsedWidgetArray.push_back(&stock);s.pass();check("pooled_native_supply_does_not_hide_ammo_icon",s.added()==1);
+    s.hud.NotUsedWidgetArray.clear();s.hud.DrewMap.clear();
+    key.at={0,0,1001};s.pass();check("supply_outside_current_radar_range_retracts",s.added()==0);
+    key.at={200,0,0};s.hud.IconPositionUVClamp_U={0,0.55f};s.pass();
+    check("supply_outside_native_projection_clamp_remains_absent",s.added()==0);
+    s.hud.IconPositionUVClamp_U={0,1};s.pass();check("supply_reappears_on_reentering_hud_range",s.added()==1);
+    key.bLocalMarked=false;s.pass();check("private_or_disabled_static_marker_hidden",s.added()==0);
+    key.bLocalMarked=true;key.owner=&s.otherPawn;s.pass();check("unrelated_interactive_object_excluded",s.added()==0);
+    key.owner=&box;box.bHidden=true;s.pass();check("hidden_supply_actor_excluded",s.added()==0);
+    box.bHidden=false;APBGameState previous;box.worldState=&previous;s.pass();check("supply_from_old_world_excluded",s.added()==0);
+    box.worldState=nullptr;key.MiniMapTexture=nullptr;s.pass();check("missing_native_ammo_texture_does_not_make_placeholder",s.added()==0);
+    key.MiniMapTexture=&ammo;s.pass();check("valid_public_supply_restored",s.added()==1);
+    s.marks.LocalMarkedArray.clear();s.pass();check("unregistered_supply_retracted",s.added()==0);
+    UPBIndicator head;head.owner=&s.otherPlayer;head.viewport=true;head.RelatedMarkable=&key;head.Camp=EPBCamp::Neutral;
+    s.marks.IndicatorMap.Put(&key,&head);s.pass();check("foreign_supply_hud_ignored",s.added()==0);
+    head.owner=&s.player;s.pass();check("local_visible_supply_indicator_without_registry_row",s.added()==1);
+    s.marks.LocalMarkedArray.push_back(&key);s.pass();check("same_supply_in_hud_and_registry_drawn_once",s.added()==1);
+    s.marks.LocalMarkedArray.clear();head.opacity=0;s.pass();check("no_public_source_left_retracts_supply",s.added()==0);
+}
+
+void supplyLifecycle(bool enabled) {
+    Scene s;s.marks.IndicatorMap.Reset();APBSupplyPoint box;UPBMarkableComponent key;
+    key.owner=&box;key.MiniMapTexture=&s.first.texture;key.bLocalMarked=true;key.MarkableType=EPBMarkableType::InteractiveObj;
+    key.at={100,0,0};s.marks.LocalMarkedArray.push_back(&key);
+    auto tick=[&](){std::this_thread::sleep_for(std::chrono::milliseconds(135));s.event(&s.pawn,"Actor.ReceiveTick");};
+    tick();check(enabled?"live_pve_supply_visible":"supply_absent_without_local_pve_flag",s.added()==(enabled?1:0));
+    if(enabled) {
+        s.pawn.radar=false;tick();check("loss_of_native_radar_signal_retracts_supply",s.added()==0);
+        s.pawn.radar=true;tick();check("native_radar_signal_restores_one_supply",s.added()==1);
+        s.event(&s.pawn,"NotifyBeKilled");check("death_retracts_supply_immediately",s.added()==0);
+        s.pawn.alive=false;s.pawn.killed=true;tick();s.pawn.alive=true;s.pawn.killed=false;tick();
+        check("respawn_reattaches_one_supply",s.added()==1);
+        s.mode.name="BP_PBGameMode_PvP_C";tick();check("supply_absent_after_leaving_supported_pve",s.added()==0);
+    }
+    s.event(&s.pawn,"ReceiveEndPlay");
+}
 int main(int argc,char** argv) {
     const bool enabled=argc==1;
     UKismetSystemLibrary::requested=enabled;
-    if(enabled){visibleAndNative();poolAndVisibility();rejectAndRecover();cacheAndTargets();staleMapRecord();replicatedMarks();}
+    if(enabled){visibleAndNative();poolAndVisibility();rejectAndRecover();cacheAndTargets();staleMapRecord();replicatedMarks();supplyMarkers();}
     lifecycle(enabled);
+    supplyLifecycle(enabled);
     std::printf("SUMMARY passed=%d failed=%d\n",passed,failed);
 #ifdef RADAR_BASELINE
     return 0;

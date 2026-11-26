@@ -9,6 +9,17 @@ using Clock = std::chrono::steady_clock;
 using Time = Clock::time_point;
 using Id = const void*;
 
+// 一个原生按钮回调会嵌套触发选角确认、关闭和 CommonUI 更新。最外层返回前不采样半成品菜单栈。
+struct NativeRoleAction
+{
+    static inline thread_local unsigned depth{};
+    bool held{};
+    explicit NativeRoleAction(bool enter) : held(enter) { if (held) ++depth; }
+    NativeRoleAction(const NativeRoleAction&) = delete;
+    void Finish() { if (held) { held = false; --depth; } }
+    ~NativeRoleAction() { Finish(); }
+};
+
 inline bool IsLocalTarget(std::string_view target)
 {
     constexpr std::string_view prefix = "127.0.0.1:";
@@ -81,6 +92,8 @@ struct Frame
     Id controller{}, state{}, layout{}, prompt{};
     Prompt kind{Prompt::None};
     bool menuInFront{}, regularMenuOpen{}, pressed{}, down{}, canSelect{};
+    bool aliveSnapshot{}, cancelledResidue{}, keySampled{};
+    int deaths{};
 };
 
 struct Gesture
@@ -92,23 +105,43 @@ struct Gesture
     Time previousTime{}, until{};
     bool previousClean{}, edgeConsumed{};
 
+    void RememberAlive(const Frame& f, Time now)
+    {
+        *this = {};
+        previous = f;
+        previousTime = now;
+        previousClean = !f.menuInFront && !f.regularMenuOpen && (!f.prompt || f.cancelledResidue) && !f.down && !f.pressed;
+        edgeConsumed = f.down || f.pressed;
+    }
+
     Action Observe(const Frame& f, Time now)
     {
         using namespace std::chrono;
         const bool same = f.controller && f.controller == previous.controller &&
             f.state == previous.state && f.layout == previous.layout;
-        const bool recentlyClean = same && previousClean && now - previousTime <= milliseconds(250);
         const bool clean = !f.menuInFront && !f.regularMenuOpen && !f.prompt;
-        const bool freshPress = (f.pressed || (f.down && !previous.down)) && !edgeConsumed;
-        const bool nativeOpen = recentlyClean && f.regularMenuOpen && !previous.regularMenuOpen;
+        // 存活快照只用来证明界面此前干净。必须收到真正的新按下，不能把战斗中一直按着的键带到死亡。
+        const bool deathEdge = f.pressed && f.deaths > 0 && f.deaths >= previous.deaths &&
+            f.deaths - previous.deaths <= 1 && !edgeConsumed;
+        const bool firstCleanEdge = !previous.controller && clean && f.pressed && f.deaths > 0 && !edgeConsumed;
+        const bool freshPress = (f.pressed || (!previous.aliveSnapshot && f.down && !previous.down)) && !edgeConsumed;
+        // 旧 Cancel 弹窗只在新死亡的真实按下把原生普通菜单从关变开、且文本仍是 Leave 时可相关。
+        // 原生可能先消费 JustPressed。只有上一帧已经死于同一条命、确实读过菜单键且是松开的，才认按下边沿。
+        const bool sampledDeadRise = !previous.aliveSnapshot && previous.keySampled && f.keySampled &&
+            previous.deaths > 0 && f.deaths == previous.deaths && !previous.pressed && !previous.down && f.down;
+        const bool reopenedCancelled = previous.cancelledResidue && (f.pressed || sampledDeadRise) && freshPress &&
+            !previous.regularMenuOpen && f.regularMenuOpen && previous.prompt && previous.prompt == f.prompt && f.kind == Prompt::Leave;
+        const bool recentlyClean = same && previousClean && now - previousTime <= milliseconds(250) &&
+            (!previous.aliveSnapshot || deathEdge) && (!previous.cancelledResidue || reopenedCancelled);
+        const bool nativeOpen = recentlyClean && !previous.aliveSnapshot && f.regularMenuOpen && !previous.regularMenuOpen;
         if (f.pressed || f.down)
             edgeConsumed = true;
         else
             edgeConsumed = false;
         previous = f;
-        previousClean = clean;
+        previousClean = clean || f.cancelledResidue;
         previousTime = now;
-        if (!same || f.menuInFront)
+        if ((!same && !firstCleanEdge) || f.menuInFront)
         {
             phase = Phase::Idle;
             firstPrompt = closing = nullptr;
@@ -151,7 +184,7 @@ struct Gesture
             }
             return Action::None;
         }
-        if (phase == Phase::Idle && (freshPress || nativeOpen) && recentlyClean)
+        if (phase == Phase::Idle && ((freshPress || nativeOpen) && recentlyClean || firstCleanEdge))
         {
             phase = Phase::WaitingPrompt;
             firstPrompt = nullptr;

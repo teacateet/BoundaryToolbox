@@ -107,6 +107,7 @@ if ($IncludeNativeArchive) { $ownerModules += @('community-native-archive', 'com
 if ($Version -eq 'main') { $ownerModules += 'community-local-login' }
 if ($IncludePveLayers) { $ownerModules += @('community-pve-layers','community-world-driver','community-airlock','community-grapple-delivery','community-disconnected-player','community-redeploy') }
 if ($IncludeFirstLoadout) { $ownerModules += 'community-first-loadout' }
+if ($Version -eq 'main') { $ownerModules += 'community-steam-names' }
 # 开发探针只用于本机联调，带探针的构建不得安装给玩家。
 if ($IncludeDevRig) { $ownerModules += 'dev-rig' }
 foreach ($ownerModule in $ownerModules) {

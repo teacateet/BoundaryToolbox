@@ -8,7 +8,8 @@ enum class Stage {
     Room, NoSignal, NoHud, NoManager, Scan, Visible, RangeRejected, StyleRejected,
     ProjectionRejected, NativeDot, NodeRejected, DrewDot, EmptyShoulders, HasShoulder,
     OwnerPending, OwnerDifferent, HasOwner, SelectedLeft, SelectedRight, Presenting,
-    HideEmpty, HidePrimitives, Closed, ReticleFound, ReticleHidden, ReticleRestored, Count
+    HideEmpty, HidePrimitives, Closed, ReticleFound, ReticleHidden, ReticleRestored,
+    SupplyLocal, SupplyNative, SupplyDrawn, Count
 };
 inline constexpr const char* labels[] = {
     "room","radar-no-signal","radar-no-hud","radar-no-manager","radar-pass","radar-visible-mark",
@@ -16,7 +17,7 @@ inline constexpr const char* labels[] = {
     "radar-node-rejected","radar-drew-dot","pod-empty-shoulders","pod-has-shoulder",
     "pod-owner-pending","pod-owner-different","pod-has-owner","pod-left-selected","pod-right-selected",
     "pod-presenting","pod-hide-without-components","pod-hide-with-components","pod-closed",
-    "reticle-found","reticle-hidden","reticle-restored"
+    "reticle-found","reticle-hidden","reticle-restored","radar-supply-local","radar-supply-native","radar-supply-drawn"
 };
 static_assert(sizeof(labels)/sizeof(*labels) == static_cast<unsigned>(Stage::Count));
 inline const void* active{};

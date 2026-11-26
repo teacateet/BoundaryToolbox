@@ -45,10 +45,14 @@ struct Owner {
     token: String,
 }
 
+pub(crate) fn valid_room_port(port: u16) -> bool {
+    port >= 1024 && ![6969, 8000, 9000].contains(&port)
+}
+
 fn room_path(target: &Path, port: u16) -> Result<PathBuf> {
     validate_win64_path(target)?;
     ensure!(
-        port >= 1024 && ![6969, 8000, 9000].contains(&port),
+        valid_room_port(port),
         "请选择 1024 至 65535 之间空闲的游戏端口，6969、8000、9000 供档案服务使用"
     );
     let legacy = target.join(format!("BoundaryOrbital-PvP-{port}"));
@@ -233,6 +237,17 @@ pub(crate) fn start_pve(target: &Path, port: u16) -> Result<()> {
 
 fn coop_path(target: &Path, port: u16) -> PathBuf {
     target.join(format!("BRT-Coop-{port}"))
+}
+
+/// 分享或加入自己的房间前，核对本次安装的专服仍拥有游戏端口。
+pub(crate) fn owned_room_listening(target: &Path, port: u16) -> Result<bool> {
+    for dir in [room_path(target, port)?, coop_path(target, port)] {
+        if let Some(owner) = saved_owner(&dir)?
+            && is_owner(&owner, target, &dir) && game_has_port(target, owner.pid, port)? {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
 
 fn write_room_value(path: &Path, value: &serde_json::Value) -> Result<()> {
@@ -493,6 +508,7 @@ mod tests {
         );
         start(&target, port)?;
         let check = (|| -> Result<()> {
+            ensure!(owned_room_listening(&target, port)?, "Open room cannot be shared or joined");
             let owner = saved_owner(&room)?.context("Missing ownership record")?;
             ensure!(
                 is_owner(&owner, &target, &room) && game_has_port(&target, owner.pid, port)?,
@@ -507,6 +523,7 @@ mod tests {
         })();
         let stopped = stop(&target, port)?;
         check?;
+        ensure!(!owned_room_listening(&target, port)?, "Closed room still accepts invitations");
         ensure!(stopped && !stop(&target, port)?, "Stop was not idempotent");
         ensure!(udp_owners(port)?.is_empty(), "Game still owns the UDP port");
         Ok(())

@@ -10,11 +10,15 @@ if ($info.ProductName -cne 'Boundary Resurrection Toolkit' -or $info.OriginalFil
 $version = [version]::Parse($info.ProductVersion).ToString()
 . (Join-Path $PSScriptRoot 'preview-freeze.ps1')
 Assert-PreviewVersionAvailable (Join-Path $root 'target') $version $exe.FullName
+$guideSource = Join-Path $root 'docs/PLAYER_GUIDE.md'
+Assert-PreviewDownloadLinks $version (Get-Content -LiteralPath (Join-Path $root 'README.md') -Raw -Encoding utf8) (Get-Content -LiteralPath $guideSource -Raw -Encoding utf8)
 if (!$OutputDirectory) { $OutputDirectory = Join-Path $root 'target/player-preview' }
 $out = [IO.Directory]::CreateDirectory($OutputDirectory).FullName
+$zipPath = Join-Path $out "BRT-$version-preview-win64.zip"
+if (Test-Path -LiteralPath $zipPath) { throw "已有同名玩家包：$zipPath。请保留它，使用新目录打包。" }
 $guide = 'BRT-玩家安装指南.html'
 $guidePath = Join-Path $out $guide
-$body = (ConvertFrom-Markdown -LiteralPath (Join-Path $root 'docs/PLAYER_GUIDE.md')).Html
+$body = (ConvertFrom-Markdown -LiteralPath $guideSource).Html
 $template = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'player-guide.template.html') -Raw -Encoding utf8
 if (!$template.Contains('<!--GUIDE-->') -or !$body.Contains('<table>')) { throw 'Unexpected player guide markup' }
 [IO.File]::WriteAllText($guidePath, $template.Replace('<!--GUIDE-->', $body), [Text.UTF8Encoding]::new($false))
@@ -25,6 +29,7 @@ if ([version]$version -ge [version]'19.20.35') {
         '19.20.36' { 'live40', '0c18c5bfc9d923be2bf6162e68ddc70f014eb0a79e4eec7a37f91bef9b860941' }
         '19.20.37' { 'live41', 'b6195bf1a68e6ffe005888baf22dd12f91c4c8938e69de48702160dcad4b2bc0' }
         '19.20.38' { 'live42', 'd679ad4f972b8a974a3dafb2e23d72076b14bbfa25448e203f1f0e92a3899c05' }
+        '19.20.39' { 'live43', 'dbacaf4a67fd953c90864df4b0205edb4c58b52784a9b028bc930a54017f6711' }
         default { throw 'Unpinned player component version' }
     }
     if (!$GameplayComponent -or (Get-FileHash -LiteralPath $GameplayComponent).Hash -ne $sha) {
@@ -50,7 +55,6 @@ $manifest = Join-Path $out 'SHA256SUMS.txt'
 $lines = foreach ($item in $files.GetEnumerator()) { '{0}  {1}' -f (Get-FileHash -LiteralPath $item.Value).Hash.ToLowerInvariant(), $item.Key }
 [IO.File]::WriteAllLines($manifest, [string[]]$lines, [Text.UTF8Encoding]::new($false))
 $files['SHA256SUMS.txt'] = $manifest
-$zipPath = Join-Path $out "BRT-$version-preview-win64.zip"
 $temp = Join-Path $out ([Guid]::NewGuid().ToString('N') + '.zip')
 try {
     $zip = [IO.Compression.ZipFile]::Open($temp, [IO.Compression.ZipArchiveMode]::Create)
@@ -65,6 +69,6 @@ try {
             if ($sha -ne (Get-FileHash -LiteralPath $item.Value).Hash) { throw "Archive checksum mismatch: $($item.Key)" }
         }
     } finally { $zip.Dispose() }
-    [IO.File]::Move($temp, $zipPath, $true)
+    [IO.File]::Move($temp, $zipPath, $false)
 } finally { if ([IO.File]::Exists($temp)) { [IO.File]::Delete($temp) } }
 Get-FileHash -LiteralPath $zipPath | Select-Object Path,Hash

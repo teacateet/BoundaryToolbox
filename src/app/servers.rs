@@ -6,15 +6,105 @@ use anyhow::Context;
 
 #[cfg(windows)]
 use windows::Win32::{
-    Foundation::{GlobalFree, HANDLE, HWND},
+    Foundation::{GlobalFree, HANDLE, HGLOBAL, HWND},
     System::{
-        DataExchange::{CloseClipboard, EmptyClipboard, OpenClipboard, SetClipboardData},
-        Memory::{GMEM_MOVEABLE, GlobalAlloc, GlobalLock, GlobalUnlock},
+        DataExchange::{CloseClipboard, EmptyClipboard, GetClipboardData, OpenClipboard, SetClipboardData},
+        Memory::{GMEM_MOVEABLE, GlobalAlloc, GlobalLock, GlobalSize, GlobalUnlock},
         Ole::CF_UNICODETEXT,
     },
 };
 
 impl AppController {
+    pub(super) fn clear_friend_invite(&mut self) {
+        self.invite_auto_route = None;
+        self.ui.set_pending_friend_invite("".into());
+    }
+
+    pub(super) fn cancel_friend_invite(&mut self) {
+        let applying = self.invite_auto_route.is_some() &&
+            (self.vnt_restart_after_stop.is_some() || self.ui.get_vnt_busy());
+        self.clear_friend_invite();
+        if applying { self.stop_vnt(); }
+    }
+
+    fn open_room_port(&mut self) -> Option<u16> {
+        if self.ui.get_busy() || !self.ui.get_fixed_room_running() { return None; }
+        let (target, port) = self.active_fixed_room.as_ref()?;
+        let port = *port;
+        match core::fixed_host::owned_room_listening(target, port) {
+            Ok(true) => Some(port),
+            Ok(false) => {
+                self.active_fixed_room = None;
+                self.ui.set_fixed_room_running(false);
+                self.ui.set_fixed_room_error(false);
+                self.ui.set_fixed_room_status(self.tr("房间已关闭，请重新开启。", "Room closed. Start it again.", "ルームは停止しました。再起動してください。").into());
+                None
+            }
+            Err(error) => {
+                self.show_error_dialog(self.tr("无法确认房间状态","Could not check the room","ルームを確認できません"),&error.to_string());
+                None
+            }
+        }
+    }
+
+    pub(super) fn join_own_room(&mut self) {
+        if let Some(port) = self.open_room_port() {
+            self.clear_friend_invite();
+            self.start_launch(LaunchMode::Join(std::net::SocketAddrV4::new(Ipv4Addr::LOCALHOST, port)));
+        }
+    }
+
+    pub(super) fn copy_room_invite(&mut self, vnt: bool) {
+        let Some(port) = self.open_room_port() else { return };
+        let virtual_ip = if self.ui.get_vnt_running() && !self.ui.get_vnt_busy() && self.vnt_session.is_some() {
+            vnt_controller::room::own_ip(self.ui.get_vnt_ip_text().as_str())
+        } else { None };
+        let ip = if vnt { virtual_ip } else { friend_invite::local_lan_ip(virtual_ip) };
+        let Some(invite) = ip.and_then(|ip| friend_invite::Invite::new(vnt, ip, port)) else {
+            let message = if vnt { self.tr("请先连接房主所在的组网。","Connect to the host’s private network first.","先に仮想 LAN に接続してください。") }
+                else { self.tr("没有可确定的局域网地址。请确认已连接同一 Wi-Fi 或有线网络，也可直接分享本机局域网 IP 和游戏端口。","No unique LAN address. Check Wi-Fi or Ethernet, or share your LAN IP and game port directly.","LAN アドレスを特定できません。Wi-Fi または有線 LAN を確認するか、IP とゲームポートを共有してください。") };
+            self.show_error_dialog(self.tr("复制邀请","Copy invite","招待をコピー"), message);
+            return;
+        };
+        match copy_text_to_clipboard(self.ui.window(), &invite.to_string()) {
+            Ok(()) => self.ui.set_fixed_room_status(format!("{} · UDP {port}", self.tr("邀请已复制","Invite copied","招待をコピーしました")).into()),
+            Err(error) => self.show_error_dialog(self.tr("复制邀请失败","Could not copy invite","招待をコピーできません"),&error.to_string()),
+        }
+    }
+
+    pub(super) fn join_clipboard_invite(&mut self) {
+        if self.ui.get_busy() { return; }
+        match read_clipboard_address(self.ui.window()) {
+            Ok(s) => self.join_friend_input(&s),
+            Err(_) => self.invalid_friend_input(),
+        }
+    }
+
+    fn invalid_friend_input(&mut self) {
+        self.clear_friend_invite();
+        self.show_error_dialog(self.tr("加入好友","Join a friend","フレンドに参加"),
+            self.tr("请复制好友发来的完整 BRT 邀请，或填写 IPv4 地址和游戏端口。","Copy the full BRT invite or enter an IPv4 address and game port.","BRT 招待をすべてコピーするか、IPv4 アドレスとゲームポートを入力してください。"));
+    }
+
+    pub(super) fn join_friend_input(&mut self, s: &str) {
+        use friend_invite::Invite;
+        if self.ui.get_busy() { return; }
+        self.clear_friend_invite();
+        match Invite::parse(s) {
+            Some(Invite::Lan(endpoint)) => self.start_launch(LaunchMode::Join(endpoint)),
+            Some(invite @ Invite::Vnt(peer)) => {
+                self.ui.set_pending_friend_invite(invite.to_string().into());
+                self.ui.set_vnt_game_port(peer.port().to_string().into());
+                self.ui.set_page(3);
+                self.join_vnt_invite(peer);
+            }
+            None => match core::game_endpoint(s) {
+                Some(endpoint) => self.start_launch(LaunchMode::Join(endpoint)),
+                None => self.invalid_friend_input(),
+            },
+        }
+    }
+
     pub(super) fn copy_feedback_group(&mut self) {
         if let Err(error) = copy_feedback(&self.ui, |text| copy_text_to_clipboard(self.ui.window(), text)) {
             self.show_error_dialog(
@@ -136,14 +226,41 @@ impl Drop for ClipboardGuard {
 }
 
 #[cfg(windows)]
-fn copy_text_to_clipboard(window: &slint::Window, text: &str) -> Result<()> {
+fn clipboard_window(window: &slint::Window) -> Result<HWND> {
     use slint::winit_030::{WinitWindowAccessor, winit::raw_window_handle::{HasWindowHandle, RawWindowHandle}};
-    let owner = window.with_winit_window(|win| {
+    window.with_winit_window(|win| {
         match win.window_handle().ok()?.as_raw() {
             RawWindowHandle::Win32(handle) => Some(HWND(handle.hwnd.get() as *mut _)),
             _ => None,
         }
-    }).flatten().context("无法取得工具箱窗口句柄")?;
+    }).flatten().context("无法取得工具箱窗口句柄")
+}
+
+// 仅在玩家点「粘贴并加入」时读取短文本，不记录剪贴板内容。
+#[cfg(windows)]
+fn read_clipboard_address(window: &slint::Window) -> Result<String> {
+    let owner = clipboard_window(window)?;
+    unsafe {
+        OpenClipboard(Some(owner))?;
+        let _clipboard = ClipboardGuard;
+        let handle = HGLOBAL(GetClipboardData(u32::from(CF_UNICODETEXT.0))?.0);
+        let units = GlobalSize(handle) / 2;
+        if units == 0 { bail!("Clipboard text unavailable"); }
+        let ptr = GlobalLock(handle).cast::<u16>();
+        if ptr.is_null() { bail!("Clipboard text unavailable"); }
+        let text = std::slice::from_raw_parts(ptr, units.min(193));
+        let value = text.iter().position(|ch| *ch == 0).and_then(|n| String::from_utf16(&text[..n]).ok());
+        let _ = GlobalUnlock(handle);
+        value.context("Clipboard is not a short invite")
+    }
+}
+
+#[cfg(not(windows))]
+fn read_clipboard_address(_window: &slint::Window) -> Result<String> { bail!("Clipboard unavailable") }
+
+#[cfg(windows)]
+fn copy_text_to_clipboard(window: &slint::Window, text: &str) -> Result<()> {
+    let owner = clipboard_window(window)?;
     let wide_text = text
         .encode_utf16()
         .chain(std::iter::once(0))

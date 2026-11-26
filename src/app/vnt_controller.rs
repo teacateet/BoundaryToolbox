@@ -4,7 +4,7 @@ use super::*;
 use std::net::SocketAddrV4;
 
 #[path = "vnt_room.rs"]
-mod room;
+pub(super) mod room;
 use room::RoomError;
 
 impl VntLaunchOptions {
@@ -54,27 +54,7 @@ impl AppController {
         }
         self.save_app_prefs();
 
-        if self.ui.get_vnt_no_tun() {
-            match self.core.ensure_boundary_firewall_ports() {
-                Ok(summary) => {
-                    self.append_log(&format!("[{}] {}", core::now_text(), summary));
-                }
-                Err(error) => {
-                    let message = format!(
-                        "{}\n{}",
-                        self.tr(
-                            "开放联机端口失败，请确认以管理员模式启动。",
-                            "Failed to open network ports. Make sure the toolbox is running as administrator.",
-                            "ネットワークポートの開放に失敗しました。管理者モードで起動してください。",
-                        ),
-                        error
-                    );
-                    self.show_error_dialog(self.tr("联机", "Network", "ネットワーク"), &message);
-                    return;
-                }
-            }
-        }
-
+        // 无网卡邀请在回环接收游戏数据；启动现有组网不必改动 Windows 入站规则。
         let options = VntLaunchOptions {
             server_text: self.ui.get_vnt_server_text().to_string(),
             username: self.ui.get_vnt_username().to_string(),
@@ -86,7 +66,7 @@ impl AppController {
             rtx: self.ui.get_vnt_rtx(),
             no_punch: self.ui.get_vnt_no_punch(),
         };
-        let select_host_after_start = options.no_tun;
+        let select_host_after_start = options.no_tun && self.ui.get_pending_friend_invite().is_empty();
         self.start_vnt_options(options, select_host_after_start);
     }
 
@@ -122,6 +102,7 @@ impl AppController {
                 self.vnt_session = Some(session);
             }
             Err(error) => {
+                self.invite_auto_route = None;
                 self.vnt_host_selection_pending = false;
                 self.ui.set_vnt_busy(false);
                 self.ui.set_vnt_running(false);
@@ -139,6 +120,7 @@ impl AppController {
 
     /// 请求 VNT 会话停止；最终清理结果会通过事件返回。
     pub(super) fn stop_vnt(&mut self) {
+        self.invite_auto_route = None;
         self.vnt_host_selection_pending = false;
         self.vnt_restart_after_stop = None;
         self.ui.set_show_vnt_host_dialog(false);
@@ -184,6 +166,7 @@ impl AppController {
             VntEvent::Snapshot(_) if self.ui.get_vnt_stopping() => {}
             VntEvent::Snapshot(snapshot) => self.apply_vnt_snapshot(snapshot),
             VntEvent::Failed(error) => {
+                self.invite_auto_route = None;
                 if self.ui.get_vnt_stopping() {
                     self.apply_vnt_event(VntEvent::Stopped("已取消启动".into()));
                     return;
@@ -210,6 +193,7 @@ impl AppController {
                     if options.port_mapping_host.is_some() {
                         match self.vnt_mapping_port_conflicts() {
                             Ok(conflicts) if !conflicts.is_empty() => {
+                                self.invite_auto_route = None;
                                 self.show_vnt_mapping_conflict_dialog(&conflicts);
                                 let mut snapshot = localized_vnt_idle_snapshot(self.language());
                                 snapshot.detail = self
@@ -223,6 +207,7 @@ impl AppController {
                                 return;
                             }
                             Err(error) => {
+                                self.invite_auto_route = None;
                                 let mut snapshot = localized_vnt_idle_snapshot(self.language());
                                 snapshot.detail = error.to_string();
                                 self.apply_vnt_snapshot(snapshot);
@@ -243,6 +228,7 @@ impl AppController {
                     self.start_vnt_options(options, false);
                     return;
                 }
+                self.invite_auto_route = None;
                 let mut snapshot = localized_vnt_idle_snapshot(self.language());
                 snapshot.detail = reason.clone();
                 self.apply_vnt_snapshot(snapshot);
@@ -291,6 +277,7 @@ impl AppController {
                 .map(vnt_peer_to_row)
                 .collect(),
         );
+        self.resume_invite_after_mapping();
         self.maybe_show_vnt_host_dialog();
     }
 
@@ -356,6 +343,40 @@ impl AppController {
         }
     }
 
+    pub(super) fn join_vnt_invite(&mut self, peer: SocketAddrV4) {
+        // 没有会话时保留邀请供玩家连接；不能把虚拟地址当作公网直连或替玩家建立新网络。
+        if self.vnt_session.is_none() || !self.ui.get_vnt_running() || self.ui.get_vnt_busy() { return; }
+        let host = match self.selected_vnt_room(&peer.ip().to_string()) {
+            Ok(host) if host == peer => host,
+            Ok(_) => { self.show_vnt_room_error(RoomError::InvalidPort); return; }
+            Err(e) => { self.show_vnt_room_error(e); return; }
+        };
+        let Some((no_tun, mapping)) = self.vnt_session.as_ref().map(VntSession::game_route) else { return; };
+        if let Ok(target) = room::game_target(host, no_tun, mapping) {
+            self.clear_friend_invite();
+            self.start_launch(LaunchMode::Join(target));
+        } else if self.active_fixed_room.is_some() {
+            self.show_error_dialog(self.tr("加入好友","Join a friend","フレンドに参加"),
+                self.tr("请先关闭自己的房间，再更换无网卡映射。","Close your hosted room before changing its network mapping.","転送先を変える前に自分のルームを閉じてください。"));
+        } else if self.rebind_vnt_host(host, mapping.is_some()) {
+            self.invite_auto_route = Some((host, std::time::Instant::now() + std::time::Duration::from_secs(45)));
+        }
+    }
+
+    fn resume_invite_after_mapping(&mut self) {
+        let Some((peer, until)) = self.invite_auto_route else { return; };
+        let typed = friend_invite::Invite::parse(self.ui.get_pending_friend_invite().as_str());
+        if std::time::Instant::now() >= until || self.ui.get_page() != 3 || typed != Some(friend_invite::Invite::Vnt(peer)) {
+            self.invite_auto_route = None; return;
+        }
+        if self.ui.get_show_app_dialog() || self.ui.get_vnt_stopping() || self.vnt_restart_after_stop.is_some() { return; }
+        if self.vnt_session.as_ref().is_some_and(|s| s.game_route() == (true,Some(peer)))
+            && self.selected_vnt_room(&peer.ip().to_string()) == Ok(peer) {
+            self.clear_friend_invite();
+            self.start_launch(LaunchMode::Join(room::LOCAL_GAME_ENTRY));
+        }
+    }
+
     pub(super) fn select_vnt_mapping_host(&mut self, address: String) {
         if !self.vnt_host_selection_pending
             || !self
@@ -373,19 +394,26 @@ impl AppController {
                 return;
             }
         };
-        match self.vnt_mapping_port_conflicts() {
-            Ok(conflicts) if !conflicts.is_empty() => {
-                self.show_vnt_mapping_conflict_dialog(&conflicts);
-                return;
+        self.rebind_vnt_host(host, false);
+    }
+
+    // 替换已有映射时，本会话仍占用旧入口；停止后原流程还会再次检查该端口。
+    fn rebind_vnt_host(&mut self, host: SocketAddrV4, replacing_live_mapping: bool) -> bool {
+        if !replacing_live_mapping {
+            match self.vnt_mapping_port_conflicts() {
+                Ok(conflicts) if !conflicts.is_empty() => {
+                    self.show_vnt_mapping_conflict_dialog(&conflicts);
+                    return false;
+                }
+                Err(error) => {
+                    self.show_error_dialog(
+                        self.tr("联机", "Network", "ネットワーク"),
+                        &error.to_string(),
+                    );
+                    return false;
+                }
+                _ => {}
             }
-            Err(error) => {
-                self.show_error_dialog(
-                    self.tr("联机", "Network", "ネットワーク"),
-                    &error.to_string(),
-                );
-                return;
-            }
-            _ => {}
         }
 
         let options = VntLaunchOptions {
@@ -415,6 +443,10 @@ impl AppController {
                 core::now_text(),
                 host
             ));
+            true
+        } else {
+            self.vnt_restart_after_stop = None;
+            false
         }
     }
 

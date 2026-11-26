@@ -14,20 +14,26 @@ using Dot = UUMG_MinimapNode_C;
 using Info = FPBMiniMapIconInfo;
 using Clock = std::chrono::steady_clock;
 
-inline bool OnScreen(UPBIndicator* head, UPBMarkableComponent* key, APlayerController* viewer)
+inline bool VisibleIndicator(UPBIndicator* head, UPBMarkableComponent* key, APlayerController* viewer)
 {
     if (!UKismetSystemLibrary::IsValid(head) || !UKismetSystemLibrary::IsValid(key) ||
-        head->RelatedMarkable != key || head->GetOwningPlayer() != viewer || head->Camp != EPBCamp::Enemy ||
-        head->bIsDying || !head->bMarkableIsInView || key->MarkableType != EPBMarkableType::Character) return false;
-    if (head->Status != EPBIndicatorStatus::InCircle && head->Status != EPBIndicatorStatus::OnScreenAndOutOfCircle) return false;
-    if (head->MarkedStatus != EPBMarkedStatus::SensorMark && head->MarkedStatus != EPBMarkedStatus::ReconMark &&
-        head->MarkedStatus != EPBMarkedStatus::VisionMark && head->MarkedStatus != EPBMarkedStatus::RadarMark) return false;
-    if (!head->GetParent() && !head->IsInViewport()) return false;
+        head->RelatedMarkable != key || head->GetOwningPlayer() != viewer || head->bIsDying ||
+        (!head->GetParent() && !head->IsInViewport())) return false;
     for (UWidget* item = head; item; item = item->GetParent()) {
         if (!item->IsVisible() || !(item->GetRenderOpacity() > 0)) return false;
     }
     const auto size = USlateBlueprintLibrary::GetLocalSize(head->GetCachedGeometry());
-    return size.X > 0 && size.Y > 0 && key->IsNotBlocked();
+    return size.X > 0 && size.Y > 0;
+}
+
+inline bool OnScreen(UPBIndicator* head, UPBMarkableComponent* key, APlayerController* viewer)
+{
+    if (!UKismetSystemLibrary::IsValid(head) || !UKismetSystemLibrary::IsValid(key) ||
+        head->Camp != EPBCamp::Enemy || !head->bMarkableIsInView || key->MarkableType != EPBMarkableType::Character) return false;
+    if (head->Status != EPBIndicatorStatus::InCircle && head->Status != EPBIndicatorStatus::OnScreenAndOutOfCircle) return false;
+    if (head->MarkedStatus != EPBMarkedStatus::SensorMark && head->MarkedStatus != EPBMarkedStatus::ReconMark &&
+        head->MarkedStatus != EPBMarkedStatus::VisionMark && head->MarkedStatus != EPBMarkedStatus::RadarMark) return false;
+    return VisibleIndicator(head,key,viewer) && key->IsNotBlocked();
 }
 
 inline const Info* Lookup(const TMap<UPBMarkableComponent*,Info>& source, UPBMarkableComponent* key)
@@ -47,14 +53,31 @@ inline bool InScope(APBCharacter* owner)
            name == "BP_PBGameMode_Rush_PVE_Hard_C";
 }
 
-inline std::optional<Info> CaptureAt(Hud* hud, const FVector& at, EPBCamp camp, UPBMarkableComponent* key, const FVector& observer, APBCharacter* actor)
+inline bool InRange(Hud* hud, const FVector& at, const FVector& observer, APBCharacter* actor)
 {
-    using BrtUiJournal::Stage;
     const float range = hud->MiniMapWorldHalfRange;
     const auto x = at.X-observer.X, y = at.Y-observer.Y, z = at.Z-observer.Z;
     if (!(std::isfinite(range) && range > 0 && x*x + y*y + z*z <= range*range)) {
-        BrtUiJournal::Note(actor,Stage::RangeRejected); return {};
+        BrtUiJournal::Note(actor,BrtUiJournal::Stage::RangeRejected); return false;
     }
+    return true;
+}
+
+inline std::optional<Info> Project(Hud* hud, Info info, const FVector& at, APBCharacter* actor)
+{
+    info.WorldLocation = at;
+    info.position = hud->Get2DPositionByLocation(at);
+    const auto u = hud->IconPositionUVClamp_U, v = hud->IconPositionUVClamp_V;
+    if (!(info.position.X >= u.X && info.position.X <= u.Y && info.position.Y >= v.X && info.position.Y <= v.Y)) {
+        BrtUiJournal::Note(actor,BrtUiJournal::Stage::ProjectionRejected); return {};
+    }
+    return info;
+}
+
+inline std::optional<Info> CaptureAt(Hud* hud, const FVector& at, EPBCamp camp, UPBMarkableComponent* key, const FVector& observer, APBCharacter* actor)
+{
+    using BrtUiJournal::Stage;
+    if (!InRange(hud,at,observer,actor)) return {};
     Info info{};
     const auto* cached = Lookup(hud->MapNodeInfo,key);
     if (!cached) cached = Lookup(hud->LastCaptureInfoNodeMap,key);
@@ -70,13 +93,30 @@ inline std::optional<Info> CaptureAt(Hud* hud, const FVector& at, EPBCamp camp, 
     info.Camp = camp;
     info.MarkableType = key->MarkableType;
     info.bMarked = true;
-    info.WorldLocation = at;
-    info.position = hud->Get2DPositionByLocation(at);
-    const auto u = hud->IconPositionUVClamp_U, v = hud->IconPositionUVClamp_V;
-    if (!(info.position.X >= u.X && info.position.X <= u.Y && info.position.Y >= v.X && info.position.Y <= v.Y)) {
-        BrtUiJournal::Note(actor,Stage::ProjectionRejected); return {};
-    }
-    return info;
+    return Project(hud,info,at,actor);
+}
+
+inline std::optional<Info> SupplyIcon(Hud* hud, UPBMarkableComponent* key, const FVector& observer, APBCharacter* actor)
+{
+    if (!UKismetSystemLibrary::IsValid(key) || !key->bLocalMarked || key->MarkableType != EPBMarkableType::InteractiveObj ||
+        !UKismetSystemLibrary::IsValid(key->MiniMapTexture)) return {};
+    auto* box = key->GetOwner();
+    if (!UKismetSystemLibrary::IsValid(box) || box->bHidden || !box->IsA(APBSupplyPoint::StaticClass())) return {};
+    auto* room = UGameplayStatics::GetGameState(actor);
+    if (!room || UGameplayStatics::GetGameState(box) != room) return {};
+    BrtUiJournal::Note(actor,BrtUiJournal::Stage::SupplyLocal);
+    const auto at = key->GetLocation();
+    if (!InRange(hud,at,observer,actor)) return {};
+    Info info{};
+    info.Camp = EPBCamp::Neutral;
+    const auto* stock = Lookup(hud->MapNodeInfo,key);
+    if (!stock) stock = Lookup(hud->LastCaptureInfoNodeMap,key);
+    if (stock && !stock->bIsLocal && stock->MarkableType == key->MarkableType && stock->Texture == key->MiniMapTexture)
+        info = *stock;
+    info.MarkableType = key->MarkableType;
+    info.Texture = key->MiniMapTexture;
+    info.bMarked = true;
+    return Project(hud,info,at,actor);
 }
 
 inline std::optional<Info> Capture(Hud* hud, const UPBIndicator* head, UPBMarkableComponent* key, const FVector& observer, APBCharacter* actor = nullptr)
@@ -94,9 +134,15 @@ inline bool Covered(Hud* hud, APlayerController* viewer, const Info& info)
         for (auto* unused : hud->NotUsedWidgetArray) if (unused == base) { pooled = true; break; }
         if (pooled) continue;
         const auto& stock = static_cast<Dot*>(base)->MiniMapIconInfo;
-        if (stock.bMarked && !stock.bIsLocal && stock.Camp == info.Camp && stock.MarkableType == info.MarkableType &&
-            stock.Texture == info.Texture && std::abs(stock.position.X - info.position.X) < 0.001f &&
-            std::abs(stock.position.Y - info.position.Y) < 0.001f) return true;
+        if (stock.bIsLocal || stock.MarkableType != info.MarkableType || stock.Texture != info.Texture) continue;
+        // 弹药箱是静止的本地标记。转身时原生点和补点可能相差一帧投影；
+        // 按实物位置交接，不能用对敌侦察的 bMarked 标志判断原生点是否可见。
+        if (info.MarkableType == EPBMarkableType::InteractiveObj) {
+            if (std::abs(stock.WorldLocation.X-info.WorldLocation.X) <= 1.f &&
+                std::abs(stock.WorldLocation.Y-info.WorldLocation.Y) <= 1.f &&
+                std::abs(stock.WorldLocation.Z-info.WorldLocation.Z) <= 1.f) return true;
+        } else if (stock.bMarked && stock.Camp == info.Camp && std::abs(stock.position.X - info.position.X) < 0.001f &&
+                   std::abs(stock.position.Y - info.position.Y) < 0.001f) return true;
     }
     return false;
 }
@@ -147,7 +193,8 @@ struct View {
 
     void Draw(Hud* hud, APlayerController* pc, UPBMarkableComponent* target, const Info& info, APBCharacter* actor = nullptr) {
         using BrtUiJournal::Stage;
-        if (Covered(hud,pc,info)) { BrtUiJournal::Note(actor,Stage::NativeDot); return; }
+        const bool supply = info.MarkableType == EPBMarkableType::InteractiveObj;
+        if (Covered(hud,pc,info)) { BrtUiJournal::Note(actor,supply ? Stage::SupplyNative : Stage::NativeDot); return; }
         auto it = std::find_if(extras.begin(),extras.end(),[&](const Extra& e) {
             return e.target.Resolve() == target && e.panel.Resolve() == hud->MiniMapNodeContainer;
         });
@@ -166,7 +213,7 @@ struct View {
             it = std::prev(extras.end());
         }
         dot->UpdateNode(info);
-        BrtUiJournal::Note(actor,Stage::DrewDot);
+        BrtUiJournal::Note(actor,supply ? Stage::SupplyDrawn : Stage::DrewDot);
         it->kept = true;
     }
 
@@ -175,10 +222,19 @@ struct View {
         if (hud && marks) {
             BrtUiJournal::Note(actor,BrtUiJournal::Stage::Scan);
             const auto observer = actor->K2_GetActorLocation();
+            // 零售弹药箱发布的是静态本地标记：不扫描世界 Actor，也不借用敌人的侦察名单。
+            const auto supply = [&](UPBMarkableComponent* key) {
+                if (auto info = SupplyIcon(hud,key,observer,actor)) Draw(hud,pc,key,*info,actor);
+            };
+            for (auto* key : marks->LocalMarkedArray) supply(key);
             const auto visit = [&](const auto& shown) {
                 for (const auto& item : shown) {
                     auto* target = item.Key();
                     auto* head = item.Value();
+                    if (UKismetSystemLibrary::IsValid(target) && target->MarkableType == EPBMarkableType::InteractiveObj) {
+                        if (VisibleIndicator(head,target,pc)) supply(target);
+                        continue;
+                    }
                     if (!OnScreen(head,target,pc)) continue;
                     BrtUiJournal::Note(actor,BrtUiJournal::Stage::Visible);
                     if (auto info = Capture(hud,head,target,observer,actor)) Draw(hud,pc,target,*info,actor);

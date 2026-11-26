@@ -22,7 +22,7 @@ fn room_port(text: &str) -> Option<u16> {
     }
     text.parse::<u16>()
         .ok()
-        .filter(|port| *port >= 1024 && ![6969, 8000, 9000].contains(port))
+        .filter(|port| core::fixed_host::valid_room_port(*port))
 }
 
 impl RoomAction {
@@ -363,6 +363,25 @@ mod tests {
                 }
                 paint(&window, 1260, 780);
             }
+            // 已关闭的房间和残留的“开启”回执都不能复制邀请或加入本机无关监听。
+            ui.invoke_join_own_room_clicked();
+            assert!(!ui.get_busy() && !ui.get_fixed_room_running());
+            controller.borrow_mut().finish_fixed_room(target.clone(), port, RoomAction::Start, Ok(RoomOutcome::Open));
+            ui.invoke_copy_room_invite_clicked(false);
+            assert!(!ui.get_fixed_room_running() && !ui.get_busy());
+
+            ui.invoke_join_server_clicked("brt://lan/127.0.0.1:7777".into());
+            assert!(ui.get_show_app_dialog() && !ui.get_busy());
+            ui.invoke_app_dialog_primary();
+            // 没连 VNT 的邀请停在组网页；保留实际端口，取消后不启动游戏/组网。
+            ui.invoke_join_server_clicked("brt://vnt/10.26.0.8:18777".into());
+            assert_eq!(ui.get_page(), 3);
+            assert_eq!(ui.get_vnt_game_port().as_str(), "18777");
+            assert_eq!(ui.get_pending_friend_invite().as_str(), "brt://vnt/10.26.0.8:18777");
+            assert!(!ui.get_vnt_running() && !ui.get_busy());
+            controller.borrow_mut().invite_auto_route = Some(("10.26.0.8:18777".parse()?, Instant::now()+Duration::from_secs(45)));
+            ui.invoke_cancel_room_invite_clicked();
+            assert!(ui.get_pending_friend_invite().is_empty() && controller.borrow().invite_auto_route.is_none());
             Ok(())
         })();
         ui.hide()?;

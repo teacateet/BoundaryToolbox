@@ -57,7 +57,7 @@ pub(crate) fn select_peer(
     let port = port
         .parse::<u16>()
         .ok()
-        .filter(|p| *p >= 1024 && ![6969, 8000, 9000].contains(p))
+        .filter(|p| crate::core::fixed_host::valid_room_port(*p))
         .ok_or(RoomError::InvalidPort)?;
     Ok(SocketAddrV4::new(peer, port))
 }

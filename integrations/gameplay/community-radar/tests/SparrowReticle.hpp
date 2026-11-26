@@ -30,6 +30,11 @@ struct FVector { float X=0, Y=0, Z=0; };
 struct FVector2D { float X=0,Y=0; };
 struct FString { explicit FString(const wchar_t*) {} std::wstring ToWString() const { return {}; } };
 struct APBPlayerState : UObject { int team{}; int GetTeamId() const {return team;} };
+struct APBGameState;
+struct AActor : UObject { bool bHidden=false; APBGameState* worldState{}; };
+struct APBSupplyPoint : AActor {
+    static int StaticClass(){return 109;} bool IsA(int cls) const override {return cls==StaticClass();}
+};
 struct APBCharacter;
 struct APlayerController : UObject {
     APBPlayerState* PlayerState{}; bool inside=true;
@@ -38,7 +43,7 @@ struct APlayerController : UObject {
     bool local=true; APBCharacter* pawn=nullptr;
     bool IsLocalPlayerController() const { return local; } APBCharacter* K2_GetPawn() const { return pawn; }
 };
-struct APBCharacter : UObject {
+struct APBCharacter : AActor {
     static int StaticClass(){return 108;} bool IsA(int cls) const override {return cls==108;} int TeamID{};
     bool alive=true,killed=false,radar=true; APlayerController* controller=nullptr; FVector at{};
     APlayerController* GetController() const { return controller; }
@@ -56,13 +61,15 @@ struct UWidget : UObject {
 struct UUserWidget : UWidget {};
 struct UCanvasPanel : UWidget {};
 struct UTexture2D : UObject {};
-enum class EPBCamp { Enemy, Ally };
-enum class EPBMarkableType { Character, Projectile };
+enum class EPBCamp { Enemy, Ally, Neutral };
+enum class EPBMarkableType { Character, Projectile, InteractiveObj, VitalObj };
 enum class EPBIndicatorStatus { InCircle, OnScreenAndOutOfCircle, Outside };
 enum class EPBMarkedStatus { SensorMark, ReconMark, VisionMark, RadarMark, None };
 struct UPBMarkableComponent : UObject {
     EPBMarkableType MarkableType=EPBMarkableType::Character; UTexture2D* MiniMapTexture=nullptr;
     bool clear=true; bool IsNotBlocked() const { return clear; }
+    bool bLocalMarked=false; AActor* owner{}; FVector at{};
+    AActor* GetOwner() const {return owner;} FVector GetLocation() const {return at;}
 };
 struct UPBIndicator : UUserWidget {
     UPBMarkableComponent* RelatedMarkable=nullptr; EPBCamp Camp=EPBCamp::Enemy;
@@ -70,9 +77,8 @@ struct UPBIndicator : UUserWidget {
     EPBMarkedStatus MarkedStatus=EPBMarkedStatus::VisionMark; FVector WorldLocation{};
 };
 struct UPBDynamicMarkableComponent : UPBMarkableComponent {
-    bool bMarked{}, bSharedMarked{}, bMarkedBySensor{}; APBCharacter* owner{};
+    bool bMarked{}, bSharedMarked{}, bMarkedBySensor{};
     TArray<APBPlayerState*> MarkCounterArray, SharedMarkCounterArray, SensorMarkCounterArray;
-    APBCharacter* GetOwner(){return owner;}
 };
 struct FPBMiniMapIconInfo {
     FVector WorldLocation{}; FVector2D position{}; UTexture2D* Texture=nullptr;
@@ -95,6 +101,7 @@ struct UUMG_HelmetHUD_MiniMap_C : UUserWidget {
 };
 struct UPBMarkerManager : UObject {
     TArray<UPBDynamicMarkableComponent*> MarkedArray, SharedMarkedArray, SensorMarkedArray;
+    TArray<UPBMarkableComponent*> LocalMarkedArray;
     static int StaticClass() { return 102; }
     TMap<UPBMarkableComponent*,UPBIndicator*> IndicatorMap,VisionMarkedMap,ForceMarkedMap;
 };
@@ -112,7 +119,7 @@ struct UKismetSystemLibrary {
 struct USlateBlueprintLibrary { static FVector2D GetLocalSize(FVector2D size) { return size; } };
 struct UGameplayStatics {
     static inline APBGameState* state=nullptr;
-    static APBGameState* GetGameState(APBCharacter*) { return state; }
+    static APBGameState* GetGameState(AActor* actor) { return actor && actor->worldState ? actor->worldState : state; }
 };
 struct USubsystemBlueprintLibrary {
     static inline UPBMarkerManager* manager=nullptr;

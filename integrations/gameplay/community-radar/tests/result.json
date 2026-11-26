@@ -1,10 +1,15 @@
 {
-  "headerSha256": "EF64CA388779E0420CE6A0903D29CABBCB46A3B657317F3075DDC05844F21A7D",
+  "headerSha256": "C20204DF28D8B71925623E6EC43C606D95652994869E1C88439E6D734B884860",
   "environment": "stateful local HUD fixture",
   "scenarios": {
+    "candidate": {
+      "passed": 72,
+      "failed": 0,
+      "failureNames": []
+    },
     "original": {
-      "passed": 23,
-      "failed": 25,
+      "passed": 38,
+      "failed": 34,
       "failureNames": [
         "FAIL visible_head_empty_native_tables",
         "FAIL project_from_visible_head",
@@ -26,17 +31,21 @@
         "FAIL previous_unmarked_capture_cannot_veto_visible_head",
         "FAIL visible_mark_uses_current_head_projection",
         "FAIL own_visible_mark_without_head",
+        "FAIL static_supply_without_enemy_or_head_uses_original_ammo_brush",
+        "FAIL pooled_native_supply_does_not_hide_ammo_icon",
+        "FAIL supply_reappears_on_reentering_hud_range",
+        "FAIL valid_public_supply_restored",
+        "FAIL local_visible_supply_indicator_without_registry_row",
+        "FAIL same_supply_in_hud_and_registry_drawn_once",
         "FAIL supported_pve_mode",
         "FAIL other_player_death_preserves_owner",
         "FAIL confirmed_respawn_restores",
         "FAIL signal_recovers_before_mode_change",
-        "FAIL hard_pve_mode_resumes"
+        "FAIL hard_pve_mode_resumes",
+        "FAIL live_pve_supply_visible",
+        "FAIL native_radar_signal_restores_one_supply",
+        "FAIL respawn_reattaches_one_supply"
       ]
-    },
-    "candidate": {
-      "passed": 48,
-      "failed": 0,
-      "failureNames": []
     }
   }
 }

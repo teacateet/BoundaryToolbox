@@ -85,6 +85,8 @@ export component AppWindow inherits Window {
     in-out property <bool> servers_loading: false;
     in-out property <string> fixed_room_port: "7777";
     in-out property <bool> fixed_room_pve;
+    in-out property <string> friend_input;
+    in-out property <string> pending_friend_invite;
     public pure function room-mode-center(pve: bool) -> Point {
         return rooms.mode-button-center(pve);
     }
@@ -155,6 +157,10 @@ export component AppWindow inherits Window {
     callback refresh_servers_clicked();
     callback copy_server_address_clicked(address: string);
     callback join_server_clicked(address: string);
+    callback join_clipboard_clicked();
+    callback copy_room_invite_clicked(vnt: bool);
+    callback join_own_room_clicked();
+    callback cancel_room_invite_clicked();
     callback start_fixed_room_clicked();
     callback stop_fixed_room_clicked();
     callback github_proxy_changed(proxy: string);
@@ -320,6 +326,9 @@ export component AppWindow inherits Window {
                 }
 
                 VntPage {
+                    pending_friend_invite: root.pending_friend_invite;
+                    join_invite_clicked => { root.join_server_clicked(root.pending_friend_invite); }
+                    cancel_invite_clicked => { root.cancel_room_invite_clicked(); }
                     busy: root.busy;
                     switch-page(page) => { root.page = page; }
                     width: parent.width;
@@ -379,6 +388,11 @@ export component AppWindow inherits Window {
                 }
 
                 rooms := ServersPage {
+                    friend_input <=> root.friend_input;
+                    vnt_ready: root.vnt_running && !root.vnt_busy;
+                    join_clipboard_clicked => { root.join_clipboard_clicked(); }
+                    copy_room_invite_clicked(vnt) => { root.copy_room_invite_clicked(vnt); }
+                    join_own_room_clicked => { root.join_own_room_clicked(); }
                     switch-page(page) => { root.page = page; }
                     width: parent.width;
                     height: content.page-height;
