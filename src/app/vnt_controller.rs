@@ -38,6 +38,11 @@ impl AppController {
 
     /// 启动本地并入的 VNT 核心，并将状态流式同步到 UI。
     pub(super) fn start_vnt(&mut self) {
+        if self.friend_room.is_some() {
+            self.show_error_dialog(self.tr("好友房正在连接", "Friend network active", "フレンドルームに接続中"),
+                self.tr("请先在「房间」断开好友房连接，再启动高级组网。", "Disconnect the friend room in Rooms before starting a custom network.", "「ルーム」でフレンド接続を切断してから詳細ネットワークを開始してください。"));
+            return;
+        }
         if !self.is_admin {
             self.show_error_dialog(
                 self.tr("联机", "Network", "ネットワーク"),

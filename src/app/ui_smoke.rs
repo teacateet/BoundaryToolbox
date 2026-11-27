@@ -169,7 +169,7 @@ fn workbench_actions_as_standard_user() -> Result<()> {
     frame(&w, 640, 480);
     nav(&w, 640, 1);
     assert_eq!(ui.get_page(), 2);
-    assert!(!ui.get_fixed_room_pve());
+    assert!(ui.get_fixed_room_pve());
     for (scale, width, height) in [(1.0, 640, 480), (1.5, 960, 720)] {
         w.dispatch_event(WindowEvent::ScaleFactorChanged { scale_factor: scale });
         frame(&w, width, height);
@@ -284,7 +284,7 @@ fn offline_no_tun_preference_allows_local_pve_lobby_preflight() -> Result<()> {
 }
 
 #[test]
-fn setup_guide_opens_and_visits_both_online_routes() -> Result<()> {
+fn setup_guide_finishes_on_friend_rooms_without_requiring_advanced_networking() -> Result<()> {
     let w = MinimalSoftwareWindow::new(RepaintBufferType::NewBuffer);
     slint::platform::set_platform(Box::new(Offscreen(w.clone())))?;
     let ui = AppWindow::new()?;
@@ -316,8 +316,8 @@ fn setup_guide_opens_and_visits_both_online_routes() -> Result<()> {
         (5, 410., 6, 0),
         (6, 520., 7, 0),
         (7, 520., 8, 2),
-        (8, 520., 9, 3),
-        (9, 520., 0, 3),
+        (8, 520., 9, 2),
+        (9, 520., 0, 2),
     ] {
         assert_eq!(ui.get_tutorial_step(), step);
         let pixels = frame(&w, 640, 480);

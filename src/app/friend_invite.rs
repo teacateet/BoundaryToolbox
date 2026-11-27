@@ -1,9 +1,11 @@
 use std::net::{IpAddr, Ipv4Addr, SocketAddrV4, UdpSocket};
+use uuid::Uuid;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum Invite {
     Lan(SocketAddrV4),
     Vnt(SocketAddrV4),
+    Friend { room: Uuid, peer: SocketAddrV4 },
 }
 
 fn lan_ip(ip: Ipv4Addr) -> bool {
@@ -34,6 +36,22 @@ impl Invite {
         if s.len() > 80 {
             return None;
         }
+        if let Some(payload) = s.strip_prefix("brt://room/") {
+            let (key, address) = payload.split_once('/')?;
+            if key.len() != 32 || !key.bytes().all(|c| c.is_ascii_hexdigit()) {
+                return None;
+            }
+            let room = Uuid::parse_str(key).ok()?;
+            let peer: SocketAddrV4 = address.parse().ok()?;
+            if room.get_version() != Some(uuid::Version::Random)
+                || room.get_variant() != uuid::Variant::RFC4122
+                || !peer.ip().is_private()
+                || !crate::core::fixed_host::valid_room_port(peer.port())
+            {
+                return None;
+            }
+            return Some(Self::Friend { room, peer });
+        }
         let (vnt, addr) = if let Some(s) = s.strip_prefix("brt://lan/") {
             (false, s)
         } else {
@@ -52,6 +70,7 @@ impl std::fmt::Display for Invite {
         match self {
             Self::Lan(peer) => write!(f, "brt://lan/{peer}"),
             Self::Vnt(peer) => write!(f, "brt://vnt/{peer}"),
+            Self::Friend { room, peer } => write!(f, "brt://room/{}/{peer}", room.simple()),
         }
     }
 }
@@ -101,6 +120,26 @@ pub(super) fn local_lan_ip(virtual_ip: Option<Ipv4Addr>) -> Option<Ipv4Addr> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn friend_room_invite_does_not_accept_another_server_or_public_target() {
+        let key = Uuid::new_v4();
+        let link = format!("brt://room/{}/10.193.43.8:18777", key.simple());
+        assert_eq!(Invite::parse(&link).unwrap().to_string(), link);
+        for bad in [
+            link.replace("10.193.43.8", "127.0.0.1"),
+            link.replace("10.193.43.8", "8.8.8.8"),
+            link.replace("10.193.43.8", "host.example"),
+            link.replace(":18777", ":6969"),
+            format!("{link}?server=other.example"),
+            format!("{link}/x"),
+            link.replace(
+                &key.simple().to_string(),
+                "00000000000000000000000000000000",
+            ),
+        ] {
+            assert!(Invite::parse(&bad).is_none());
+        }
+    }
     #[test]
     fn invites_carry_only_transport_host_and_actual_game_port() {
         for s in ["brt://lan/192.168.2.3:18888", "brt://vnt/10.26.0.8:65535"] {

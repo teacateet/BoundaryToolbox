@@ -26,8 +26,8 @@ export component TutorialOverlay inherits Rectangle {
         I18n.tr("返回出发页，准备安装社区环境。", "Return to Play to install the community components.", "出撃に戻り、コミュニティ環境を導入します。"),
         I18n.tr("安装需要游戏目录和管理员权限。也可以稍后安装。", "Installation requires a game directory and administrator access. You can install later.", "導入にはゲームフォルダーと管理者権限が必要です。後でも導入できます。"),
         I18n.tr("启用本机人机匹配后，进入原版大厅选择难度。地图自动轮换。", "Enable local PvE matchmaking, then choose the difficulty in the game lobby. Maps rotate automatically.", "ローカル PvE マッチを有効にして、ロビーで難易度を選択します。マップは自動で切り替わります。"),
-        I18n.tr("在联机的房间页选择 PvP 或 PvE，使用固定 UDP 端口开好友房。", "Open Rooms, choose PvP or PvE and host on a fixed UDP port.", "ルームで PvP または PvE を選び、固定 UDP ポートでフレンドルームを開けます。"),
-        I18n.tr("同一 LAN 可用地址直连。跨网络好友可在网络页设置联机会话。", "Friends on your LAN can join by address. For remote play, configure a session under Network.", "同じ LAN のフレンドはアドレスで参加できます。遠隔のフレンドとはネットワークで接続します。"),
+        I18n.tr("点「创建好友房」，默认合作人机。建好后点「复制好友邀请」，发给朋友，然后点「进入房间」。", "Create a friend room for co-op, copy the invite, send it to a friend, then enter.", "「フレンドルームを作成」で協力プレイを開始。招待をコピーして送り、ルームに入ります。"),
+        I18n.tr("朋友复制邀请，在「房间」点「粘贴并加入」就能进房。这里的高级网络设置可以跳过。", "Friends copy the invite and click Paste and join in Rooms. You can skip these custom network settings.", "フレンドは招待をコピーし、「ルーム」で「貼り付けて参加」を押します。詳細ネットワーク設定は省略できます。"),
         I18n.tr("在连接配置中可选择无网卡模式。连接后可从房间节点加入好友。", "Connection options include no-adapter mode. Once connected, join a friend from the peer list.", "接続設定ではアダプターなしを選べます。接続後にノード一覧からフレンドに参加できます。")
     ];
     private property <[string]> actions: [
@@ -38,7 +38,7 @@ export component TutorialOverlay inherits Rectangle {
         I18n.tr("安装社区环境", "Install components", "環境を導入"),
         I18n.tr("下一步", "Next", "次へ"),
         I18n.tr("联机 · 房间", "Multiplayer · Rooms", "マルチ · ルーム"),
-        I18n.tr("联机 · 网络", "Multiplayer · Network", "マルチ · ネットワーク"),
+        I18n.tr("知道了", "Got it", "了解"),
         I18n.tr("完成", "Finish", "完了")
     ];
     panel := Rectangle {

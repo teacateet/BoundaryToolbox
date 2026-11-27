@@ -294,6 +294,7 @@ impl AppController {
             vnt_server_model,
             vnt_peer_model,
             vnt_session: None,
+            friend_room: None,
             vnt_host_selection_pending: false,
             invite_auto_route: None,
             vnt_restart_after_stop: None,
@@ -545,6 +546,14 @@ impl AppController {
         }
         {
             let c = Rc::clone(controller);
+            app.on_share_friend_room_clicked(move || c.borrow_mut().share_friend_room());
+        }
+        {
+            let c = Rc::clone(controller);
+            app.on_disconnect_friend_room_clicked(move || c.borrow_mut().disconnect_friend_room());
+        }
+        {
+            let c = Rc::clone(controller);
             app.on_join_own_room_clicked(move || c.borrow_mut().join_own_room());
         }
         {
@@ -709,7 +718,9 @@ impl AppController {
         // 因为 Slint UI 对象不是 Send，所以工作线程只入队消息；
         // 该定时器在 UI 线程应用这些消息。
         log_timer.start(TimerMode::Repeated, Duration::from_millis(100), move || {
-            log_controller.borrow_mut().drain_messages();
+            let mut controller = log_controller.borrow_mut();
+            controller.drain_messages();
+            controller.check_friend_timeout();
         });
         std::mem::forget(log_timer);
 
@@ -746,6 +757,7 @@ impl AppController {
             self.ui.set_page(0);
             return;
         }
+        if page != 2 && self.ui.get_friend_room_working() { self.disconnect_friend_room(); }
 
         self.ui.set_feedback_copied(false);
         self.active_page.store(page, Ordering::Relaxed);
@@ -775,6 +787,7 @@ impl AppController {
     /// 在 UI 退出前停止后台会话。
     pub(super) fn shutdown(&mut self) {
         self.save_app_prefs();
+        self.friend_room = None;
         if let Some(session) = self.vnt_session.as_mut() {
             session.stop();
         }

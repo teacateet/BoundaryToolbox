@@ -40,8 +40,7 @@ impl AppController {
                 self.advance_tutorial_for_page(2);
             }
             8 => {
-                self.ui.set_page(3);
-                self.advance_tutorial_for_page(3);
+                self.set_tutorial_step(9);
             }
             _ => {}
         }
@@ -77,7 +76,6 @@ impl AppController {
             (1, 4) => self.set_tutorial_step(2),
             (4, 0) => self.set_tutorial_step(5),
             (7, 2) => self.set_tutorial_step(8),
-            (8, 3) => self.set_tutorial_step(9),
             _ => {}
         }
     }

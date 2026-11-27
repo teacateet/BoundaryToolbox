@@ -134,6 +134,7 @@ impl AppController {
             }
         };
         self.active_fixed_room = (outcome == RoomOutcome::Open).then_some((target, port));
+        if self.active_fixed_room.is_none() { self.close_friend_host(); }
         self.ui
             .set_fixed_room_running(self.active_fixed_room.is_some());
         let state = match outcome {

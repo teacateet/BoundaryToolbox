@@ -39,6 +39,7 @@ mod dialogs;
 mod drive_scan;
 mod fixed_room;
 mod friend_invite;
+mod friend_room;
 mod font;
 mod i18n;
 mod logging;
@@ -137,6 +138,7 @@ enum AppMessage {
     UpdateDownloadFailed(String),
     SystemCheckFinished(SystemCheckReport),
     VntEvent(VntEvent),
+    FriendRoomEvent(uuid::Uuid, VntEvent),
     InstallProgress(InstallProgress),
     ActionFinished {
         title: String,
@@ -199,6 +201,7 @@ struct AppController {
     vnt_server_model: Rc<VecModel<VntServerRow>>,
     vnt_peer_model: Rc<VecModel<VntPeerRow>>,
     vnt_session: Option<VntSession>,
+    friend_room: Option<friend_room::FriendSession>,
     vnt_host_selection_pending: bool,
     invite_auto_route: Option<(std::net::SocketAddrV4, std::time::Instant)>,
     vnt_restart_after_stop: Option<VntLaunchOptions>,

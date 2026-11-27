@@ -47,7 +47,7 @@ export component VntPage inherits Workbench {
         Command { label: I18n.tr("刷新状态", "Refresh status", "状態を更新"); enabled: !root.vnt_busy; clicked => { root.vnt_refresh_clicked(); } }
     }
     Reading { label: I18n.tr("会话状态", "Session", "接続状態"); value: root.vnt_status_text + "   " + root.vnt_detail_text; }
-    Value { text: I18n.tr("异地联机：双方连接同一组网，房主开房后复制组网邀请。已有邀请无需再填游戏端口或挑节点。", "For remote play, connect to the same private network. The host sends a room invite with the game port and peer selected for you.", "遠隔では同じ仮想 LAN に接続し、ホストのルーム招待を使います。招待にゲームポートとノードが含まれます。"); }
+    Value { text: I18n.tr("这里用于自定义组网。普通好友房在「房间」创建和加入，无需填写这里的选项。", "Use this page for custom networks. Create or join a friend room in Rooms without filling in these settings.", "詳細ネットワークの設定です。「ルーム」からのフレンド招待には設定は不要です。"); }
     if root.pending_friend_invite != "" : HorizontalLayout { spacing: 8px;
         Value { horizontal-stretch: 1; text: root.vnt_running ? I18n.tr("已保留好友邀请", "Friend invite saved", "招待を保持中") : I18n.tr("邀请已保留，请先连接房主所在的组网", "Invite saved. Connect to the host’s private network.", "招待を保持しました。ホストの仮想 LAN に接続してください。"); }
         Command { label: I18n.tr("加入邀请房间", "Join invited room", "招待のルームに参加"); enabled: root.vnt_running && !root.vnt_busy && !root.busy; emphasis: true; clicked => { root.join_invite_clicked(); } }

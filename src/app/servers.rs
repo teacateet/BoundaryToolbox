@@ -27,13 +27,14 @@ impl AppController {
         if applying { self.stop_vnt(); }
     }
 
-    fn open_room_port(&mut self) -> Option<u16> {
+    pub(super) fn open_room_port(&mut self) -> Option<u16> {
         if self.ui.get_busy() || !self.ui.get_fixed_room_running() { return None; }
         let (target, port) = self.active_fixed_room.as_ref()?;
         let port = *port;
         match core::fixed_host::owned_room_listening(target, port) {
             Ok(true) => Some(port),
             Ok(false) => {
+                self.close_friend_host();
                 self.active_fixed_room = None;
                 self.ui.set_fixed_room_running(false);
                 self.ui.set_fixed_room_error(false);
@@ -89,8 +90,10 @@ impl AppController {
     pub(super) fn join_friend_input(&mut self, s: &str) {
         use friend_invite::Invite;
         if self.ui.get_busy() { return; }
+        if self.ui.get_friend_room_working() { return; }
         self.clear_friend_invite();
         match Invite::parse(s) {
+            Some(Invite::Friend { room, peer }) => self.join_friend_room(room, peer),
             Some(Invite::Lan(endpoint)) => self.start_launch(LaunchMode::Join(endpoint)),
             Some(invite @ Invite::Vnt(peer)) => {
                 self.ui.set_pending_friend_invite(invite.to_string().into());
@@ -259,7 +262,7 @@ fn read_clipboard_address(window: &slint::Window) -> Result<String> {
 fn read_clipboard_address(_window: &slint::Window) -> Result<String> { bail!("Clipboard unavailable") }
 
 #[cfg(windows)]
-fn copy_text_to_clipboard(window: &slint::Window, text: &str) -> Result<()> {
+pub(super) fn copy_text_to_clipboard(window: &slint::Window, text: &str) -> Result<()> {
     let owner = clipboard_window(window)?;
     let wide_text = text
         .encode_utf16()
@@ -297,7 +300,7 @@ fn copy_text_to_clipboard(window: &slint::Window, text: &str) -> Result<()> {
 }
 
 #[cfg(not(windows))]
-fn copy_text_to_clipboard(_window: &slint::Window, _text: &str) -> Result<()> {
+pub(super) fn copy_text_to_clipboard(_window: &slint::Window, _text: &str) -> Result<()> {
     bail!("当前平台不支持复制到剪贴板");
 }
 

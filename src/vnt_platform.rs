@@ -94,6 +94,10 @@ pub struct VntSession {
 }
 
 impl VntSession {
+    #[cfg(test)]
+    pub(crate) fn without_network(options: &VntLaunchOptions) -> Self {
+        Self::pending(options).0
+    }
     fn pending(options: &VntLaunchOptions) -> (Self, oneshot::Receiver<()>) {
         let (stop_tx, stop_rx) = oneshot::channel();
         (

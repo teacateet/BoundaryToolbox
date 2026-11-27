@@ -84,7 +84,10 @@ export component AppWindow inherits Window {
     // 远程社区服列表状态。
     in-out property <bool> servers_loading: false;
     in-out property <string> fixed_room_port: "7777";
-    in-out property <bool> fixed_room_pve;
+    in-out property <bool> fixed_room_pve: true;
+    in property <bool> friend_room_connected;
+    in property <bool> friend_room_working;
+    in property <string> friend_room_notice;
     in-out property <string> friend_input;
     in-out property <string> pending_friend_invite;
     public pure function room-mode-center(pve: bool) -> Point {
@@ -162,6 +165,8 @@ export component AppWindow inherits Window {
     callback join_own_room_clicked();
     callback cancel_room_invite_clicked();
     callback start_fixed_room_clicked();
+    callback share_friend_room_clicked();
+    callback disconnect_friend_room_clicked();
     callback stop_fixed_room_clicked();
     callback github_proxy_changed(proxy: string);
     callback network_proxy_changed(proxy: string);
@@ -389,6 +394,11 @@ export component AppWindow inherits Window {
 
                 rooms := ServersPage {
                     friend_input <=> root.friend_input;
+                    friend_room_working: root.friend_room_working;
+                    friend_room_connected: root.friend_room_connected;
+                    friend_room_notice: root.friend_room_notice;
+                    share_friend_room_clicked => { root.share_friend_room_clicked(); }
+                    disconnect_friend_room_clicked => { root.disconnect_friend_room_clicked(); }
                     vnt_ready: root.vnt_running && !root.vnt_busy;
                     join_clipboard_clicked => { root.join_clipboard_clicked(); }
                     copy_room_invite_clicked(vnt) => { root.copy_room_invite_clicked(vnt); }

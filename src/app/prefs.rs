@@ -17,7 +17,7 @@ use windows::Win32::Storage::FileSystem::{
 use windows::core::PCWSTR;
 
 const PREFS_FILE_NAME: &str = "app_config.json";
-const DEFAULT_VNT_SERVER: &str = "101.35.230.139:6660";
+pub(super) const DEFAULT_VNT_SERVER: &str = "101.35.230.139:6660";
 
 /// 用户在联机页填写的持久化设置。
 #[derive(Debug, Clone, Serialize, Deserialize)]

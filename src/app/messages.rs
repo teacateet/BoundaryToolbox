@@ -280,6 +280,7 @@ impl AppController {
                 }
                 AppMessage::SystemCheckFinished(report) => self.apply_system_check_report(report),
                 AppMessage::VntEvent(event) => self.apply_vnt_event(event),
+                AppMessage::FriendRoomEvent(attempt, event) => self.friend_event(attempt, event),
                 AppMessage::ActionFinished {
                     title,
                     status,
