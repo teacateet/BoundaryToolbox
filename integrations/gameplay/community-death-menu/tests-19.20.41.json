@@ -1,0 +1,23 @@
+{
+  "release": "19.20.41",
+  "scope": "Controlled split-client local PvE UI regression. Both full AutoConnect.cpp translation units compile against the pinned retail SDK. Does not establish a particular player's live failure.",
+  "upstreamCommit": "74c68ac3e6007c36248c442a281c2b7b831cc53a",
+  "cases": 157,
+  "unmodifiedUpstreamPassed": 86,
+  "published19_20_40": {
+    "adapterSha256": "c49174082f8aac91badbe076a6d89a53d94b3e619401ac08b562dd7e5629bb66",
+    "passed": 152,
+    "failed": [
+      "persistent input lock after real Cancel and returned Leave restores the witnessed living pawn",
+      "sustained input lock behind verified returned Leave closes page and restores controls once",
+      "a real modal opened between closing a stuck page and restoring controls retains focus",
+      "a dropped native close retries for the live matching role and returns viewport controls",
+      "a second dropped close and duplicate confirmation never cause a third request"
+    ]
+  },
+  "candidate": {
+    "adapterSha256": "d48485d03734212ae45bd7376d9e461d4c8af99757c52e9a69569e229475046e",
+    "passed": 157,
+    "failed": []
+  }
+}

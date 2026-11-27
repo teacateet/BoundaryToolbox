@@ -73,7 +73,15 @@ $expectedBaseline = @(
     'confirmed repeat behind the twice returned original Leave closes once and permits a fourth death key',
     'locked repeat waits for real local control before retiring its page without taking focus',
     'a different next prompt or a held fourth death key keeps the original UI after successful close',
-    'confirmed different role behind the same returned Leave closes for its real new pawn and preserves the next death key'
+    'confirmed different role behind the same returned Leave closes for its real new pawn and preserves the next death key',
+    'sustained input lock behind verified returned Leave closes page and restores controls once',
+    'changed prompt or a fresh menu key during the lock cancels recovery',
+    'a real modal opened between closing a stuck page and restoring controls retains focus',
+    'a dropped native close retries for the live matching role and returns viewport controls',
+    'a second dropped close and duplicate confirmation never cause a third request',
+    'an intervening modal or a foreign first person view cannot retry a lost close',
+    'persistent input lock after real Cancel and returned Leave restores the witnessed living pawn',
+    'a different modal or a fresh menu key revokes post-Cancel focus recovery'
 )
 $results = [ordered]@{}
 foreach($kind in 'original','candidate'){
@@ -119,7 +127,7 @@ inline void EntryRoleAction(const std::function<void()>& original){constexpr boo
     [IO.File]::WriteAllLines((Join-Path $d 'tests.log'),[string[]]$lines,$utf8)
     $passed = @($lines -match '^PASS ')
     $failed = @($lines -match '^FAIL ' | ForEach-Object {$_.Substring(5)})
-    if($passed.Count+$failed.Count -ne 149 -or $lines.Count -ne 149){throw "Incomplete $kind results"}
+    if($passed.Count+$failed.Count -ne 157 -or $lines.Count -ne 157){throw "Incomplete $kind results"}
     if($kind -eq 'original'){
         if($code -ne 1 -or (Compare-Object $expectedBaseline $failed)){throw "Unexpected original results in $d"}
     }elseif($code -ne 0 -or $failed.Count){throw "Candidate failures in $d"}
@@ -127,4 +135,4 @@ inline void EntryRoleAction(const std::function<void()>& original){constexpr boo
 }
 $receipt = [ordered]@{source=$sourceRel;sourcePatch=(Get-FileHash -LiteralPath $patch).Hash;logic=(Get-FileHash -LiteralPath (Join-Path $dest 'DeathMenu.hpp')).Hash;adapter=(Get-FileHash -LiteralPath (Join-Path $dest 'DeathMenu.sdk.hpp')).Hash;reversible=$true;results=$results}
 [IO.File]::WriteAllText((Join-Path $run 'receipt.json'),($receipt|ConvertTo-Json -Depth 7),$utf8)
-Write-Output ("Original {0}/149, candidate {1}/149. {2}" -f $results.original.passed,$results.candidate.passed,$run)
+Write-Output ("Original {0}/157, candidate {1}/157. {2}" -f $results.original.passed,$results.candidate.passed,$run)

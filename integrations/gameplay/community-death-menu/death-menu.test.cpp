@@ -62,7 +62,7 @@ struct APBPlayerController : UObject
     bool local{true}, selectable{true}, bShowSelectRole{}, menu{};
     std::set<FName> pressed, down;
     int openings{};
-    int closings{}, gameFocus{};
+    int closings{}, gameFocus{}, ignoredCloseRequests{};
     int restartRequests{}, possessionChecks{};
     APBCharacter* pawn{};
     APBCharacter* AcknowledgedPawn{};
@@ -88,7 +88,11 @@ struct APBPlayerController : UObject
     bool WasInputKeyJustPressed(const FKey& k) const { return pressed.count(k.KeyName) > 0; }
     bool IsInputKeyDown(const FKey& k) const { return down.count(k.KeyName) > 0; }
     void OpenInGameSelectRoleMenu() { ++openings; bShowSelectRole = true; bShowMouseCursor = true; }
-    void CloseInGameSelectRoleMenu() { ++closings; bShowSelectRole = false; }
+    void CloseInGameSelectRoleMenu() {
+        ++closings;
+        if (ignoredCloseRequests) --ignoredCloseRequests;
+        else bShowSelectRole = false;
+    }
 };
 struct UWidgetBlueprintLibrary
 {
@@ -639,7 +643,7 @@ int main()
             s.leave.OnOptionButtonClick(1);
         } else s.leave.BP_OnHandleBackAction();
         s.pc.bShowMouseCursor=false;
-        if(variant>=16)s.pc.gameLocked=s.pc.moveLocked=s.pc.lookLocked=false;
+        if(variant>=16 && variant<32)s.pc.gameLocked=s.pc.moveLocked=s.pc.lookLocked=false;
         s.tick();
         if(variant==5)s.settle();else std::this_thread::sleep_for(145ms);
         s.show(variant==2?&s.otherPrompt:&s.leave);
@@ -647,6 +651,15 @@ int main()
         if(variant==3)s.pc.menu=s.pc.bShowMouseCursor=true;
         else s.pc.menu=s.pc.bShowMouseCursor=false;
         s.tick();if(variant<16)s.settle();
+        if(variant>=32) {
+            if(s.pc.gameFocus!=1 || !s.pc.lookLocked || !s.pc.moveLocked || !s.pc.gameLocked)return false;
+            if(variant==33){s.show(&s.otherPrompt);s.tick();s.show(&s.leave);}
+            else if(variant==34){s.key();s.tick();s.release();}
+            std::this_thread::sleep_for(510ms);s.tick();s.settle();
+            return (variant==32 ? !s.pc.gameLocked && !s.pc.moveLocked && !s.pc.lookLocked && s.pc.gameFocus==2 :
+                s.pc.gameLocked && s.pc.moveLocked && s.pc.lookLocked && s.pc.gameFocus==1) &&
+                !s.pc.possessionChecks && s.prompts.current==&s.leave && s.otherPrompt.back==0;
+        }
         if(variant==14){
             // 玩家生前主动用同一个控件重开真正的普通菜单，再正常关掉，不得借用原 Cancel。
             s.pc.menu=s.pc.bShowMouseCursor=true; s.tick();
@@ -693,6 +706,8 @@ int main()
     check("same prompt with different buttons cannot reuse a cancelled Leave", [&](Scene& s){return pooledLeave(s,13);});
     check("actual bound Cancel and natural control prime the very first next death key", [&](Scene& s){return pooledLeave(s,16);});
     check("working control behind a returned native Leave does not keep deployment pending", [&](Scene& s){return pooledLeave(s,17);});
+    check("persistent input lock after real Cancel and returned Leave restores the witnessed living pawn", [&](Scene& s){return pooledLeave(s,32);});
+    check("a different modal or a fresh menu key revokes post-Cancel focus recovery", [&](Scene& s){if(!pooledLeave(s,33))return false;Scene other;return pooledLeave(other,34);});
     check("a sampled dead release permits the native down-only rise to reopen only the verified Leave", [&](Scene& s){return pooledLeave(s,18);});
     check("down-only reuse requires a real released configured key and a subsequent menu opening", [&](Scene& s){if(!pooledLeave(s,19))return false;Scene a;if(!pooledLeave(a,20))return false;Scene b;return pooledLeave(b,21);});
     check("down-only reuse cannot originate in combat or cross an old or different death sample", [&](Scene& s){if(!pooledLeave(s,22))return false;Scene a;if(!pooledLeave(a,23))return false;Scene b;return pooledLeave(b,24);});
@@ -787,7 +802,7 @@ int main()
     check("the prompt must visibly leave the stack before any return and its identity stays visible", [&](Scene& s){if(!lostAfterCancel(s,37))return false;Scene a;return lostAfterCancel(a,39);});
     // 实机第 3 死：选回同干员，确认确已到达；旧 Leave 在开页后又退栈、复入。第 4 死仍要有独立的新键。
     auto repeatBehindLeave = [&](Scene& s,int variant){
-        const int cancel=1;const bool positive=variant<=1||variant==8||variant==23||variant==24;
+        const int cancel=1;const bool positive=variant<=1||variant==8||variant==23||variant==24||variant>=28;
         s.state.deaths=2;s.pc.StateName=L"Playing";s.leave.onBack=[&]{s.show(nullptr);s.pc.menu=false;};
         s.play();EntryConfirm(&s.pc,L"PEACE");s.state.SelectedCharacterID=L"PEACE";s.tick();s.tick();
         s.key();s.pc.menu=s.pc.bShowMouseCursor=true;s.show(&s.leave);s.tick();s.release();s.tick();s.possess();s.tick();
@@ -812,7 +827,7 @@ int main()
         if(variant==11)s.leave.owner=&s.other;
         if(variant==12)s.leave.visible=false;
         s.possess();s.newPawn.alive=true;s.pc.bShowMouseCursor=false;
-        s.pc.gameLocked=s.pc.moveLocked=s.pc.lookLocked=variant==1||variant==13;
+        s.pc.gameLocked=s.pc.moveLocked=s.pc.lookLocked=variant==1||variant==13||variant>=28;
         if(variant==14)s.pc.view=&s.other;
         if(variant==15)s.newPawn.owner=&s.other;
         if(variant==16)s.state.PossessedCharacterId=L"SPIKE";
@@ -828,6 +843,23 @@ int main()
         if(variant==1){
             if(!s.pc.bShowSelectRole||s.pc.closings!=closed||!s.pc.lookLocked||s.pc.gameFocus!=focus)return false;
             s.pc.gameLocked=s.pc.moveLocked=s.pc.lookLocked=false;s.tick();
+        }
+        if(variant>=28) {
+            // 刚占有时暂时锁输入很正常。只有同一已证实的背景连续保持，才能恢复。
+            if(!s.pc.bShowSelectRole||s.pc.closings!=closed||!s.pc.lookLocked||s.pc.gameFocus!=focus)return false;
+            if(variant==29){s.leave.OptionTitleTexts[1].value=L"QUIT";s.tick();}
+            if(variant==31){s.key();s.tick();s.release();}
+            std::this_thread::sleep_for(520ms);s.tick();
+            if(variant==30){s.show(&s.otherPrompt);s.pc.menu=s.pc.bShowMouseCursor=true;}
+            s.tick();s.settle();
+            if(variant==29||variant==31) return s.pc.bShowSelectRole && s.pc.closings==closed &&
+                s.pc.lookLocked && s.pc.gameFocus==focus && s.leave.back==back;
+            if(variant==30) return !s.pc.bShowSelectRole && s.pc.closings==closed+1 &&
+                s.prompts.current==&s.otherPrompt && s.pc.bShowMouseCursor && s.pc.lookLocked &&
+                s.pc.gameFocus==focus && s.otherPrompt.back==0;
+            return !s.pc.bShowSelectRole && s.pc.closings==closed+1 && s.pc.gameFocus==focus+1 &&
+                !s.pc.gameLocked && !s.pc.moveLocked && !s.pc.lookLocked && s.prompts.current==&s.leave &&
+                s.leave.back==back && s.pc.possessionChecks==checks;
         }
         if(!positive)return s.pc.closings==closed&&s.pc.bShowSelectRole&&s.leave.back==back&&s.pc.gameFocus==focus&&s.pc.possessionChecks==checks;
         if(s.pc.closings!=closed+1||s.pc.bShowSelectRole||s.prompts.current!=&s.leave||s.leave.back!=back||s.pc.gameFocus!=focus||s.pc.possessionChecks!=checks)return false;
@@ -854,6 +886,26 @@ int main()
     check("a different next prompt or a held fourth death key keeps the original UI after successful close", [&](Scene& s){if(!repeatBehindLeave(s,23))return false;Scene a;return repeatBehindLeave(a,24);});
     check("confirmed different role behind the same returned Leave closes for its real new pawn and preserves the next death key", [&](Scene& s){return repeatBehindLeave(s,8);});
     check("a different unconfirmed card or a later selected and possessed other role cannot close the deployment page", [&](Scene& s){if(!repeatBehindLeave(s,25))return false;Scene a;if(!repeatBehindLeave(a,26))return false;Scene b;return repeatBehindLeave(b,27);});
+    check("sustained input lock behind verified returned Leave closes page and restores controls once", [&](Scene& s){return repeatBehindLeave(s,28);});
+    check("changed prompt or a fresh menu key during the lock cancels recovery", [&](Scene& s){if(!repeatBehindLeave(s,29))return false;Scene other;return repeatBehindLeave(other,31);});
+    check("a real modal opened between closing a stuck page and restoring controls retains focus", [&](Scene& s){return repeatBehindLeave(s,30);});
+    auto lostClose = [](Scene& s,int variant) {
+        s.state.deaths=1;s.play();s.pc.ignoredCloseRequests=variant==1?2:1;
+        EntryConfirm(&s.pc,L"SPIKE");EntryConfirm(&s.pc,L"SPIKE");s.state.SelectedCharacterID=L"SPIKE";s.tick();
+        if(!s.pc.bShowSelectRole||s.pc.closings!=1)return false;
+        s.possess();s.tick();
+        if(variant==2){s.show(&s.otherPrompt);s.tick();s.show(nullptr);}
+        if(variant==3){s.pc.view=&s.other;s.tick();}
+        std::this_thread::sleep_for(520ms);s.tick();s.tick();s.settle();
+        if(variant>=2) return s.pc.bShowSelectRole && s.pc.closings==1 && s.pc.gameFocus==0 && s.pc.lookLocked;
+        if(variant==1){EntryConfirm(&s.pc,L"SPIKE");std::this_thread::sleep_for(550ms);s.tick();}
+        return s.pc.closings==2 && (variant==1 ? s.pc.bShowSelectRole && s.pc.gameFocus==0 :
+            !s.pc.bShowSelectRole && !s.pc.bShowMouseCursor && !s.pc.lookLocked && !s.pc.moveLocked &&
+            !s.pc.gameLocked && s.pc.gameFocus==2 && !s.pc.restartRequests);
+    };
+    check("a dropped native close retries for the live matching role and returns viewport controls", [&](Scene& s){return lostClose(s,0);});
+    check("a second dropped close and duplicate confirmation never cause a third request", [&](Scene& s){return lostClose(s,1);});
+    check("an intervening modal or a foreign first person view cannot retry a lost close", [&](Scene& s){if(!lostClose(s,2))return false;Scene other;return lostClose(other,3);});
 #endif
 #ifdef TEST_V084
     check("release reconnect delivers the same local session", [](Scene& s){ EntryReconnect(&s.origin,&s.local,"127.0.0.1:7908"); s.play(); return s.fixed(); });
