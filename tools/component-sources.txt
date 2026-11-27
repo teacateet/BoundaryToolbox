@@ -15,7 +15,7 @@ VNT, Apache License 2.0
 https://github.com/vnt-dev/vnt/tree/e088d305b1246086c3c16d54edf764effc68db6d
 See vnt-LICENSE.txt. The local integration uses the vendored v2 source.
 
-The player package includes BRT's live43 gameplay module, linked from the
+The player package includes BRT's live44-radar gameplay module, linked from the
 ProjectRebound source at commit 74c68ac3e6007c36248c442a281c2b7b831cc53a
 and BRT's local PvE patches. This is the release build, without development
 commands. Its CodeView record uses the PDB filename only.

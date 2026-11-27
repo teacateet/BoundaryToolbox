@@ -7,7 +7,7 @@ $run = Join-Path ([IO.Directory]::CreateDirectory($EvidenceRoot).FullName) ([gui
 $player = Join-Path $run 'unpacked'
 $target = Join-Path $run 'QA 游戏目录/ProjectBoundary/Binaries/Win64'
 $ship = 'ProjectBoundarySteam-Win64-Shipping.exe'
-$expected = 'dbacaf4a67fd953c90864df4b0205edb4c58b52784a9b028bc930a54017f6711'
+$expected = '40780fd95da980868e15ba8f6af898206ea67f6d66561c3f29a7097ef7673104'
 function Digest([string]$path) { (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() }
 function Check([bool]$condition, [string]$message) { if (!$condition) { throw $message } }
 function Install([string]$label, [bool]$success, [string]$message) {
@@ -34,7 +34,7 @@ Copy-Item -LiteralPath (Join-Path $RetailWin64 $ship) -Destination (Join-Path $t
 $gameHash = Digest (Join-Path $target $ship)
 Check ($gameHash -eq '181c49ffb522b3eb01014c84fd9d3a2a5c0b66ae80a6a6addff4bdd6f8125843') 'Unsupported game build'
 $dll = Join-Path $target 'Payload.dll'
-Install 'fresh' $true 'live43 已就绪'
+Install 'fresh' $true 'live44-radar 已就绪'
 Check ((Digest $dll) -eq $expected) 'Fresh install used the wrong component'
 $server = Join-Path $target 'BoundaryMetaServer-main'
 $node = Join-Path $target 'nodejs/node.exe'
@@ -63,6 +63,7 @@ $backups = @(Get-ChildItem -LiteralPath (Join-Path $target '.brt-payload-backups
 Check (($backups.Count -eq 1) -and ((Digest $backups[0].FullName) -eq $old) -and ((Digest $dll) -eq $expected)) 'Upgrade or backup verification failed'
 Install 'after-upgrade' $true '保持不变'
 $oldHashes = @{
+    live43='dbacaf4a67fd953c90864df4b0205edb4c58b52784a9b028bc930a54017f6711'
     live42='d679ad4f972b8a974a3dafb2e23d72076b14bbfa25448e203f1f0e92a3899c05'
     live41='b6195bf1a68e6ffe005888baf22dd12f91c4c8938e69de48702160dcad4b2bc0'
     live39='6982f63b4542429157b3a48f99bf2daa38cf7616d3dc47e1381817f221c1a30e'

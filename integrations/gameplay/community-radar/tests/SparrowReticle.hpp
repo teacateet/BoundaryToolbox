@@ -36,6 +36,13 @@ struct APBSupplyPoint : AActor {
     static int StaticClass(){return 109;} bool IsA(int cls) const override {return cls==StaticClass();}
 };
 struct APBCharacter;
+struct UPBDynamicMarkableComponent;
+struct AMarkActor_C : AActor {
+    struct {
+        AActor* MarkOwner_3_DD6BB39548A6E38B8E9D27BD82A51719{};
+        AActor* MarkTarget_5_1C9EF1EB484D46D6C0CF7BA74F365E89{};
+    } MarkResult;
+};
 struct APlayerController : UObject {
     APBPlayerState* PlayerState{}; bool inside=true;
     void GetViewportSize(int* w,int* h){*w=960; *h=540;}
@@ -45,10 +52,16 @@ struct APlayerController : UObject {
 };
 struct APBCharacter : AActor {
     static int StaticClass(){return 108;} bool IsA(int cls) const override {return cls==108;} int TeamID{};
+    UPBDynamicMarkableComponent* MarkableComponent{};
     bool alive=true,killed=false,radar=true; APlayerController* controller=nullptr; FVector at{};
     APlayerController* GetController() const { return controller; }
     bool IsAlive() const { return alive; } bool IsInKilledStatus() const { return killed; }
     bool IsInNormalRadarSignal() const { return radar; } FVector K2_GetActorLocation() const { return at; }
+};
+struct APBCharacter_BP_C : APBCharacter {
+    AMarkActor_C* Mark{};
+    static int StaticClass(){return 110;}
+    bool IsA(int cls) const override {return cls==StaticClass() || APBCharacter::IsA(cls);}
 };
 struct UWidget : UObject {
     bool visible=true, viewport=false; float opacity=1; FVector2D size{50,50};

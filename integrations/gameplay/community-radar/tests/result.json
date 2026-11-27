@@ -1,15 +1,10 @@
 {
-  "headerSha256": "C20204DF28D8B71925623E6EC43C606D95652994869E1C88439E6D734B884860",
+  "headerSha256": "E52B7843426B4DCB83F0D350BA071330458FB0CAD80D8ED1991B9BEF1606EF0B",
   "environment": "stateful local HUD fixture",
   "scenarios": {
-    "candidate": {
-      "passed": 72,
-      "failed": 0,
-      "failureNames": []
-    },
     "original": {
-      "passed": 38,
-      "failed": 34,
+      "passed": 48,
+      "failed": 41,
       "failureNames": [
         "FAIL visible_head_empty_native_tables",
         "FAIL project_from_visible_head",
@@ -31,6 +26,13 @@
         "FAIL previous_unmarked_capture_cannot_veto_visible_head",
         "FAIL visible_mark_uses_current_head_projection",
         "FAIL own_visible_mark_without_head",
+        "FAIL own_sight_lock_still_on_radar_after_turn",
+        "FAIL own_sensor_contact_on_radar_outside_player_sight",
+        "FAIL confirmed_shared_spot_without_head_or_camera",
+        "FAIL stock_manual_enemy_ping_without_any_vision_or_sensor_rows",
+        "FAIL manual_radar_tracks_target_while_ping_lives",
+        "FAIL same_enemy_manual_plus_pod_is_one_node",
+        "FAIL manual_ping_survives_pod_timeout",
         "FAIL static_supply_without_enemy_or_head_uses_original_ammo_brush",
         "FAIL pooled_native_supply_does_not_hide_ammo_icon",
         "FAIL supply_reappears_on_reentering_hud_range",
@@ -46,6 +48,11 @@
         "FAIL native_radar_signal_restores_one_supply",
         "FAIL respawn_reattaches_one_supply"
       ]
+    },
+    "candidate": {
+      "passed": 89,
+      "failed": 0,
+      "failureNames": []
     }
   }
 }

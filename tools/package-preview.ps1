@@ -30,6 +30,7 @@ if ([version]$version -ge [version]'19.20.35') {
         '19.20.37' { 'live41', 'b6195bf1a68e6ffe005888baf22dd12f91c4c8938e69de48702160dcad4b2bc0' }
         '19.20.38' { 'live42', 'd679ad4f972b8a974a3dafb2e23d72076b14bbfa25448e203f1f0e92a3899c05' }
         '19.20.39' { 'live43', 'dbacaf4a67fd953c90864df4b0205edb4c58b52784a9b028bc930a54017f6711' }
+        '19.20.40' { 'live44-radar', '40780fd95da980868e15ba8f6af898206ea67f6d66561c3f29a7097ef7673104' }
         default { throw 'Unpinned player component version' }
     }
     if (!$GameplayComponent -or (Get-FileHash -LiteralPath $GameplayComponent).Hash -ne $sha) {

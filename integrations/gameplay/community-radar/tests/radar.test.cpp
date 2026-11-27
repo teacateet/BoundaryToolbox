@@ -21,7 +21,7 @@ struct Seen {
     }
 };
 struct Scene {
-    APlayerController player,otherPlayer; APBCharacter pawn,otherPawn;
+    APlayerController player,otherPlayer; APBCharacter_BP_C pawn,otherPawn;
     UCanvasPanel panel,elsewhere; Map hud; GameMode mode; APBGameState state; UPBMarkerManager marks;
     Seen first{player,{100,0,0}},second{player,{-150,0,0}}; Radar::View view;
     Scene() {
@@ -157,6 +157,7 @@ void replicatedMarks() {
     s.otherPawn.at={100,0,0};
     UPBDynamicMarkableComponent marked;
     marked.owner=&s.otherPawn;
+    s.otherPawn.MarkableComponent=&marked;
     marked.MiniMapTexture=&s.first.texture;
     marked.bMarked=true;
     marked.MarkCounterArray.push_back(&other);
@@ -165,9 +166,42 @@ void replicatedMarks() {
     marked.MarkCounterArray.push_back(&me);
     s.pass(); check("own_visible_mark_without_head",s.added()==1);
     s.player.inside=false;
-    s.pass(); check("offscreen_replicated_mark_removed",s.added()==0);
+    s.pass(); check("own_sight_lock_still_on_radar_after_turn",s.added()==1);
     s.player.inside=true; marked.bMarked=false;
     s.pass(); check("expired_replicated_mark_removed",s.added()==0);
+    s.player.inside=false;marked.clear=false;marked.bMarkedBySensor=true;marked.SensorMarkCounterArray.push_back(&other);
+    s.marks.SensorMarkedArray.push_back(&marked);
+    s.pass();check("enemy_sensor_source_does_not_reveal_target",s.added()==0);
+    marked.SensorMarkCounterArray.push_back(&me);s.pass();
+    check("own_sensor_contact_on_radar_outside_player_sight",s.added()==1);
+    s.marks.SensorMarkedArray.clear();s.pass();
+    check("unrelated_registry_row_cannot_extend_sensor_contact",s.added()==0);
+    marked.bSharedMarked=true;marked.SharedMarkCounterArray.push_back(&me);s.marks.SharedMarkedArray.push_back(&marked);
+    s.pass();check("confirmed_shared_spot_without_head_or_camera",s.added()==1);
+    marked.bSharedMarked=false;s.pass();check("revoked_shared_mark_removed",s.added()==0);
+}
+
+void manualEnemy() {
+    Scene s;s.marks.IndicatorMap.Reset();s.player.inside=false;s.otherPawn.TeamID=1;
+    UPBDynamicMarkableComponent key;key.owner=&s.otherPawn;key.MiniMapTexture=&s.first.texture;key.clear=false;
+    s.otherPawn.MarkableComponent=&key;s.otherPawn.at={200,100,0};
+    AMarkActor_C ping;s.pawn.Mark=&ping;
+    auto& source=ping.MarkResult.MarkOwner_3_DD6BB39548A6E38B8E9D27BD82A51719;
+    auto& target=ping.MarkResult.MarkTarget_5_1C9EF1EB484D46D6C0CF7BA74F365E89;
+    source=&s.pawn;target=&s.otherPawn;s.pass();
+    check("stock_manual_enemy_ping_without_any_vision_or_sensor_rows",s.only() && s.only()->MiniMapIconInfo.Texture==key.MiniMapTexture);
+    s.otherPawn.at.X=390;s.pass();check("manual_radar_tracks_target_while_ping_lives",s.only() && s.only()->MiniMapIconInfo.WorldLocation.X==390);
+    s.otherPawn.at.X=1400;s.pass();check("manual_enemy_ping_outside_radar_range_removed",s.added()==0);s.otherPawn.at.X=390;
+    source=&s.otherPawn;s.pass();check("manual_ping_from_wrong_life_ignored",s.added()==0);source=&s.pawn;
+    AActor wall;target=&wall;s.pass();check("manual_mark_on_wall_is_not_an_enemy",s.added()==0);
+    target=nullptr;s.pass();check("manual_empty_space_is_not_an_enemy",s.added()==0);
+    target=&s.pawn;s.pass();check("manual_self_mark_not_an_enemy",s.added()==0);target=&s.otherPawn;
+    s.otherPawn.TeamID=0;s.pass();check("manual_mark_on_teammate_is_not_an_enemy",s.added()==0);s.otherPawn.TeamID=1;
+    s.otherPawn.alive=false;s.pass();check("dead_manually_marked_enemy_removed",s.added()==0);s.otherPawn.alive=true;
+    APBPlayerState me;s.player.PlayerState=&me;key.bMarkedBySensor=true;key.SensorMarkCounterArray.push_back(&me);
+    s.marks.SensorMarkedArray.push_back(&key);s.pass();check("same_enemy_manual_plus_pod_is_one_node",s.added()==1);
+    key.bMarkedBySensor=false;s.pass();check("manual_ping_survives_pod_timeout",s.added()==1);
+    ping.valid=false;s.pass();check("expired_manual_ping_retracts",s.added()==0);
 }
 
 // 零售 SupplyPoint_BP 的 PBMarkable 是静态组件：原版开启 bLocalMarked，
@@ -227,7 +261,7 @@ void supplyLifecycle(bool enabled) {
 int main(int argc,char** argv) {
     const bool enabled=argc==1;
     UKismetSystemLibrary::requested=enabled;
-    if(enabled){visibleAndNative();poolAndVisibility();rejectAndRecover();cacheAndTargets();staleMapRecord();replicatedMarks();supplyMarkers();}
+    if(enabled){visibleAndNative();poolAndVisibility();rejectAndRecover();cacheAndTargets();staleMapRecord();replicatedMarks();manualEnemy();supplyMarkers();}
     lifecycle(enabled);
     supplyLifecycle(enabled);
     std::printf("SUMMARY passed=%d failed=%d\n",passed,failed);

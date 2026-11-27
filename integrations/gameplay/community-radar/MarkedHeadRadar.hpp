@@ -124,6 +124,15 @@ inline std::optional<Info> Capture(Hud* hud, const UPBIndicator* head, UPBMarkab
     return CaptureAt(hud, head->WorldLocation, head->Camp, key, observer, actor);
 }
 
+inline APBCharacter* LivingEnemy(APBCharacter* actor, AActor* target)
+{
+    if (!UKismetSystemLibrary::IsValid(target) || target == actor || !target->IsA(APBCharacter::StaticClass())) return nullptr;
+    auto* enemy = static_cast<APBCharacter*>(target);
+    if (actor->TeamID < 0 || actor->TeamID > 1 || enemy->TeamID < 0 || enemy->TeamID > 1 ||
+        enemy->TeamID == actor->TeamID || !enemy->IsAlive() || enemy->IsInKilledStatus()) return nullptr;
+    return enemy;
+}
+
 inline bool Covered(Hud* hud, APlayerController* viewer, const Info& info)
 {
     for (auto* base : hud->DrewMap) {
@@ -243,37 +252,38 @@ struct View {
             visit(marks->IndicatorMap);
             visit(marks->VisionMarkedMap);
             visit(marks->ForceMarkedMap);
-            // 本机专服可先复制标记及其归属，之后才创建头顶控件。只接纳本方本帧可见的标记。
+            // 腰射按标记键会生成单独的 MarkActor；墙上的位置点也走这条路，但没有敌方角色目标。
+            if (actor->IsA(APBCharacter_BP_C::StaticClass())) {
+                auto* mark = static_cast<APBCharacter_BP_C*>(actor)->Mark;
+                if (UKismetSystemLibrary::IsValid(mark) &&
+                    mark->MarkResult.MarkOwner_3_DD6BB39548A6E38B8E9D27BD82A51719 == actor) {
+                    auto* enemy = LivingEnemy(actor,mark->MarkResult.MarkTarget_5_1C9EF1EB484D46D6C0CF7BA74F365E89);
+                    auto* key = enemy ? enemy->MarkableComponent : nullptr;
+                    if (UKismetSystemLibrary::IsValid(key) && key->GetOwner() == enemy && key->MarkableType == EPBMarkableType::Character) {
+                        if (auto info = CaptureAt(hud,enemy->K2_GetActorLocation(),EPBCamp::Enemy,key,observer,actor))
+                            Draw(hud,pc,key,*info,actor);
+                    }
+                }
+            }
+            // 本方已确认的侦察信号按游戏自己的名单失效；雷达不再重复主画面的视野判定。
             const auto mine = [&](const auto& sources) {
                 for (auto* source : sources)
                     if (UKismetSystemLibrary::IsValid(source) && (source == pc->PlayerState ||
                         (actor->TeamID >= 0 && actor->TeamID < 2 && source->GetTeamId() == actor->TeamID))) return true;
                 return false;
             };
-            const auto visitConfirmed = [&](const auto& list) {
+            const auto visitConfirmed = [&](const auto& list, const auto& confirmed) {
                 for (auto* key : list) {
-                    if (!UKismetSystemLibrary::IsValid(key) || key->MarkableType != EPBMarkableType::Character ||
-                        !((key->bMarked && mine(key->MarkCounterArray)) ||
-                          (key->bSharedMarked && mine(key->SharedMarkCounterArray)) ||
-                          (key->bMarkedBySensor && mine(key->SensorMarkCounterArray)))) continue;
-                    auto* owner = key->GetOwner();
-                    if (!UKismetSystemLibrary::IsValid(owner) || !owner->IsA(APBCharacter::StaticClass())) continue;
-                    auto* enemy = static_cast<APBCharacter*>(owner);
-                    if (!enemy->IsAlive() || enemy->IsInKilledStatus() || enemy->TeamID < 0 || enemy->TeamID > 1 ||
-                        actor->TeamID < 0 || actor->TeamID > 1 || enemy->TeamID == actor->TeamID || !key->IsNotBlocked()) continue;
-                    int width{}, height{};
-                    pc->GetViewportSize(&width, &height);
+                    if (!UKismetSystemLibrary::IsValid(key) || key->MarkableType != EPBMarkableType::Character || !confirmed(key)) continue;
+                    auto* enemy = LivingEnemy(actor,key->GetOwner());
+                    if (!enemy || enemy->MarkableComponent != key) continue;
                     const auto at = enemy->K2_GetActorLocation();
-                    FVector2D screen{};
-                    if (!pc->ProjectWorldLocationToScreen(at, &screen, true) ||
-                        !(screen.X >= 0 && screen.X < width && screen.Y >= 0 && screen.Y < height)) continue;
-                    BrtUiJournal::Note(actor,BrtUiJournal::Stage::Visible);
                     if (auto info = CaptureAt(hud, at, EPBCamp::Enemy, key, observer, actor)) Draw(hud,pc,key,*info,actor);
                 }
             };
-            visitConfirmed(marks->MarkedArray);
-            visitConfirmed(marks->SharedMarkedArray);
-            visitConfirmed(marks->SensorMarkedArray);
+            visitConfirmed(marks->MarkedArray,[&](auto* key) { return key->bMarked && mine(key->MarkCounterArray); });
+            visitConfirmed(marks->SharedMarkedArray,[&](auto* key) { return key->bSharedMarked && mine(key->SharedMarkCounterArray); });
+            visitConfirmed(marks->SensorMarkedArray,[&](auto* key) { return key->bMarkedBySensor && mine(key->SensorMarkCounterArray); });
         }
         std::erase_if(extras,[](const Extra& e){ if (e.kept) return false; e.Remove(); return true; });
     }

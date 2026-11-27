@@ -1,0 +1,118 @@
+{
+  "game": {
+    "steamBuild": 14530908,
+    "map": "MiniFarm",
+    "difficulty": "Normal",
+    "mode": "local PvE",
+    "isolatedSaveAndWindowsDesktop": true
+  },
+  "measure": "Enemy brush in the local owner radar canvas; visible node and inner image, nonzero opacity, correct target position and original role texture.",
+  "manual": {
+    "release": {
+      "run": "combined-1795783660281",
+      "front": {
+        "samples": 1,
+        "withIcon": 0
+      },
+      "turned": {
+        "samples": 4,
+        "withIcon": 0
+      }
+    },
+    "candidate": {
+      "run": "combined-1795784034984",
+      "front": {
+        "samples": 1,
+        "withIcon": 1
+      },
+      "turned": {
+        "samples": 4,
+        "withIcon": 4
+      },
+      "retargetToScenery": {
+        "enemyIcon": 0
+      }
+    },
+    "expired": {
+      "run": "combined-1795784778905",
+      "originalReferenceStillPresent": true,
+      "engineMarkValid": false,
+      "targetAlive": true,
+      "worldDistance": 537,
+      "radarUV": [
+        0.467,
+        0.475
+      ],
+      "enemyIcon": 0
+    }
+  },
+  "reconnaissanceProbe": {
+    "release": {
+      "run": "combined-1795783660281",
+      "front": {
+        "samples": 1,
+        "withIcon": 1
+      },
+      "turned": {
+        "samples": 5,
+        "withIcon": 0
+      }
+    },
+    "candidate": {
+      "run": "combined-1795784446295",
+      "serverScanMatchedEnemy": true,
+      "localPlayerInTargetSourceList": true,
+      "manualMarkOnTarget": false,
+      "front": {
+        "samples": 1,
+        "withIcon": 1
+      },
+      "turned": {
+        "samples": 5,
+        "withIcon": 5
+      },
+      "occludedSamplesWithIcon": 4,
+      "afterNativeUnmark": 0
+    }
+  },
+  "motionSensor": {
+    "run": "combined-1795785290960",
+    "alertedNearbyMovingEnemy": true,
+    "nativeOwnerHudAlert": true,
+    "enemySpecificMark": false,
+    "enemyIcon": 0
+  },
+  "verifiedBrush": {
+    "texture": "Tex_UI_IngameHUD_ICON_Role_Tank",
+    "size": [
+      24,
+      24
+    ]
+  },
+  "controlledHud": {
+    "passed": 89,
+    "failed": 0
+  },
+  "package": {
+    "baseRelease": "BRT 19.20.39 / live43",
+    "baseCommit": "c52cffa0aae59a0aeebc26a8aaaf91dc0893c403",
+    "label": "live44-radar",
+    "testedRadarSourceSha256": "e52b7843426b4dcb83f0d350ba071330458fb0cad80d8ed1991b9bef1606ef0b",
+    "testedPlayerSha256": "40780fd95da980868e15ba8f6af898206ea67f6d66561c3f29a7097ef7673104",
+    "playerRetailBoot": true,
+    "playerContainsDevRig": false,
+    "verifiedUpgradeAndRollback": [
+      "live41",
+      "live42",
+      "live43"
+    ],
+    "installedPreviousComponent": "live41",
+    "installedSha256Verified": true,
+    "backupSha256Verified": true
+  },
+  "limitations": [
+    "The retail HUD scenarios used the observation build with identical radar source; the uninstrumented player DLL was separately loaded by the retail client.",
+    "A node and brush readback is not a screenshot.",
+    "Other loadouts, PvP and remote clients were not tested."
+  ]
+}
