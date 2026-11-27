@@ -5,6 +5,8 @@ use std::time::{Duration, Instant};
 use uuid::Uuid;
 
 const WAIT: Duration = Duration::from_secs(45);
+// VNT 2 上游 README 的公共体验服；好友双方使用同一服务，邀请不能指定其他地址。
+const FRIEND_SERVER: &str = "vnt2.rustvnt.com:29872";
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Side {
@@ -33,7 +35,7 @@ fn network_options(room: Uuid, side: Side) -> VntLaunchOptions {
     // 邀请持有者可进房，仅向中转登记派生的房号。已有的手动组网密码不会被复制。
     let fingerprint = format!("{:x}", Sha256::digest(room.as_bytes()));
     VntLaunchOptions {
-        server_text: prefs::DEFAULT_VNT_SERVER.into(),
+        server_text: FRIEND_SERVER.into(),
         username: match side {
             Side::Host(_) => "BRT Host",
             Side::Guest(_) => "BRT Guest",
@@ -383,7 +385,8 @@ mod tests {
         assert_eq!(host.observe(&snapshot("10.193.43.8/24", &[])), None);
         let host_opts = network_options(key, Side::Host(18777));
         let guest_opts = network_options(room, Side::Guest(peer));
-        assert_eq!(host_opts.server_text, prefs::DEFAULT_VNT_SERVER);
+        assert_eq!(host_opts.server_text, FRIEND_SERVER);
+        assert_eq!(guest_opts.server_text, host_opts.server_text);
         assert_eq!(guest_opts.network_code, host_opts.network_code);
         assert_eq!(guest_opts.password, host_opts.password);
         assert_ne!(host_opts.password, host_opts.network_code);
@@ -476,21 +479,35 @@ mod tests {
         Ok(())
     }
 
-    // BRT_TEST_FRIEND_SERVER 只在测试程序里读取；发行版邀请不可改变组网服务器。
+    // 只在显式启动此测试时联网；可选内置服务或本机测试服务器，不接受其他远端地址。
     #[test]
-    #[ignore = "requires a loopback VNTS test server"]
+    #[ignore = "set BRT_TEST_FRIEND_SERVER to a loopback VNTS, builtin, or builtin-relay"]
     fn two_real_clients_exchange_game_udp_through_an_invite() -> Result<()> {
+        use anyhow::Context;
         use std::net::UdpSocket;
-        let server = std::env::var("BRT_TEST_FRIEND_SERVER")?.parse::<SocketAddrV4>()?;
-        anyhow::ensure!(server.ip().is_loopback());
+        let selector = std::env::var("BRT_TEST_FRIEND_SERVER")?;
+        let (local_server, relay_only) = match selector.as_str() {
+            "builtin" => (None, false),
+            "builtin-relay" => (None, true),
+            address => {
+                let address: SocketAddrV4 = address.parse()?;
+                anyhow::ensure!(address.ip().is_loopback());
+                (Some(address), false)
+            }
+        };
         let key = Uuid::new_v4();
         let game = UdpSocket::bind((Ipv4Addr::LOCALHOST, 0))?;
         game.set_read_timeout(Some(Duration::from_secs(18)))?;
         let port = game.local_addr()?.port();
-        let start = |side| -> Result<(FriendSession, Receiver<VntEvent>)> {
-            let mut o = network_options(key, side);
-            // 只替换注册服务器；端口映射、口令和组网角色都来自玩家路径。
-            o.server_text = server.to_string();
+        let start = |room, side| -> Result<(FriendSession, Receiver<VntEvent>)> {
+            let mut o = network_options(room, side);
+            if let Some(address) = local_server {
+                o.server_text = address.to_string();
+            }
+            if relay_only {
+                // 模拟无法点对点打洞的网络；游戏流量只能由内置公网服务转发。
+                o.no_punch = true;
+            }
             let (tx, rx) = unbounded();
             let transport = VntSession::start(
                 o,
@@ -501,7 +518,7 @@ mod tests {
             Ok((
                 FriendSession {
                     attempt: Uuid::new_v4(),
-                    room: key,
+                    room,
                     side,
                     transport,
                     waiting: Some(Instant::now() + WAIT),
@@ -516,6 +533,25 @@ mod tests {
                 match rx.recv_deadline(end)? {
                     VntEvent::Snapshot(snap) => {
                         if let Some(action) = s.observe(&snap) {
+                            if let Side::Guest(peer) = s.side {
+                                let route = snap
+                                    .peers
+                                    .iter()
+                                    .find(|p| {
+                                        p.online
+                                            && p.address.parse::<Ipv4Addr>().ok()
+                                                == Some(*peer.ip())
+                                    })
+                                    .context("missing online host")?;
+                                let transport = route.detail.split(" / ").next().unwrap_or("");
+                                if relay_only {
+                                    anyhow::ensure!(
+                                        transport == "服务器转发",
+                                        "expected relay: {transport}"
+                                    );
+                                }
+                                eprintln!("friend guest: host online; route = {transport}");
+                            }
                             return Ok(action);
                         }
                     }
@@ -523,7 +559,7 @@ mod tests {
                 }
             }
         };
-        let (mut host, h) = start(Side::Host(port))?;
+        let (mut host, h) = start(key, Side::Host(port))?;
         let Ready::Share(invite) = ready(&mut host, h)? else {
             bail!("missing host invite")
         };
@@ -533,13 +569,15 @@ mod tests {
             bail!("invalid issued invite")
         };
         anyhow::ensure!(room == key && peer.port() == port);
-        let (mut guest, g) = start(Side::Guest(peer))?;
+        eprintln!("friend host: registered; emitted invite for game port {port}");
+        let (mut guest, g) = start(room, Side::Guest(peer))?;
         let Ready::Join(entry) = ready(&mut guest, g)? else {
             bail!("guest has no game route")
         };
         let client = UdpSocket::bind((Ipv4Addr::LOCALHOST, 0))?;
         client.set_read_timeout(Some(Duration::from_secs(18)))?;
-        let payload = key.as_bytes();
+        let challenge = Uuid::new_v4();
+        let payload = challenge.as_bytes();
         let mut buffer = [0u8; 64];
         client.send_to(payload, entry)?;
         let (n, source) = game.recv_from(&mut buffer)?;
@@ -547,6 +585,7 @@ mod tests {
         game.send_to(b"host-reply", source)?;
         let (n, from) = client.recv_from(&mut buffer)?;
         anyhow::ensure!(&buffer[..n] == b"host-reply" && from == std::net::SocketAddr::V4(entry));
+        eprintln!("friend UDP: random payload received by host; reply received at {entry}");
         Ok(())
     }
 }
