@@ -310,14 +310,11 @@ fn setup_guide_finishes_on_friend_rooms_without_requiring_advanced_networking() 
     assert!(ui.get_feedback_copied());
     // 用离屏渲染的面板下缘定位操作行，文案换行不会改变点击目标。
     for (step, x, next, page) in [
-        (1, 520., 2, 4),
-        (2, 415., 4, 4),
-        (4, 520., 5, 0),
-        (5, 410., 6, 0),
-        (6, 520., 7, 0),
-        (7, 520., 8, 2),
-        (8, 520., 9, 2),
-        (9, 520., 0, 2),
+        (1, 520., 2, 0),
+        (2, 410., 3, 0),
+        (3, 520., 4, 0),
+        (4, 520., 5, 2),
+        (5, 520., 0, 2),
     ] {
         assert_eq!(ui.get_tutorial_step(), step);
         let pixels = frame(&w, 640, 480);
@@ -327,6 +324,7 @@ fn setup_guide_finishes_on_friend_rooms_without_requiring_advanced_networking() 
         click(&w, x, bottom as f32 - 30.);
         frame(&w, 640, 480);
         assert_eq!((ui.get_tutorial_step(), ui.get_page()), (next, page), "step {step}");
+        assert!(!ui.get_show_github_proxy_dialog());
     }
     assert!(!ui.get_tutorial_active());
     assert!(!ui.get_busy());

@@ -8,20 +8,23 @@ The profile component includes the upstream GNU AGPL v3 license, the public
 server source used for the supported release, and BRT's transformation scripts
 and patches. Decompress profile-runtime/release-084-code.json.gz to read the
 UTF-8 JSON mapping of original relative paths to their source text. The
-pack-release.cjs script lists the original release inputs. No player data,
-game definitions, game executable or Steam credentials are included here.
+pack-release.cjs script lists the original release inputs. No player saves,
+retail game executable or Steam credentials are included.
 
 VNT, Apache License 2.0
 https://github.com/vnt-dev/vnt/tree/e088d305b1246086c3c16d54edf764effc68db6d
 See vnt-LICENSE.txt. The local integration uses the vendored v2 source.
 
-The player package includes BRT's live44-radar gameplay module, linked from the
+The player package includes BRT's live45 gameplay module, linked from the
 ProjectRebound source at commit 74c68ac3e6007c36248c442a281c2b7b831cc53a
 and BRT's local PvE patches. This is the release build, without development
 commands. Its CodeView record uses the PDB filename only.
 
-Community installer: the retail game executable and Windows Node.js are not distributed in
-this preview. On player request BRT downloads the pinned author releases above
-and the Windows x64 runtime at https://nodejs.org/dist/v24.22.3/ using HTTPS.
-The runtime license is installed alongside node.exe. The BRT mark and launch
+Offline installer: components/offline includes only selected install files from
+the pinned Stable, V0.8.4 and Node.js v24.22.3 Windows x64 archives.
+https://nodejs.org/dist/v24.22.3/
+The server's bundled licenses and the Node.js license are kept. Upstream example
+player profiles, updater tools and npm are omitted. See tools/prepare-offline-deps.ps1
+and tools/offline-components.sha256 in the BRT source. Node's runtime license
+installs alongside node.exe. The BRT mark and launch
 page are original to this project; any Steam library art is read at runtime.

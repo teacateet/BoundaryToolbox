@@ -1,19 +1,20 @@
 #requires -Version 7.0
 [CmdletBinding()]
 param([Parameter(Mandatory)][string]$Archive, [Parameter(Mandatory)][string]$RetailWin64,
-      [Parameter(Mandatory)][string]$EvidenceRoot, [string[]]$PreviousPlayerArchive, [string]$DownloadCache)
+      [Parameter(Mandatory)][string]$EvidenceRoot, [string[]]$PreviousPlayerArchive)
 $ErrorActionPreference = 'Stop'
 $run = Join-Path ([IO.Directory]::CreateDirectory($EvidenceRoot).FullName) ([guid]::NewGuid().ToString('N'))
 $player = Join-Path $run 'unpacked'
 $target = Join-Path $run 'QA 游戏目录/ProjectBoundary/Binaries/Win64'
 $ship = 'ProjectBoundarySteam-Win64-Shipping.exe'
-$expected = '40780fd95da980868e15ba8f6af898206ea67f6d66561c3f29a7097ef7673104'
+$expected = 'aac377cf254d20793b165ba66213cc06caaf0dae300e22688b0c265fce9a3506'
 function Digest([string]$path) { (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() }
 function Check([bool]$condition, [string]$message) { if (!$condition) { throw $message } }
 function Install([string]$label, [bool]$success, [string]$message) {
     $stdout = Join-Path $run "$label.out"
     $stderr = Join-Path $run "$label.err"
-    $proc = Start-Process -FilePath (Join-Path $player 'BRT.exe') -ArgumentList @('--install-community', ('"' + $target + '"')) -WorkingDirectory $player -WindowStyle Hidden -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+    $noUpstream=@{HTTPS_PROXY='http://127.0.0.1:1';HTTP_PROXY='http://127.0.0.1:1';ALL_PROXY='http://127.0.0.1:1';NO_PROXY=''}
+    $proc = Start-Process -FilePath (Join-Path $player 'BRT.exe') -ArgumentList @('--install-community', ('"' + $target + '"')) -WorkingDirectory $player -Environment $noUpstream -WindowStyle Hidden -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
     if (!$proc.WaitForExit(720000)) { $proc.Kill(); throw "Installer timeout: $label" }
     $output = [IO.File]::ReadAllText($stdout) + [IO.File]::ReadAllText($stderr)
     Check (($proc.ExitCode -eq 0) -eq $success) "Unexpected installer exit: $label $output"
@@ -22,19 +23,23 @@ function Install([string]$label, [bool]$success, [string]$message) {
 }
 [void][IO.Directory]::CreateDirectory($target)
 [IO.Compression.ZipFile]::ExtractToDirectory((Resolve-Path -LiteralPath $Archive).Path, $player)
-if ($DownloadCache) {
-    # 复测升级时，可复用先前首次安装的三个下载；安装器仍逐个验证上游 SHA-256。
-    $cache = [IO.Directory]::CreateDirectory((Join-Path $player 'orbital_profile/downloads/community')).FullName
-    foreach ($name in 'rebound-base-stable.zip','rebound-0.8.4.zip','node-v24.22.3-win-x64.zip') {
-        Copy-Item -LiteralPath (Join-Path $DownloadCache $name) -Destination (Join-Path $cache $name)
-    }
-}
 # 不操作 Steam 原目录，只复制测试所需的本体文件。
 Copy-Item -LiteralPath (Join-Path $RetailWin64 $ship) -Destination (Join-Path $target $ship)
 $gameHash = Digest (Join-Path $target $ship)
 Check ($gameHash -eq '181c49ffb522b3eb01014c84fd9d3a2a5c0b66ae80a6a6addff4bdd6f8125843') 'Unsupported game build'
 $dll = Join-Path $target 'Payload.dll'
-Install 'fresh' $true 'live44-radar 已就绪'
+$part = Join-Path $player 'components/offline/base.zip'
+$hold = Join-Path $run 'base.zip'
+Copy-Item -LiteralPath $part -Destination $hold
+Remove-Item -LiteralPath $part
+Install 'missing-dependency' $false '缺少离线组件 base.zip'
+Check (@(Get-ChildItem -LiteralPath $target -Force).Count -eq 1) 'Missing offline component changed game directory'
+[IO.File]::WriteAllText($part, 'QA corrupt offline component')
+Install 'corrupt-dependency' $false '离线组件 base.zip 校验失败'
+Check (@(Get-ChildItem -LiteralPath $target -Force).Count -eq 1) 'Corrupt offline component changed game directory'
+Copy-Item -LiteralPath $hold -Destination $part -Force
+Install 'fresh' $true 'live45 已就绪'
+Check (!(Test-Path -LiteralPath (Join-Path $player 'orbital_profile/downloads/community'))) 'Offline install created a download cache'
 Check ((Digest $dll) -eq $expected) 'Fresh install used the wrong component'
 $server = Join-Path $target 'BoundaryMetaServer-main'
 $node = Join-Path $target 'nodejs/node.exe'
@@ -53,8 +58,8 @@ $profileHash = Digest $profile
 $configHash = Digest $config
 Install 'repeat' $true '保持不变'
 Check (!(Test-Path -LiteralPath (Join-Path $target '.brt-payload-backups'))) 'Repeat created a spurious backup'
-# 用安装程序刚下载并验证的上游包模拟旧版玩家。
-$upstream = [IO.Compression.ZipFile]::OpenRead((Join-Path $player 'orbital_profile/downloads/community/rebound-0.8.4.zip'))
+# 离线归档中的原版 DLL 与固定上游相同，用它模拟旧版玩家。
+$upstream = [IO.Compression.ZipFile]::OpenRead((Join-Path $player 'components/offline/server.zip'))
 try { [IO.Compression.ZipFileExtensions]::ExtractToFile($upstream.GetEntry('Payload.dll'), $dll, $true) } finally { $upstream.Dispose() }
 $old = Digest $dll
 Check ($old -eq 'acaaaf17837ac418cf1350c586ca7c06c8d62f04348e0a9dc3e4d6c77d43e455') 'Unexpected upstream component'
@@ -63,6 +68,7 @@ $backups = @(Get-ChildItem -LiteralPath (Join-Path $target '.brt-payload-backups
 Check (($backups.Count -eq 1) -and ((Digest $backups[0].FullName) -eq $old) -and ((Digest $dll) -eq $expected)) 'Upgrade or backup verification failed'
 Install 'after-upgrade' $true '保持不变'
 $oldHashes = @{
+    'live44-radar'='40780fd95da980868e15ba8f6af898206ea67f6d66561c3f29a7097ef7673104'
     live43='dbacaf4a67fd953c90864df4b0205edb4c58b52784a9b028bc930a54017f6711'
     live42='d679ad4f972b8a974a3dafb2e23d72076b14bbfa25448e203f1f0e92a3899c05'
     live41='b6195bf1a68e6ffe005888baf22dd12f91c4c8938e69de48702160dcad4b2bc0'
@@ -72,7 +78,7 @@ $oldHashes = @{
 foreach ($previousPath in $PreviousPlayerArchive) {
     $previous = [IO.Compression.ZipFile]::OpenRead((Resolve-Path -LiteralPath $previousPath).Path)
     try {
-        $entries = @($previous.Entries | Where-Object FullName -match '^components/gameplay/live\d+/Payload\.dll$')
+        $entries = @($previous.Entries | Where-Object FullName -match '^components/gameplay/live\d+(?:-radar)?/Payload\.dll$')
         Check ($entries.Count -eq 1) 'Expected a single supported previous player component'
         $label = $entries[0].FullName.Split('/')[2]
         Check ($oldHashes.ContainsKey($label)) 'Unsupported previous player component'

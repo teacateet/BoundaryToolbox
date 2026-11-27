@@ -354,9 +354,6 @@ impl AppController {
             app.on_open_github_proxy_dialog_clicked(move || {
                 let controller = controller.borrow_mut();
                 controller.ui.set_show_github_proxy_dialog(true);
-                if controller.ui.get_tutorial_active() && controller.ui.get_tutorial_step() == 2 {
-                    controller.ui.set_tutorial_step(3);
-                }
             });
         }
         {

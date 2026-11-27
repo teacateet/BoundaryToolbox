@@ -21,24 +21,16 @@ export component TutorialOverlay inherits Rectangle {
     TouchArea {}
     private property <[string]> notes: [
         I18n.tr("选择界面语言。安装遇到问题可联系反馈群。", "Choose your language. Contact the QQ group for installation help.", "表示言語を選択してください。導入の相談は QQ グループへ。"),
-        I18n.tr("设置中可以选择社区环境的下载代理。", "Select a download proxy in Settings.", "設定でダウンロード用プロキシを選べます。"),
-        I18n.tr("自动选择会使用可用的下载代理。", "Auto-select uses an available download proxy.", "利用可能なプロキシを自動で選択します。"),
-        I18n.tr("返回出发页，准备安装社区环境。", "Return to Play to install the community components.", "出撃に戻り、コミュニティ環境を導入します。"),
-        I18n.tr("安装需要游戏目录和管理员权限。也可以稍后安装。", "Installation requires a game directory and administrator access. You can install later.", "導入にはゲームフォルダーと管理者権限が必要です。後でも導入できます。"),
+        I18n.tr("确认 Steam 游戏目录，点「安装社区环境」。依赖已随完整 ZIP 提供，可以离线安装。", "Select your Steam game folder and install the included components. No download is needed.", "Steam のゲームフォルダーを選び、同梱の環境を導入します。オフラインで導入できます。"),
         I18n.tr("启用本机人机匹配后，进入原版大厅选择难度。地图自动轮换。", "Enable local PvE matchmaking, then choose the difficulty in the game lobby. Maps rotate automatically.", "ローカル PvE マッチを有効にして、ロビーで難易度を選択します。マップは自動で切り替わります。"),
         I18n.tr("点「创建好友房」，默认合作人机。建好后点「复制好友邀请」，发给朋友，然后点「进入房间」。", "Create a friend room for co-op, copy the invite, send it to a friend, then enter.", "「フレンドルームを作成」で協力プレイを開始。招待をコピーして送り、ルームに入ります。"),
-        I18n.tr("朋友复制邀请，在「房间」点「粘贴并加入」就能进房。这里的高级网络设置可以跳过。", "Friends copy the invite and click Paste and join in Rooms. You can skip these custom network settings.", "フレンドは招待をコピーし、「ルーム」で「貼り付けて参加」を押します。詳細ネットワーク設定は省略できます。"),
-        I18n.tr("在连接配置中可选择无网卡模式。连接后可从房间节点加入好友。", "Connection options include no-adapter mode. Once connected, join a friend from the peer list.", "接続設定ではアダプターなしを選べます。接続後にノード一覧からフレンドに参加できます。")
+        I18n.tr("朋友复制邀请，在「房间」点「粘贴并加入」。游玩时保持工具箱打开。", "Friends copy the invite and click Paste and join in Rooms. Keep the toolbox open while playing.", "フレンドは招待をコピーし、「ルーム」で「貼り付けて参加」を押します。プレイ中はツールを開いたままにしてください。")
     ];
     private property <[string]> actions: [
-        I18n.tr("打开设置", "Open settings", "設定を開く"),
-        I18n.tr("选择代理", "Select proxy", "プロキシを選択"),
-        I18n.tr("自动选择", "Auto-select", "自動選択"),
-        I18n.tr("返回出发", "Open Play", "出撃に戻る"),
+        I18n.tr("开始设置", "Get started", "設定を始める"),
         I18n.tr("安装社区环境", "Install components", "環境を導入"),
         I18n.tr("下一步", "Next", "次へ"),
         I18n.tr("联机 · 房间", "Multiplayer · Rooms", "マルチ · ルーム"),
-        I18n.tr("知道了", "Got it", "了解"),
         I18n.tr("完成", "Finish", "完了")
     ];
     panel := Rectangle {
@@ -51,7 +43,7 @@ export component TutorialOverlay inherits Rectangle {
             padding: 16px; spacing: 12px;
             HorizontalLayout {
                 Txt { text: I18n.tr("安装向导", "Setup guide", "導入ガイド"); color: #f5eee4; font-size: 20px; font-weight: 700; horizontal-stretch: 1; }
-                Caption { text: root.step + " / 9"; }
+                Caption { text: root.step + " / 5"; }
             }
             Value { text: root.notes[root.step - 1]; min-height: 40px; }
             if root.step == 1 : HorizontalLayout {
@@ -68,13 +60,12 @@ export component TutorialOverlay inherits Rectangle {
             HorizontalLayout { spacing: 8px;
                 Command { label: I18n.tr("退出向导", "Exit guide", "ガイドを閉じる"); clicked => { root.skip_clicked(); } }
                 Rectangle { horizontal-stretch: 1; }
-                if root.step == 2 : Command { label: I18n.tr("沿用当前代理", "Keep current proxy", "現在の設定を使う"); clicked => { root.next_clicked(); } }
-                if root.step == 5 : Command { label: I18n.tr("稍后安装", "Install later", "後で導入"); clicked => { root.next_clicked(); } }
+                if root.step == 2 : Command { label: I18n.tr("稍后安装", "Install later", "後で導入"); clicked => { root.next_clicked(); } }
                 Command { label: root.actions[root.step - 1]; emphasis: true;
-                    enabled: root.step != 5 || (root.has-target && root.is-admin);
+                    enabled: root.step != 2 || (root.has-target && root.is-admin);
                     clicked => {
-                        if root.step == 9 { root.finish_clicked(); }
-                        else if root.step == 6 { root.next_clicked(); }
+                        if root.step == 5 { root.finish_clicked(); }
+                        else if root.step == 3 { root.next_clicked(); }
                         else { root.target_clicked(root.step); }
                     }
                 }

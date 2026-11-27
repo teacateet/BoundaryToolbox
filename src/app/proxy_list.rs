@@ -446,7 +446,6 @@ impl AppController {
             core::now_text(),
             label
         ));
-        self.advance_tutorial_after_proxy_auto_selected();
     }
 
     fn current_tested_github_proxy_options(&self) -> Vec<GithubProxyOption> {

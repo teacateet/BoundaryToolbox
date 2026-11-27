@@ -454,7 +454,7 @@ impl AppController {
                         title: "安装".to_string(),
                         status: status.to_string(),
                         error: if cancel_token.is_cancelled() { error.to_string() } else {
-                            format!("{error:#}\n\nProjectRebound · {}\n可从出发页的 GitHub 入口查看发布包。", core::community_install::REPOSITORY)
+                            format!("{error:#}")
                         },
                     });
                 }

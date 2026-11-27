@@ -4,9 +4,11 @@ use std::{fs, io, os::windows::ffi::OsStrExt, path::{Path, PathBuf}};
 use uuid::Uuid;
 use windows::{Win32::Storage::FileSystem::{ReplaceFileW, REPLACE_FILE_FLAGS}, core::PCWSTR};
 
-pub(super) const SHA: &str = "40780fd95da980868e15ba8f6af898206ea67f6d66561c3f29a7097ef7673104";
+pub(super) const SHA: &str = "aac377cf254d20793b165ba66213cc06caaf0dae300e22688b0c265fce9a3506";
 const RETAIL: &str = "181c49ffb522b3eb01014c84fd9d3a2a5c0b66ae80a6a6addff4bdd6f8125843";
 const UPGRADABLE: &[&str] = &[
+    "38b24830120df106b636e7ce02163efdc1bd60ae9ab6134936ce515409685ac3", // live45 原始玩家组件
+    "40780fd95da980868e15ba8f6af898206ea67f6d66561c3f29a7097ef7673104", // 19.20.40 玩家包
     "232147d406128a23c6fd4b7fc5092dbb69d0494a5d303834d185fc6ae9823fb1", // live44-radar 原始玩家构建，安装时统一为随包文件
     "dbacaf4a67fd953c90864df4b0205edb4c58b52784a9b028bc930a54017f6711", // 19.20.39 玩家包
     "4e295446c880834e62b295db98775cd03bb7be067cc17ae5b475812ee06dffd0", // live43 原始发布构建
@@ -29,7 +31,7 @@ const UPGRADABLE: &[&str] = &[
 ];
 
 pub(super) fn validated_bundle(runtime: &Path, target: &Path) -> Result<PathBuf> {
-    let file = runtime.join("components/gameplay/live44-radar/Payload.dll");
+    let file = runtime.join("components/gameplay/live45/Payload.dll");
     ensure!(hash(&file).context("未能读取随包玩法组件，请完整解压新版 BRT")? == SHA,
         "随包玩法组件校验失败，请重新完整解压");
     ensure!(hash(&target.join(crate::core::GAME_EXE))? == RETAIL,

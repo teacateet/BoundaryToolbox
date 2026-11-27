@@ -1,20 +1,19 @@
-//! 从已校验的上游发布包补齐所选 Steam 安装；不运行下载内容。
+//! 离线校验随包的社区基础组件，只向玩家所选的 Steam 安装补齐文件。
 use super::{
     InstallCancelToken, InstallProgress, InstallerCore, ProgressReporter,
-    build_blocking_http_client, pathing::validate_win64_path,
+    pathing::validate_win64_path,
 };
 use anyhow::{Context, Result, bail, ensure};
 use sha2::{Digest, Sha256};
 use std::{
     fs::{self, File},
-    io::{self, Read, Write},
+    io::{self, Read, Seek},
     path::{Component, Path, PathBuf},
-    time::Duration,
 };
 use uuid::Uuid;
 use zip::ZipArchive;
-#[path = "live44_install.rs"]
-mod live44;
+#[path = "live45_install.rs"]
+mod live45;
 
 pub const REPOSITORY: &str = "https://github.com/STanJK/ProjectRebound";
 const META: &str = "BoundaryMetaServer-main/";
@@ -35,29 +34,7 @@ const REQUIRED: &[&str] = &[
     "BoundaryMetaServer-main/node_modules/protobufjs/package.json",
 ];
 
-#[derive(Clone, Copy)]
-struct Artifact {
-    name: &'static str,
-    url: &'static str,
-    sha: &'static str,
-}
-const ARTIFACTS: [Artifact; 3] = [
-    Artifact {
-        name: "rebound-base-stable.zip",
-        url: "https://github.com/STanJK/ProjectRebound/releases/download/Stable/Release.zip",
-        sha: "75b023aa985adb3156108fcaa9921f5f4c29e4660a49f63720562604c419e0d6",
-    },
-    Artifact {
-        name: "rebound-0.8.4.zip",
-        url: "https://github.com/STanJK/ProjectRebound/releases/download/V0.8.4/Release.zip",
-        sha: "fff143b06c2782d559a19c86d32979c09fdeaa29afcccc99a16637c70fc16094",
-    },
-    Artifact {
-        name: "node-v24.22.3-win-x64.zip",
-        url: "https://nodejs.org/dist/v24.22.3/node-v24.22.3-win-x64.zip",
-        sha: "e612af99f626ab415ea225af6bce5c971feb448cb5cae250bb1c3fa50c5f7d9f",
-    },
-];
+const OFFLINE_PINS: &str = include_str!("../../tools/offline-components.sha256");
 
 fn check(cancel: &InstallCancelToken) -> Result<()> {
     ensure!(!cancel.is_cancelled(), "安装已取消");
@@ -69,26 +46,26 @@ mod tests {
     use super::*;
     use std::{process::Command, sync::Arc};
     #[test]
-    fn retry_gateway_failure_but_return_permanent_error() -> Result<()> {
-        use std::{io::{BufRead, BufReader}, net::TcpListener};
-        let listener = TcpListener::bind("127.0.0.1:0")?;
-        let url = format!("http://{}/qa", listener.local_addr()?);
-        let server = std::thread::spawn(move || -> Result<()> {
-            for status in ["502 Bad Gateway", "200 OK", "404 Not Found"] {
-                let (mut peer, _) = listener.accept()?;
-                let mut lines = BufReader::new(peer.try_clone()?).lines();
-                while let Some(line) = lines.next() { if line?.is_empty() { break; } }
-                write!(peer, "HTTP/1.1 {status}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")?;
-            }
-            Ok(())
-        });
-        let client = reqwest::blocking::Client::builder().no_proxy().timeout(Duration::from_secs(4)).build()?;
-        assert!(get_archive(&client, &url, &InstallCancelToken::new())?.status().is_success());
-        let err = get_archive(&client, &url, &InstallCancelToken::new()).unwrap_err();
-        assert_eq!(err.downcast_ref::<reqwest::Error>().and_then(|e| e.status()).map(|s| s.as_u16()), Some(404));
-        server.join().expect("test server")?;
+    fn missing_or_corrupt_offline_component_fails_without_fetching() -> Result<()> {
+        let root = std::env::temp_dir().join(format!("brt-dep-{}", Uuid::new_v4()));
+        fs::create_dir(&root)?;
+        let part = root.join("server.zip");
+        let expected = format!("{:x}", Sha256::digest(b"fixture package"));
+        let cancel = InstallCancelToken::new();
+        assert!(verified_archive(&part, &expected, &cancel).unwrap_err().to_string().contains("缺少离线组件"));
+        fs::write(&part, b"fixture package")?;
+        let mut verified = verified_archive(&part, &expected, &cancel)?;
+        let mut data = Vec::new();
+        verified.read_to_end(&mut data)?;
+        assert_eq!(data, b"fixture package");
+        drop(verified);
+        fs::write(&part, b"corrupt")?;
+        assert!(verified_archive(&part, &expected, &cancel).unwrap_err().to_string().contains("校验失败"));
+        fs::remove_file(&part)?;
+        fs::remove_dir(root)?;
         Ok(())
     }
+
     #[test]
     fn excludes_player_data_and_legacy_tools() {
         for path in [
@@ -138,7 +115,7 @@ mod tests {
         Ok(())
     }
     #[test]
-    #[ignore = "downloads pinned upstream releases and runs the isolated Node runtime"]
+    #[ignore = "requires a retail executable and the extracted offline BRT player package"]
     fn upstream_install_into_clean_game_directory() -> Result<()> {
         let game = PathBuf::from(
             std::env::var_os("BOUNDARY_QA_WIN64").context("Missing BOUNDARY_QA_WIN64")?,
@@ -157,7 +134,7 @@ mod tests {
         let progress: ProgressReporter = Arc::new(|_| {});
         let first = core.install_community(&dst, progress.clone(), InstallCancelToken::new())?;
         assert!(first.contains("已补齐"));
-        assert_eq!(hash(&dst.join("Payload.dll"))?, live44::SHA);
+        assert_eq!(hash(&dst.join("Payload.dll"))?, live45::SHA);
         let files = crate::core::process::launch_files(&dst);
         let config: serde_json::Value = serde_json::from_slice(&fs::read(dst.join("ServerLauncher/serverconfig.json"))?)?;
         assert_eq!(config["difficulty"], "normal");
@@ -230,88 +207,33 @@ fn selected(group: usize, name: &str) -> Option<&str> {
     }
 }
 
-fn get_archive(client: &reqwest::blocking::Client, url: &str, cancel: &InstallCancelToken) -> Result<reqwest::blocking::Response> {
-    for attempt in 0..3 {
+fn verified_archive(path: &Path, expected: &str, cancel: &InstallCancelToken) -> Result<File> {
+    let name = path.file_name().unwrap_or_default().to_string_lossy();
+    let mut file = File::open(path).with_context(|| format!(
+        "缺少离线组件 {name} 或无法读取。请将完整玩家 ZIP 重新解压到新文件夹，再运行其中的 BRT.exe。"
+    ))?;
+    let mut sha = Sha256::new();
+    let mut buffer = [0u8; 64 * 1024];
+    loop {
         check(cancel)?;
-        match client.get(url).header("User-Agent", "Boundary-Resurrection-Toolkit").send().and_then(|r| r.error_for_status()) {
-            Ok(response) => return Ok(response),
-            Err(err) => {
-                let transient = err.is_connect() || err.is_timeout() || err.status().is_some_and(|s| matches!(s.as_u16(), 408 | 502 | 503 | 504));
-                if attempt == 2 || !transient { return Err(err.into()); }
-                for _ in 0..10 * (attempt + 1) {
-                    check(cancel)?;
-                    std::thread::sleep(Duration::from_millis(100));
-                }
-            }
-        }
+        let read = file.read(&mut buffer)?;
+        if read == 0 { break; }
+        sha.update(&buffer[..read]);
     }
-    unreachable!()
-}
-
-fn obtain(
-    cache: &Path,
-    art: Artifact,
-    proxy: &str,
-    cancel: &InstallCancelToken,
-    changed: &dyn Fn(f32),
-) -> Result<PathBuf> {
-    let path = cache.join(art.name);
-    if path.is_file() && hash(&path)? == art.sha {
-        return Ok(path);
-    }
-    let tmp = cache.join(format!("{}.part-{}", art.name, Uuid::new_v4()));
-    let result = (|| -> Result<()> {
-        let client = build_blocking_http_client(proxy)?
-            .connect_timeout(Duration::from_secs(15))
-            .timeout(Duration::from_secs(210))
-            .build()?;
-        let mut response = get_archive(&client, art.url, cancel)?;
-        let mut file = File::create_new(&tmp)?;
-        let total = response.content_length().unwrap_or(0);
-        let mut written = 0u64;
-        let mut last_percent = 0;
-        let mut sha = Sha256::new();
-        let mut buf = [0u8; 64 * 1024];
-        loop {
-            check(cancel)?;
-            let n = response.read(&mut buf)?;
-            if n == 0 {
-                break;
-            }
-            written += n as u64;
-            ensure!(written <= 128 * 1024 * 1024, "安装归档超过大小限制");
-            file.write_all(&buf[..n])?;
-            sha.update(&buf[..n]);
-            if total > 0 && written.saturating_mul(100) / total > last_percent {
-                last_percent = written.saturating_mul(100) / total;
-                changed(last_percent.min(100) as f32 / 100.0);
-            }
-        }
-        ensure!(
-            format!("{:x}", sha.finalize()) == art.sha,
-            "{} 的 SHA-256 不符",
-            art.name
-        );
-        file.sync_all()?;
-        drop(file);
-        fs::rename(&tmp, &path)?;
-        Ok(())
-    })();
-    if result.is_err() {
-        let _ = fs::remove_file(&tmp);
-    }
-    result.with_context(|| format!("获取 {} 失败：{}", art.name, art.url))?;
-    Ok(path)
+    ensure!(format!("{:x}", sha.finalize()) == expected,
+        "离线组件 {name} 校验失败。请重新解压完整玩家 ZIP，再点「安装社区环境」。");
+    file.rewind()?;
+    Ok(file)
 }
 
 fn extract(
-    archives: &[PathBuf],
+    archives: Vec<File>,
     stage: &Path,
     cancel: &InstallCancelToken,
 ) -> Result<Vec<PathBuf>> {
     let mut files = Vec::new();
-    for (group, p) in archives.iter().enumerate() {
-        let mut z = ZipArchive::new(File::open(p)?)?;
+    for (group, file) in archives.into_iter().enumerate() {
+        let mut z = ZipArchive::new(file)?;
         for i in 0..z.len() {
             check(cancel)?;
             let mut entry = z.by_index(i)?;
@@ -445,16 +367,14 @@ impl InstallerCore {
             "请选择游戏本体所在的 Win64 目录"
         );
         check(&cancel)?;
-        let bundled = live44::validated_bundle(&self.runtime_dir, target)?;
-        let payload = live44::inspect(target)?;
+        let bundled = live45::validated_bundle(&self.runtime_dir, target)?;
+        let payload = live45::inspect(target)?;
         if present(target) {
-            let changed = live44::finish(target, &bundled, &payload)?;
+            let changed = live45::finish(target, &bundled, &payload)?;
             return Ok(if changed {
-                "已更新本地人机玩法至 live44-radar，已备份旧组件并保留玩家配装。".into()
-            } else { "已安装 live44-radar；现有组件和玩家配装均保持不变。".into() });
+                "已更新本地人机玩法至 live45，已备份旧组件并保留玩家配装。".into()
+            } else { "已安装 live45；现有组件和玩家配装均保持不变。".into() });
         }
-        let cache = self.installer_home.join("downloads/community");
-        fs::create_dir_all(&cache)?;
         let notify = |value, title: &str, detail: &str| {
             progress(InstallProgress {
                 value,
@@ -462,46 +382,38 @@ impl InstallerCore {
                 detail: detail.to_owned(),
             })
         };
+        let source = self.runtime_dir.join("components/offline");
         let mut archives = Vec::new();
-        for (index, art) in ARTIFACTS.iter().enumerate() {
-            let changed = |fraction| {
-                notify(
-                    (index as f32 + fraction) / 4.0,
-                    "下载并校验社区组件",
-                    art.name,
-                )
-            };
-            changed(0.0);
-            archives.push(obtain(
-                &cache,
-                *art,
-                &self.network_proxy_url(),
-                &cancel,
-                &changed,
-            )?);
+        for (index, pin) in OFFLINE_PINS.lines().enumerate() {
+            let (digest, name) = pin.split_once("  ").context("无效的内置组件清单")?;
+            notify(index as f32 / 4.0, "校验随包离线组件", name);
+            archives.push(verified_archive(&source.join(name), digest, &cancel)?);
         }
-        let stage = cache.join(format!("stage-{}", Uuid::new_v4()));
+        let scratch = self.installer_home.join("install");
+        fs::create_dir_all(&scratch)?;
+        let stage = scratch.join(format!("stage-{}", Uuid::new_v4()));
+
         fs::create_dir(&stage)?;
         let result = (|| -> Result<String> {
             notify(0.77, "校验安装文件", "正在检查现有组件与档案。");
-            let mut files = extract(&archives, &stage, &cancel)?;
+            let mut files = extract(archives, &stage, &cancel)?;
             if payload.is_some() {
                 files.retain(|p| p != Path::new("Payload.dll"));
             } else {
                 fs::copy(&bundled, stage.join("Payload.dll"))?;
-                ensure!(hash(&stage.join("Payload.dll"))? == live44::SHA, "玩法组件校验失败");
+                ensure!(hash(&stage.join("Payload.dll"))? == live45::SHA, "玩法组件校验失败");
             }
             let add = pending(target, &stage, &files)?;
             check(&cancel)?;
             notify(0.90, "安装社区组件", "仅补齐缺失文件，保留现有房间配置。");
             publish(&stage, target, &add, &cancel)?;
-            live44::finish(target, &bundled, &payload)?;
+            live45::finish(target, &bundled, &payload)?;
             if !present(target) {
                 bail!("安装目录的文件在操作期间发生变化，请重新检查");
             }
-            notify(1.0, "安装完成", "ProjectRebound V0.8.4 · BRT live44-radar");
+            notify(1.0, "安装完成", "ProjectRebound V0.8.4 · BRT live45");
             Ok(format!(
-                "社区环境安装完成：已补齐 {} 个文件，live44-radar 已就绪。现在可以进入原版大厅。",
+                "社区环境安装完成：已补齐 {} 个文件，live45 已就绪。现在可以进入原版大厅。",
                 add.len()
             ))
         })();

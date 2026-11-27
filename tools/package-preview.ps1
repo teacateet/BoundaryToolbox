@@ -1,6 +1,6 @@
 #requires -Version 7.0
 [CmdletBinding()]
-param([string]$OutputDirectory, [string]$Executable, [string]$GameplayComponent)
+param([string]$OutputDirectory, [string]$Executable, [string]$GameplayComponent, [string]$OfflineDirectory)
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 if (!$Executable) { $Executable = Join-Path $root 'target/release/BRT.exe' }
@@ -31,12 +31,22 @@ if ([version]$version -ge [version]'19.20.35') {
         '19.20.38' { 'live42', 'd679ad4f972b8a974a3dafb2e23d72076b14bbfa25448e203f1f0e92a3899c05' }
         '19.20.39' { 'live43', 'dbacaf4a67fd953c90864df4b0205edb4c58b52784a9b028bc930a54017f6711' }
         '19.20.40' { 'live44-radar', '40780fd95da980868e15ba8f6af898206ea67f6d66561c3f29a7097ef7673104' }
+        '19.20.41' { 'live45', 'aac377cf254d20793b165ba66213cc06caaf0dae300e22688b0c265fce9a3506' }
         default { throw 'Unpinned player component version' }
     }
     if (!$GameplayComponent -or (Get-FileHash -LiteralPath $GameplayComponent).Hash -ne $sha) {
         throw 'Player release requires the verified distributable gameplay component.'
     }
     $files["components/gameplay/$label/Payload.dll"] = (Resolve-Path -LiteralPath $GameplayComponent).Path
+}
+if ($version -eq '19.20.41'){
+    if (!$OfflineDirectory) {throw 'Use prepare-offline-deps.ps1 and specify its output directory.'}
+    foreach($pin in Get-Content -LiteralPath (Join-Path $PSScriptRoot 'offline-components.sha256')){
+        if ($pin -cnotmatch '^([a-f0-9]{64})  (base|server|node)\.zip$'){throw 'Invalid offline dependency pin'}
+        $expected=$Matches[1];$name=$Matches[2]+'.zip';$path=Join-Path $OfflineDirectory $name
+        if ((Get-FileHash -LiteralPath $path).Hash -ine $expected){throw "Incorrect offline dependency: $name"}
+        $files.Add("components/offline/$name",(Resolve-Path -LiteralPath $path).Path)
+    }
 }
 $files['components/SOURCES.txt'] = Join-Path $root 'tools/component-sources.txt'
 $files['components/vnt-LICENSE.txt'] = Join-Path $root 'vendor/vnt/LICENSE'
