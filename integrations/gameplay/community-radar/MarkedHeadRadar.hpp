@@ -63,8 +63,16 @@ inline bool InRange(Hud* hud, const FVector& at, const FVector& observer, APBCha
     return true;
 }
 
-inline std::optional<Info> Project(Hud* hud, Info info, const FVector& at, APBCharacter* actor)
+struct RadarPlane { FVector origin, up; };
+
+inline std::optional<Info> Project(Hud* hud, Info info, const FVector& at, const RadarPlane& plane, APBCharacter* actor)
 {
+    // 原版 UpdateNode 把 Size.Y 传给 Set Node Zheight，单位为世界单位。
+    // 画布位置仍由原版投影决定；高度使用本人的上方向，翻滚后不能继续使用世界 Z。
+    const float height = (at.X-plane.origin.X)*plane.up.X + (at.Y-plane.origin.Y)*plane.up.Y +
+                         (at.Z-plane.origin.Z)*plane.up.Z;
+    if (!std::isfinite(height)) return {};
+    info.Size.Y = height;
     info.WorldLocation = at;
     info.position = hud->Get2DPositionByLocation(at);
     const auto u = hud->IconPositionUVClamp_U, v = hud->IconPositionUVClamp_V;
@@ -74,10 +82,10 @@ inline std::optional<Info> Project(Hud* hud, Info info, const FVector& at, APBCh
     return info;
 }
 
-inline std::optional<Info> CaptureAt(Hud* hud, const FVector& at, EPBCamp camp, UPBMarkableComponent* key, const FVector& observer, APBCharacter* actor)
+inline std::optional<Info> CaptureAt(Hud* hud, const FVector& at, EPBCamp camp, UPBMarkableComponent* key, const RadarPlane& plane, APBCharacter* actor)
 {
     using BrtUiJournal::Stage;
-    if (!InRange(hud,at,observer,actor)) return {};
+    if (!InRange(hud,at,plane.origin,actor)) return {};
     Info info{};
     const auto* cached = Lookup(hud->MapNodeInfo,key);
     if (!cached) cached = Lookup(hud->LastCaptureInfoNodeMap,key);
@@ -93,10 +101,10 @@ inline std::optional<Info> CaptureAt(Hud* hud, const FVector& at, EPBCamp camp, 
     info.Camp = camp;
     info.MarkableType = key->MarkableType;
     info.bMarked = true;
-    return Project(hud,info,at,actor);
+    return Project(hud,info,at,plane,actor);
 }
 
-inline std::optional<Info> SupplyIcon(Hud* hud, UPBMarkableComponent* key, const FVector& observer, APBCharacter* actor)
+inline std::optional<Info> SupplyIcon(Hud* hud, UPBMarkableComponent* key, const RadarPlane& plane, APBCharacter* actor)
 {
     if (!UKismetSystemLibrary::IsValid(key) || !key->bLocalMarked || key->MarkableType != EPBMarkableType::InteractiveObj ||
         !UKismetSystemLibrary::IsValid(key->MiniMapTexture)) return {};
@@ -106,7 +114,7 @@ inline std::optional<Info> SupplyIcon(Hud* hud, UPBMarkableComponent* key, const
     if (!room || UGameplayStatics::GetGameState(box) != room) return {};
     BrtUiJournal::Note(actor,BrtUiJournal::Stage::SupplyLocal);
     const auto at = key->GetLocation();
-    if (!InRange(hud,at,observer,actor)) return {};
+    if (!InRange(hud,at,plane.origin,actor)) return {};
     Info info{};
     info.Camp = EPBCamp::Neutral;
     const auto* stock = Lookup(hud->MapNodeInfo,key);
@@ -116,12 +124,12 @@ inline std::optional<Info> SupplyIcon(Hud* hud, UPBMarkableComponent* key, const
     info.MarkableType = key->MarkableType;
     info.Texture = key->MiniMapTexture;
     info.bMarked = true;
-    return Project(hud,info,at,actor);
+    return Project(hud,info,at,plane,actor);
 }
 
-inline std::optional<Info> Capture(Hud* hud, const UPBIndicator* head, UPBMarkableComponent* key, const FVector& observer, APBCharacter* actor = nullptr)
+inline std::optional<Info> Capture(Hud* hud, const UPBIndicator* head, UPBMarkableComponent* key, const RadarPlane& plane, APBCharacter* actor)
 {
-    return CaptureAt(hud, head->WorldLocation, head->Camp, key, observer, actor);
+    return CaptureAt(hud, head->WorldLocation, head->Camp, key, plane, actor);
 }
 
 inline APBCharacter* LivingEnemy(APBCharacter* actor, AActor* target)
@@ -151,7 +159,10 @@ inline bool Covered(Hud* hud, APlayerController* viewer, const Info& info)
                 std::abs(stock.WorldLocation.Y-info.WorldLocation.Y) <= 1.f &&
                 std::abs(stock.WorldLocation.Z-info.WorldLocation.Z) <= 1.f) return true;
         } else if (stock.bMarked && stock.Camp == info.Camp && std::abs(stock.position.X - info.position.X) < 0.001f &&
-                   std::abs(stock.position.Y - info.position.Y) < 0.001f) return true;
+                   std::abs(stock.position.Y - info.position.Y) < 0.001f &&
+                   std::abs(stock.WorldLocation.X-info.WorldLocation.X) <= 32.f &&
+                   std::abs(stock.WorldLocation.Y-info.WorldLocation.Y) <= 32.f &&
+                   std::abs(stock.WorldLocation.Z-info.WorldLocation.Z) <= 32.f) return true;
     }
     return false;
 }
@@ -230,10 +241,10 @@ struct View {
         for (auto& extra : extras) extra.kept = false;
         if (hud && marks) {
             BrtUiJournal::Note(actor,BrtUiJournal::Stage::Scan);
-            const auto observer = actor->K2_GetActorLocation();
+            const RadarPlane plane{actor->K2_GetActorLocation(),actor->GetActorUpVector()};
             // 零售弹药箱发布的是静态本地标记：不扫描世界 Actor，也不借用敌人的侦察名单。
             const auto supply = [&](UPBMarkableComponent* key) {
-                if (auto info = SupplyIcon(hud,key,observer,actor)) Draw(hud,pc,key,*info,actor);
+                if (auto info = SupplyIcon(hud,key,plane,actor)) Draw(hud,pc,key,*info,actor);
             };
             for (auto* key : marks->LocalMarkedArray) supply(key);
             const auto visit = [&](const auto& shown) {
@@ -246,7 +257,7 @@ struct View {
                     }
                     if (!OnScreen(head,target,pc)) continue;
                     BrtUiJournal::Note(actor,BrtUiJournal::Stage::Visible);
-                    if (auto info = Capture(hud,head,target,observer,actor)) Draw(hud,pc,target,*info,actor);
+                    if (auto info = Capture(hud,head,target,plane,actor)) Draw(hud,pc,target,*info,actor);
                 }
             };
             visit(marks->IndicatorMap);
@@ -260,7 +271,7 @@ struct View {
                     auto* enemy = LivingEnemy(actor,mark->MarkResult.MarkTarget_5_1C9EF1EB484D46D6C0CF7BA74F365E89);
                     auto* key = enemy ? enemy->MarkableComponent : nullptr;
                     if (UKismetSystemLibrary::IsValid(key) && key->GetOwner() == enemy && key->MarkableType == EPBMarkableType::Character) {
-                        if (auto info = CaptureAt(hud,enemy->K2_GetActorLocation(),EPBCamp::Enemy,key,observer,actor))
+                        if (auto info = CaptureAt(hud,enemy->K2_GetActorLocation(),EPBCamp::Enemy,key,plane,actor))
                             Draw(hud,pc,key,*info,actor);
                     }
                 }
@@ -278,7 +289,7 @@ struct View {
                     auto* enemy = LivingEnemy(actor,key->GetOwner());
                     if (!enemy || enemy->MarkableComponent != key) continue;
                     const auto at = enemy->K2_GetActorLocation();
-                    if (auto info = CaptureAt(hud, at, EPBCamp::Enemy, key, observer, actor)) Draw(hud,pc,key,*info,actor);
+                    if (auto info = CaptureAt(hud, at, EPBCamp::Enemy, key, plane, actor)) Draw(hud,pc,key,*info,actor);
                 }
             };
             visitConfirmed(marks->MarkedArray,[&](auto* key) { return key->bMarked && mine(key->MarkCounterArray); });

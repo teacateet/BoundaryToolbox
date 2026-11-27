@@ -53,7 +53,8 @@ struct APlayerController : UObject {
 struct APBCharacter : AActor {
     static int StaticClass(){return 108;} bool IsA(int cls) const override {return cls==108;} int TeamID{};
     UPBDynamicMarkableComponent* MarkableComponent{};
-    bool alive=true,killed=false,radar=true; APlayerController* controller=nullptr; FVector at{};
+    bool alive=true,killed=false,radar=true; APlayerController* controller=nullptr; FVector at{},up{0,0,1};
+    FVector GetActorUpVector() const { return up; }
     APlayerController* GetController() const { return controller; }
     bool IsAlive() const { return alive; } bool IsInKilledStatus() const { return killed; }
     bool IsInNormalRadarSignal() const { return radar; } FVector K2_GetActorLocation() const { return at; }
@@ -94,7 +95,7 @@ struct UPBDynamicMarkableComponent : UPBMarkableComponent {
     TArray<APBPlayerState*> MarkCounterArray, SharedMarkCounterArray, SensorMarkCounterArray;
 };
 struct FPBMiniMapIconInfo {
-    FVector WorldLocation{}; FVector2D position{}; UTexture2D* Texture=nullptr;
+    FVector WorldLocation{}; FVector2D Size{},position{}; UTexture2D* Texture=nullptr;
     EPBCamp Camp=EPBCamp::Enemy; EPBMarkableType MarkableType=EPBMarkableType::Character;
     bool bMarked=false,bIsLocal=false;
 };

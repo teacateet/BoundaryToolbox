@@ -74,6 +74,28 @@ void visibleAndNative() {
     check("stock_takes_over_and_stays_attached",s.added()==0 && stock.parent==&s.panel);
     s.hud.DrewMap.clear();s.pass();check("stock_released_fallback_returns",s.added()==1);
 }
+void elevations() {
+    Scene s;
+    s.pawn.at={100,0,250};
+    s.first.head.WorldLocation={100,100,800};
+    auto stale=s.icon(s.first);stale.Size={42,-400};s.hud.LastCaptureInfoNodeMap.Put(&s.first.key,stale);
+    s.pass();auto* node=s.only();
+    check("above_uses_current_signed_height_preserving_other_style",node && node->MiniMapIconInfo.Size.Y==550 && node->MiniMapIconInfo.Size.X==42);
+    s.first.head.WorldLocation.Z=-300;s.pass();
+    check("same_node_tracks_below_plane",node && s.only()==node && node->MiniMapIconInfo.Size.Y==-550);
+    s.first.head.WorldLocation.Z=250;s.pass();
+    check("crossing_plane_resets_line_on_same_node",node && s.only()==node && node->MiniMapIconInfo.Size.Y==0);
+    s.pawn.up={0,-1,0};s.pass();
+    check("rolled_pilot_measures_against_helmet_plane",node && s.only()==node && node->MiniMapIconInfo.Size.Y==-100);
+    s.pawn.up={0,1,0};s.pass();
+    check("reversed_roll_reverses_elevation_without_respawn",node && s.only()==node && node->MiniMapIconInfo.Size.Y==100);
+    // 同一水平投影和职业纹理也可能是上下两人。原生控件不可冒领另一人的标记。
+    s.pawn.up={0,0,1};s.first.head.WorldLocation.Z=-300;
+    Node native;s.native(native);native.MiniMapIconInfo.WorldLocation.Z=800;native.MiniMapIconInfo.Size.Y=550;s.pass();
+    check("native_marker_at_other_height_does_not_hide_fallback",s.only() && s.only()->MiniMapIconInfo.Size.Y==-550 && native.parent==&s.panel);
+    native.MiniMapIconInfo=s.icon(s.first);native.MiniMapIconInfo.Size.Y=-550;s.pass();
+    check("native_same_height_takes_over_line_and_dot",s.added()==0 && native.parent==&s.panel);
+}
 void poolAndVisibility() {
     Scene s;Node n;s.native(n);n.parent=&s.elsewhere;s.pass();
     check("pooled_node_does_not_cover",s.added()==1 && n.parent==&s.elsewhere);
@@ -261,7 +283,7 @@ void supplyLifecycle(bool enabled) {
 int main(int argc,char** argv) {
     const bool enabled=argc==1;
     UKismetSystemLibrary::requested=enabled;
-    if(enabled){visibleAndNative();poolAndVisibility();rejectAndRecover();cacheAndTargets();staleMapRecord();replicatedMarks();manualEnemy();supplyMarkers();}
+    if(enabled){visibleAndNative();elevations();poolAndVisibility();rejectAndRecover();cacheAndTargets();staleMapRecord();replicatedMarks();manualEnemy();supplyMarkers();}
     lifecycle(enabled);
     supplyLifecycle(enabled);
     std::printf("SUMMARY passed=%d failed=%d\n",passed,failed);

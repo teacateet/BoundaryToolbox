@@ -1,15 +1,26 @@
 {
-  "headerSha256": "E52B7843426B4DCB83F0D350BA071330458FB0CAD80D8ED1991B9BEF1606EF0B",
+  "headerSha256": "AE5D1AF0057DDD6D913F53B7353AA4F7DF8C3477D464DFC668B3A67CE3871EEF",
   "environment": "stateful local HUD fixture",
   "scenarios": {
+    "candidate": {
+      "passed": 96,
+      "failed": 0,
+      "failureNames": []
+    },
     "original": {
-      "passed": 48,
-      "failed": 41,
+      "passed": 49,
+      "failed": 47,
       "failureNames": [
         "FAIL visible_head_empty_native_tables",
         "FAIL project_from_visible_head",
         "FAIL same_target_three_lists_one_node",
         "FAIL stock_released_fallback_returns",
+        "FAIL above_uses_current_signed_height_preserving_other_style",
+        "FAIL same_node_tracks_below_plane",
+        "FAIL crossing_plane_resets_line_on_same_node",
+        "FAIL rolled_pilot_measures_against_helmet_plane",
+        "FAIL reversed_roll_reverses_elevation_without_respawn",
+        "FAIL native_marker_at_other_height_does_not_hide_fallback",
         "FAIL pooled_node_does_not_cover",
         "FAIL stock_listed_in_pool_does_not_cover",
         "FAIL hidden_stock_does_not_cover",
@@ -48,11 +59,6 @@
         "FAIL native_radar_signal_restores_one_supply",
         "FAIL respawn_reattaches_one_supply"
       ]
-    },
-    "candidate": {
-      "passed": 89,
-      "failed": 0,
-      "failureNames": []
     }
   }
 }
