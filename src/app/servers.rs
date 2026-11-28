@@ -113,7 +113,7 @@ impl AppController {
         if self.ui.get_friend_room_working() { return; }
         self.clear_friend_invite();
         match Invite::parse(s) {
-            Some(Invite::Friend { room, peer }) => self.join_friend_room(room, peer),
+            Some(Invite::Friend { room, peer,pin }) => self.join_friend_room(room, peer,pin),
             Some(Invite::Lan(endpoint)) => self.start_launch(LaunchMode::Join(endpoint)),
             Some(invite @ Invite::Vnt(peer)) => {
                 self.ui.set_pending_friend_invite(invite.to_string().into());

@@ -266,7 +266,7 @@ impl AppController {
         ui.set_vnt_username(vnt_prefs.username.into());
         ui.set_vnt_network_code(vnt_prefs.network_code.into());
         ui.set_vnt_password(vnt_prefs.password.into());
-        ui.set_vnt_no_tun(vnt_prefs.no_tun);
+        ui.set_vnt_no_tun(true);
         ui.set_vnt_no_punch(vnt_prefs.no_punch);
         ui.set_vnt_compress(vnt_prefs.compress);
         ui.set_vnt_rtx(vnt_prefs.rtx);

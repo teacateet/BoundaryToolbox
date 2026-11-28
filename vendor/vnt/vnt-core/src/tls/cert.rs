@@ -5,6 +5,35 @@ use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
 use sha2::{Digest, Sha256};
 use time::{Duration, OffsetDateTime};
 
+#[derive(Clone)]
+pub struct HostIdentity(std::sync::Arc<(CertificateDer<'static>, PrivateKeyDer<'static>)>);
+impl std::fmt::Debug for HostIdentity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("HostIdentity")
+    }
+}
+impl HostIdentity {
+    pub fn generate() -> Result<Self> {
+        let key = KeyPair::generate_for(&PKCS_ED25519)?;
+        let cert = CertificateParams::new(vec!["brt-room".to_owned()])?.self_signed(&key)?;
+        Ok(Self(std::sync::Arc::new((
+            cert.der().clone(),
+            PrivatePkcs8KeyDer::from(key.serialize_der()).into(),
+        ))))
+    }
+    pub fn fingerprint(&self) -> [u8; 32] {
+        Sha256::digest(self.0.0.as_ref()).into()
+    }
+    pub(crate) fn keys(&self) -> (CertificateDer<'static>, PrivateKeyDer<'static>) {
+        (self.0.0.clone(), self.0.1.clone_key())
+    }
+}
+#[derive(Debug, Clone)]
+pub enum RoomIdentity {
+    Host(HostIdentity),
+    Guest([u8; 32]),
+}
+
 const ED25519_PKCS8_V1_PREFIX: [u8; 16] = [
     0x30, 0x2e, // Sequence (len 46)
     0x02, 0x01, 0x00, // Version 0

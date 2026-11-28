@@ -20,18 +20,37 @@ pub fn shared_game_target(own: Ipv4Addr, shared: u16, destination: &str, port: u
         .then(|| std::net::SocketAddr::from((Ipv4Addr::LOCALHOST, shared)))
 }
 
-#[derive(Debug, Clone)]
-pub struct GameUdpShare(tokio::sync::watch::Sender<(u64, Option<u16>)>);
+type OwnerCheck = std::sync::Arc<dyn Fn() -> bool + Send + Sync>;
+type Grant = (u64, Option<u16>, Option<OwnerCheck>);
+#[derive(Clone)]
+pub struct GameUdpShare(tokio::sync::watch::Sender<Grant>);
+impl std::fmt::Debug for GameUdpShare {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { f.debug_tuple("GameUdpShare").field(&self.current()).finish() }
+}
 impl GameUdpShare {
-    pub fn new(port: Option<u16>) -> Self { Self(tokio::sync::watch::channel((0, port)).0) }
+    pub fn new(port: Option<u16>) -> Self { Self(tokio::sync::watch::channel((0, port, None)).0) }
     pub fn current(&self) -> Option<u16> { self.0.borrow().1 }
+    pub fn grant_owned(&self, port: u16, valid: OwnerCheck) -> u64 {
+        let mut generation=0;
+        self.0.send_modify(|old| {generation=old.0.wrapping_add(1); *old=(generation,Some(port),Some(valid));});
+        generation
+    }
     pub fn set(&self, port: Option<u16>) { self.0.send_if_modified(|old| {
-        if old.1 == port { false } else { *old = (old.0.wrapping_add(1), port); true }
+        if old.1 == port { false } else { *old = (old.0.wrapping_add(1), port, None); true }
     }); }
     pub fn revoke(&self, generation: u64) { self.0.send_if_modified(|old| {
-        if old.0 != generation || old.1.is_none() { false } else { *old = (old.0.wrapping_add(1), None); true }
+        if old.0 != generation || old.1.is_none() { false } else { *old = (old.0.wrapping_add(1), None, None); true }
     }); }
-    pub fn watch(&self) -> tokio::sync::watch::Receiver<(u64, Option<u16>)> { self.0.subscribe() }
+    pub fn watch(&self) -> tokio::sync::watch::Receiver<Grant> { self.0.subscribe() }
+    /// 持有读锁直到非阻塞发送返回；撤权写锁返回后，旧代不能再提交本机 UDP 写入。
+    pub fn while_granted<T>(&self, generation:u64, port:u16, send:impl FnOnce()->T) -> Option<T> {
+        let grant=self.0.borrow();
+        if grant.0!=generation || grant.1!=Some(port) {return None;}
+        if grant.2.as_ref().is_some_and(|check|!check()) {
+            drop(grant); self.revoke(generation); return None;
+        }
+        Some(send())
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -44,6 +63,7 @@ pub struct Config {
     pub tun_name: Option<String>,
     pub ip: Option<Ipv4Addr>,
     pub password: Option<String>,
+    pub room_identity: Option<crate::tls::RoomIdentity>,
     pub no_punch: bool,
     pub compress: bool,
     pub rtx: bool,
@@ -62,7 +82,7 @@ pub struct Config {
 }
 impl Config {
     pub fn check(&self) -> anyhow::Result<()> {
-        if let Some(share) = &self.game_udp_port && (self.allow_port_mapping || !self.no_nat ||
+        if let Some(share) = &self.game_udp_port && (!self.no_tun || self.allow_port_mapping || !self.no_nat ||
             share.current() == Some(0) || !self.port_mapping.is_empty()) {
             bail!("game UDP sharing requires an isolated host session");
         }

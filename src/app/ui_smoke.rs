@@ -234,9 +234,16 @@ fn workbench_actions_as_standard_user() -> Result<()> {
     click(&w, 180., 214.);
     type_text(&w, "192.0.2.9:18777");
     click(&w, 1160., 215.);
-    click(&w, 1160., 395.);
-    click(&w, 1120., 485.);
-    click(&w, 1195., 485.);
+    // 公开目录插在社区服列表前；以首个实际绘制的在线标记找到该行，不再点旧布局坐标。
+    let rendered=frame(&w,1260,780);
+    let marker=(400..750).find(|y|(10..80).any(|x|{
+        let at=(y*1260+x)*3;rendered.as_bytes()[at..at+3]==[0x81,0xd8,0xb0]
+    })).expect("Community server online marker must be visible") as f32;
+    let row_y=marker+18.;
+    // 状态栏与首行属于同一个区块；刷新按钮紧邻该状态栏上方。
+    click(&w,1160.,row_y-84.);
+    click(&w,1120.,row_y);
+    click(&w,1195.,row_y);
     assert_eq!(
         &events.borrow()[3..],
         [

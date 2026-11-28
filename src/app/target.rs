@@ -85,6 +85,7 @@ impl AppController {
     /// Save current target and sync to Slint.
     pub(super) fn set_current_target(&mut self, path: Option<PathBuf>, status: &str) {
         if self.current_target != path {
+            self.close_friend_host();
             if self.public_rooms.preparing || self.public_rooms.advertising() {
                 self.disconnect_friend_room();
                 self.clear_public_listing();

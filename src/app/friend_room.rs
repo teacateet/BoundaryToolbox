@@ -28,6 +28,7 @@ pub(super) struct FriendSession {
     waiting: Option<Instant>,
     transport: VntSession,
     host_ip: Option<Ipv4Addr>,
+    pin: [u8;32],
 }
 
 fn network_options(room: Uuid, side: Side) -> VntLaunchOptions {
@@ -35,7 +36,8 @@ fn network_options(room: Uuid, side: Side) -> VntLaunchOptions {
     // 邀请持有者可进房，仅向中转登记派生的房号。已有的手动组网密码不会被复制。
     let fingerprint = format!("{:x}", Sha256::digest(room.as_bytes()));
     VntLaunchOptions {
-        server_text: FRIEND_SERVER.into(),
+        identity: None,
+        server_text: std::env::var("BRT_ROOM_RELAY").unwrap_or_else(|_| FRIEND_SERVER.into()),
         username: match side {
             Side::Host(_) => "BRT Host",
             Side::Guest(_) => "BRT Guest",
@@ -66,6 +68,7 @@ fn online_nodes(s: &vnt_platform::VntSnapshot) -> Option<i32> {
 }
 
 impl FriendSession {
+    pub(super) fn revoke_game(&self) {self.transport.unshare_room();}
     fn observe(&mut self, snapshot: &vnt_platform::VntSnapshot) -> Option<Ready> {
         // 即使后台仍在重连，也绝不复用上一次的虚拟地址。
         self.host_ip = if snapshot.running && !snapshot.busy {
@@ -78,6 +81,7 @@ impl FriendSession {
         let result = match self.side {
             Side::Host(port) => Ready::Share(friend_invite::Invite::Friend {
                 room: self.room,
+                pin:self.pin,
                 peer: SocketAddrV4::new(own, port),
             }),
             Side::Guest(peer) => {
@@ -104,6 +108,7 @@ impl AppController {
     }
 
     fn close_friend_connection(&mut self) {
+        if let Some(room)=&self.friend_room {room.transport.unshare_room();}
         self.clear_public_listing();
         self.ui.set_friend_online_nodes(-1);
         self.friend_room = None;
@@ -150,13 +155,19 @@ impl AppController {
         true
     }
 
-    fn begin_friend_network(&mut self, room: Uuid, side: Side) {
+    fn begin_friend_network(&mut self, room: Uuid, side: Side, guest_pin:Option<[u8;32]>) {
         let attempt = Uuid::new_v4();
         let tx = self.tx.clone();
         let sink = Arc::new(move |event| {
             let _ = tx.send(AppMessage::FriendRoomEvent(attempt, event));
         });
         let mut options = network_options(room, side);
+        let (identity,pin)=match (side,guest_pin) {
+            (Side::Host(_),None)=>match vnt_ipc::tls::HostIdentity::generate(){Ok(host)=>{let pin=host.fingerprint();(vnt_ipc::tls::RoomIdentity::Host(host),pin)},Err(e)=>{self.friend_error(&e.to_string());return;}},
+            (Side::Guest(_),Some(pin))=>(vnt_ipc::tls::RoomIdentity::Guest(pin),pin),
+            _=>{self.friend_error("邀请缺少房主证书指纹");return;}
+        };
+        options.identity=Some(identity);
         // 生产品只在下方重新核对已经开好的房间后才授予端口。
         options.shared_game_port = None;
         match VntSession::start(options, sink) {
@@ -168,6 +179,7 @@ impl AppController {
                     if let Err(e) = guard { self.friend_error(&e.to_string()); return; }
                 }
                 self.friend_room = Some(FriendSession {
+                    pin,
                     attempt,
                     room,
                     side,
@@ -213,6 +225,7 @@ impl AppController {
             } else if let Some(ip) = r.host_ip {
                 let invite = friend_invite::Invite::Friend {
                     room: r.room,
+                    pin:r.pin,
                     peer: SocketAddrV4::new(ip, port),
                 };
                 self.finish_friend_share(invite);
@@ -226,11 +239,11 @@ impl AppController {
                 );
             }
         } else if self.can_start_friend_network() {
-            self.begin_friend_network(Uuid::new_v4(), Side::Host(port));
+            self.begin_friend_network(Uuid::new_v4(), Side::Host(port),None);
         }
     }
 
-    pub(super) fn join_friend_room(&mut self, room: Uuid, peer: SocketAddrV4) {
+    pub(super) fn join_friend_room(&mut self, room: Uuid, peer: SocketAddrV4,pin:[u8;32]) {
         if self.active_fixed_room.is_some() || self.fixed_room_start.is_some() {
             self.friend_notice(
                 "你正在开房。请先停止自己的房间，再加入朋友。",
@@ -240,7 +253,7 @@ impl AppController {
             return;
         }
         if let Some(r) = self.friend_room.as_mut() {
-            if r.room != room || r.side != Side::Guest(peer) {
+            if r.room != room || r.side != Side::Guest(peer) || r.pin != pin {
                 self.friend_notice(
                     "已有好友连接。请先点「断开好友连接」，再加入新邀请。",
                     "Disconnect your friend session before joining another invite.",
@@ -276,7 +289,7 @@ impl AppController {
                 "参加用ポートが使用中です。古いルームや通信アプリを閉じてから再度参加してください。");
             return;
         }
-        self.begin_friend_network(room, Side::Guest(peer));
+        self.begin_friend_network(room, Side::Guest(peer),Some(pin));
     }
 
     fn finish_friend_share(&mut self, invite: friend_invite::Invite) {
@@ -378,6 +391,7 @@ mod tests {
     use super::*;
     fn session(room: Uuid, side: Side) -> FriendSession {
         FriendSession {
+            pin:[17;32],
             attempt: Uuid::new_v4(),
             room,
             side,
@@ -419,7 +433,7 @@ mod tests {
         let Ready::Share(invite) = host.observe(&snapshot("10.193.43.8/24", &[])).unwrap() else {
             panic!()
         };
-        let Some(friend_invite::Invite::Friend { room, peer }) =
+        let Some(friend_invite::Invite::Friend { room, peer,.. }) =
             friend_invite::Invite::parse(&invite.to_string())
         else {
             panic!()
@@ -428,7 +442,7 @@ mod tests {
         assert_eq!(host.observe(&snapshot("10.193.43.8/24", &[])), None);
         let host_opts = network_options(key, Side::Host(18777));
         let guest_opts = network_options(room, Side::Guest(peer));
-        assert_eq!(host_opts.server_text, FRIEND_SERVER);
+        assert_eq!(host_opts.server_text, std::env::var("BRT_ROOM_RELAY").unwrap_or_else(|_| FRIEND_SERVER.into()));
         assert_eq!(host_opts.shared_game_port, Some(18777));
         assert_eq!(guest_opts.shared_game_port, None);
         assert_eq!(guest_opts.server_text, host_opts.server_text);
@@ -487,7 +501,7 @@ mod tests {
         ui.set_vnt_running(true);
         let key = Uuid::new_v4();
         let peer: SocketAddrV4 = "10.193.43.8:18777".parse()?;
-        app.join_friend_room(key, peer);
+        app.join_friend_room(key, peer,[17;32]);
         assert!(app.friend_room.is_none() && ui.get_vnt_running());
         ui.set_vnt_running(false);
         let first = session(key, Side::Guest(peer));
@@ -544,8 +558,10 @@ mod tests {
         let game = UdpSocket::bind((Ipv4Addr::LOCALHOST, 0))?;
         game.set_read_timeout(Some(Duration::from_secs(18)))?;
         let port = game.local_addr()?.port();
-        let start = |room, side| -> Result<(FriendSession, Receiver<VntEvent>)> {
+        let host_id=vnt_ipc::tls::HostIdentity::generate()?;
+        let start = |room, side,pin| -> Result<(FriendSession, Receiver<VntEvent>)> {
             let mut o = network_options(room, side);
+            o.identity=Some(match side {Side::Host(_)=>vnt_ipc::tls::RoomIdentity::Host(host_id.clone()),Side::Guest(_)=>vnt_ipc::tls::RoomIdentity::Guest(pin)});
             if let Some(address) = local_server {
                 o.server_text = address.to_string();
             }
@@ -562,6 +578,7 @@ mod tests {
             )?;
             Ok((
                 FriendSession {
+                    pin,
                     attempt: Uuid::new_v4(),
                     room,
                     side,
@@ -604,18 +621,18 @@ mod tests {
                 }
             }
         };
-        let (mut host, h) = start(key, Side::Host(port))?;
+        let (mut host, h) = start(key, Side::Host(port),host_id.fingerprint())?;
         let Ready::Share(invite) = ready(&mut host, h)? else {
             bail!("missing host invite")
         };
-        let Some(friend_invite::Invite::Friend { room, peer }) =
+        let Some(friend_invite::Invite::Friend { room, peer,pin }) =
             friend_invite::Invite::parse(&invite.to_string())
         else {
             bail!("invalid issued invite")
         };
         anyhow::ensure!(room == key && peer.port() == port);
         eprintln!("friend host: registered; emitted invite for game port {port}");
-        let (mut guest, g) = start(room, Side::Guest(peer))?;
+        let (mut guest, g) = start(room, Side::Guest(peer),pin)?;
         let Ready::Join(entry) = ready(&mut guest, g)? else {
             bail!("guest has no game route")
         };
@@ -631,6 +648,12 @@ mod tests {
         let (n, from) = client.recv_from(&mut buffer)?;
         anyhow::ensure!(&buffer[..n] == b"host-reply" && from == std::net::SocketAddr::V4(entry));
         eprintln!("friend UDP: random payload received by host; reply received at {entry}");
+        host.revoke_game();
+        client.send_to(b"after-revoke",entry)?;
+        game.set_read_timeout(Some(Duration::from_millis(500)))?;
+        let e=game.recv_from(&mut buffer).expect_err("撤权后专服不应收到新数据");
+        anyhow::ensure!(matches!(e.kind(),std::io::ErrorKind::TimedOut|std::io::ErrorKind::WouldBlock));
+        eprintln!("friend UDP: no new game datagram after synchronous revoke");
         Ok(())
     }
 }

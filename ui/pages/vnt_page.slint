@@ -91,8 +91,7 @@ export component VntPage inherits Workbench {
         Caption { text: I18n.tr("房间密码", "Room password", "ルームパスワード"); }
         Field { text <=> root.vnt_password; enabled: root.editable; input-type: InputType.password; edited(_) => { root.vnt_settings_changed(); } }
         HorizontalLayout { spacing: 12px;
-            CheckBox { text: I18n.tr("无网卡模式（推荐）", "No adapter (recommended)", "アダプターなし（推奨）"); enabled: root.editable;
-                checked <=> root.vnt_no_tun; toggled => { root.vnt_settings_changed(); } }
+            Caption { text: I18n.tr("仅共享游戏 UDP 端口", "Game UDP port only", "ゲーム UDP ポートのみ"); }
             CheckBox { text: I18n.tr("仅中转", "Relay only", "中継のみ"); enabled: root.editable;
                 checked <=> root.vnt_no_punch; toggled => { root.vnt_settings_changed(); } }
         }

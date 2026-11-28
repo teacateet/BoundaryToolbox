@@ -19,6 +19,8 @@ impl AppController {
             );
             return false;
         }
+        self.disconnect_friend_room();
+        self.close_friend_host();
         true
     }
 
@@ -26,6 +28,8 @@ impl AppController {
     pub(super) fn close_window_now(&mut self) {
         self.hide_app_dialog();
         self.stop_background.store(true, Ordering::Relaxed);
+        self.disconnect_friend_room();
+        self.close_friend_host();
         self.clear_public_listing();
         let _ = self.ui.hide();
     }

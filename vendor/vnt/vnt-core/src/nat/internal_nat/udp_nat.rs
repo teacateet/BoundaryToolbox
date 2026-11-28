@@ -161,25 +161,27 @@ where
     W: AsyncWrite + Unpin,
 {
     let udp_socket = tokio::net::UdpSocket::bind("0.0.0.0:0").await?;
-    relay(recv_stream, send_stream, addr, udp_socket).await
+    relay(recv_stream, send_stream, addr, udp_socket, None).await
 }
 
 pub(crate) async fn loopback_game<R: AsyncRead + Unpin, W: AsyncWrite + Unpin>(
     recv_stream: R, send_stream: W, addr: SocketAddr,
+    share: &crate::context::config::GameUdpShare, generation: u64,
 ) -> anyhow::Result<()> {
     let socket = tokio::net::UdpSocket::bind((std::net::Ipv4Addr::LOCALHOST, 0)).await?;
-    relay(recv_stream, send_stream, addr, socket).await
+    relay(recv_stream, send_stream, addr, socket, Some((share,generation,addr.port()))).await
 }
 
 async fn relay<R: AsyncRead + Unpin, W: AsyncWrite + Unpin, A: ToSocketAddrs + Debug>(
     recv_stream: R, send_stream: W, addr: A, udp_socket: tokio::net::UdpSocket,
+    permit: Option<(&crate::context::config::GameUdpShare,u64,u16)>,
 ) -> anyhow::Result<()> {
     udp_socket
         .connect(&addr)
         .await
         .with_context(|| format!("error connecting to {:?}", addr))?;
     let mut framed_read = FramedRead::new(recv_stream, LengthDelimitedCodec::new());
-    let mut framed_write = FramedWrite::new(send_stream, LengthDelimitedCodec::new());
+    let mut framed_write = FramedWrite::new(GrantedWriter {inner:send_stream,permit}, LengthDelimitedCodec::new());
     let mut buf = vec![0u8; 65536];
 
     loop {
@@ -187,7 +189,16 @@ async fn relay<R: AsyncRead + Unpin, W: AsyncWrite + Unpin, A: ToSocketAddrs + D
             buf = framed_read.next() => {
                 let Some(buf) = buf else { break; };
                 let buf = buf?;
-                udp_socket.send(&buf).await?;
+                if let Some((share,generation,port))=permit {
+                    loop {
+                        udp_socket.writable().await?;
+                        match share.while_granted(generation,port,||udp_socket.try_send(&buf)) {
+                            None => return Ok(()),
+                            Some(Err(e)) if e.kind()==std::io::ErrorKind::WouldBlock => continue,
+                            Some(result) => { result?;break; }
+                        }
+                    }
+                } else {udp_socket.send(&buf).await?;}
             },
             rs = udp_socket.recv(&mut buf) =>{
                 let len = rs?;
@@ -199,4 +210,27 @@ async fn relay<R: AsyncRead + Unpin, W: AsyncWrite + Unpin, A: ToSocketAddrs + D
         }
     }
     Ok(())
+}
+
+// 回包也在同步授权内提交。异步写若返回 Pending，不持锁等待，下一次 poll 必须重新检查。
+struct GrantedWriter<'a,W>{inner:W,permit:Option<(&'a crate::context::config::GameUdpShare,u64,u16)>}
+impl<W:AsyncWrite+Unpin> GrantedWriter<'_,W>{
+    fn guarded<T>(&mut self,op:impl FnOnce(std::pin::Pin<&mut W>)->std::task::Poll<std::io::Result<T>>)->std::task::Poll<std::io::Result<T>> {
+        let send=||op(std::pin::Pin::new(&mut self.inner));
+        match self.permit {
+            Some((share,g,p))=>share.while_granted(g,p,send).unwrap_or_else(||std::task::Poll::Ready(Err(std::io::ErrorKind::PermissionDenied.into()))),
+            None=>send(),
+        }
+    }
+}
+impl<W:AsyncWrite+Unpin> AsyncWrite for GrantedWriter<'_,W>{
+    fn poll_write(mut self:std::pin::Pin<&mut Self>,cx:&mut std::task::Context<'_>,buf:&[u8])->std::task::Poll<std::io::Result<usize>>{
+        self.guarded(|w|w.poll_write(cx,buf))
+    }
+    fn poll_flush(mut self:std::pin::Pin<&mut Self>,cx:&mut std::task::Context<'_>)->std::task::Poll<std::io::Result<()>>{
+        self.guarded(|w|w.poll_flush(cx))
+    }
+    fn poll_shutdown(mut self:std::pin::Pin<&mut Self>,cx:&mut std::task::Context<'_>)->std::task::Poll<std::io::Result<()>>{
+        self.guarded(|w|w.poll_shutdown(cx))
+    }
 }

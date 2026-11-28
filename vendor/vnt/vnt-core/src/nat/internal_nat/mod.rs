@@ -207,13 +207,14 @@ impl PortMappingManager {
     {
         if let Some(share) = &self.game_udp_port {
             let mut permit = share.watch();
-            let Some(port) = permit.borrow_and_update().1 else { return Ok(()); };
+            let (generation, port) = { let grant=permit.borrow_and_update(); (grant.0,grant.1) };
+            let Some(port) = port else { return Ok(()); };
             let own = self.network.get().context("no network")?.ip;
             if let Some(local) = crate::context::config::shared_game_target(own, port, &dest, dest_port) {
                 return tokio::select! {
                     biased;
                     _ = permit.changed() => Ok(()),
-                    result = udp_nat::loopback_game(recv_stream, send_stream, local) => result,
+                    result = udp_nat::loopback_game(recv_stream, send_stream, local, share, generation) => result,
                 };
             }
             return Ok(());

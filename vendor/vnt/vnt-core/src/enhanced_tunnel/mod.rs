@@ -16,6 +16,7 @@ pub(crate) mod outbound;
 pub(crate) struct TunnelConfig {
     pub mtu: u16,
     pub password: Option<String>,
+    pub identity: Option<crate::tls::RoomIdentity>,
     pub open_quic_client: bool,
     pub port_mapping: Vec<PortMapping>,
 }
@@ -34,7 +35,7 @@ pub(crate) async fn enhanced_ipv4_tunnel(
     config: TunnelConfig,
     components: TunnelComponents,
 ) -> anyhow::Result<(EnhancedInbound, Option<EnhancedOutbound>)> {
-    let password = config.password.unwrap_or_else(|| "password".to_string());
+    let password = config.password.filter(|s| !s.trim().is_empty()).ok_or_else(|| anyhow::anyhow!("需要房间密码以认证游戏连接"))?;
     let tun = match &tun_data_sender {
         EnhancedTunInbound::Tun(tun) => Some(tun.clone()),
         EnhancedTunInbound::Nat(_) | EnhancedTunInbound::Disabled => None,
@@ -46,6 +47,7 @@ pub(crate) async fn enhanced_ipv4_tunnel(
         quic_over::boot::QuicTunnelConfig {
             mtu: config.mtu,
             password,
+            identity: config.identity,
             open_quic_client: config.open_quic_client,
             port_mapping: config.port_mapping,
         },

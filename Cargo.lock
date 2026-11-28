@@ -695,7 +695,7 @@ dependencies = [
 
 [[package]]
 name = "boundary_toolbox"
-version = "19.20.42"
+version = "19.20.43"
 dependencies = [
  "anyhow",
  "chrono",
@@ -712,6 +712,7 @@ dependencies = [
  "netstat2",
  "regex",
  "reqwest",
+ "rustls",
  "serde",
  "serde_json",
  "sha2",

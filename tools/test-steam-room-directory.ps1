@@ -28,7 +28,7 @@ function Count-Rooms {
         $rows=$p.StandardOutput.ReadToEnd().Split([char]10) | Where-Object { $_.StartsWith('QA-ROWS ') } | Select-Object -First 1
         if ($null -eq $rows) {throw 'Missing list result'}
         $result=ConvertFrom-Json -NoEnumerate -InputObject $rows.Substring(8)
-        foreach($room in $result) {if ($room.host -ne 'BRT QA' -or $room.invite -notmatch '^brt://room/[0-9a-f]{32}/10\.193\.24\.5:18777$') {throw 'Invalid metadata'} }
+        foreach($room in $result) {if ($room.host -ne 'BRT QA' -or $room.invite -notmatch '^brt://room2/[0-9a-f]{32}/10\.193\.24\.5:18777/[0-9a-f]{64}$') {throw 'Invalid metadata'} }
         return $result.Count
     } finally {if (!$p.HasExited){$p.Kill()};$p.Dispose()}
 }

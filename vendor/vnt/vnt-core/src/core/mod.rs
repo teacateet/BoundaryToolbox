@@ -151,6 +151,7 @@ impl NetworkManager {
             crate::enhanced_tunnel::TunnelConfig {
                 mtu,
                 password: config.password.clone(),
+                identity: config.room_identity.clone(),
                 open_quic_client: config.rtx,
                 port_mapping: config.port_mapping.clone(),
             },

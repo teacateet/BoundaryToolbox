@@ -45,91 +45,36 @@ impl ServerCertVerifier for FingerprintVerifier {
 
     fn verify_tls12_signature(
         &self,
-        _message: &[u8],
-        _cert: &CertificateDer<'_>,
-        _dss: &rustls::DigitallySignedStruct,
-    ) -> Result<HandshakeSignatureValid, rustls::Error> {
-        Ok(HandshakeSignatureValid::assertion())
+        msg: &[u8],
+        cert: &CertificateDer<'_>,
+        sig: &rustls::DigitallySignedStruct,
+    ) -> Result<HandshakeSignatureValid, Error> {
+        rustls::crypto::verify_tls12_signature(
+            msg,
+            cert,
+            sig,
+            &rustls::crypto::ring::default_provider().signature_verification_algorithms,
+        )
     }
-
     fn verify_tls13_signature(
         &self,
-        _message: &[u8],
-        _cert: &CertificateDer<'_>,
-        _dss: &rustls::DigitallySignedStruct,
-    ) -> Result<HandshakeSignatureValid, rustls::Error> {
-        Ok(HandshakeSignatureValid::assertion())
-    }
-
-    fn supported_verify_schemes(&self) -> Vec<rustls::SignatureScheme> {
-        vec![
-            // RSA schemes
-            rustls::SignatureScheme::RSA_PKCS1_SHA256,
-            rustls::SignatureScheme::RSA_PKCS1_SHA384,
-            rustls::SignatureScheme::RSA_PKCS1_SHA512,
-            rustls::SignatureScheme::RSA_PSS_SHA256,
-            rustls::SignatureScheme::RSA_PSS_SHA384,
-            rustls::SignatureScheme::RSA_PSS_SHA512,
-            // ECDSA schemes
-            rustls::SignatureScheme::ECDSA_NISTP256_SHA256,
-            rustls::SignatureScheme::ECDSA_NISTP384_SHA384,
-            rustls::SignatureScheme::ECDSA_NISTP521_SHA512,
-            // EdDSA schemes
-            rustls::SignatureScheme::ED25519,
-            rustls::SignatureScheme::ED448,
-        ]
-    }
-}
-#[derive(Debug)]
-pub struct InsecureVerifier;
-
-impl ServerCertVerifier for InsecureVerifier {
-    fn verify_server_cert(
-        &self,
-        _end_entity: &CertificateDer<'_>,
-        _intermediates: &[CertificateDer<'_>],
-        _server_name: &ServerName,
-        _ocsp_response: &[u8],
-        _now: UnixTime,
-    ) -> Result<rustls::client::danger::ServerCertVerified, Error> {
-        Ok(rustls::client::danger::ServerCertVerified::assertion())
-    }
-
-    fn verify_tls12_signature(
-        &self,
-        _message: &[u8],
-        _cert: &CertificateDer<'_>,
-        _dss: &rustls::DigitallySignedStruct,
+        msg: &[u8],
+        cert: &CertificateDer<'_>,
+        sig: &rustls::DigitallySignedStruct,
     ) -> Result<HandshakeSignatureValid, Error> {
-        Ok(HandshakeSignatureValid::assertion())
+        rustls::crypto::verify_tls13_signature(
+            msg,
+            cert,
+            sig,
+            &rustls::crypto::ring::default_provider().signature_verification_algorithms,
+        )
     }
-
-    fn verify_tls13_signature(
-        &self,
-        _message: &[u8],
-        _cert: &CertificateDer<'_>,
-        _dss: &rustls::DigitallySignedStruct,
-    ) -> Result<HandshakeSignatureValid, Error> {
-        Ok(HandshakeSignatureValid::assertion())
-    }
-
     fn supported_verify_schemes(&self) -> Vec<SignatureScheme> {
-        vec![
-            SignatureScheme::RSA_PKCS1_SHA256,
-            SignatureScheme::RSA_PKCS1_SHA384,
-            SignatureScheme::RSA_PKCS1_SHA512,
-            SignatureScheme::RSA_PSS_SHA256,
-            SignatureScheme::RSA_PSS_SHA384,
-            SignatureScheme::RSA_PSS_SHA512,
-            SignatureScheme::ECDSA_NISTP256_SHA256,
-            SignatureScheme::ECDSA_NISTP384_SHA384,
-            SignatureScheme::ECDSA_NISTP521_SHA512,
-            SignatureScheme::ED25519,
-            SignatureScheme::ED448,
-        ]
+        rustls::crypto::ring::default_provider()
+            .signature_verification_algorithms
+            .supported_schemes()
     }
 }
-
 pub fn load_root_cert() -> anyhow::Result<rustls::RootCertStore> {
     let mut root_cert_store = rustls::RootCertStore::empty();
     let certs = rustls_native_certs::load_native_certs().certs;
@@ -143,9 +88,9 @@ pub fn load_root_cert() -> anyhow::Result<rustls::RootCertStore> {
 
 #[derive(Debug, Clone, Default)]
 pub enum CertValidationMode {
-    #[default]
     InsecureSkipVerification,
     VerifyFingerprint([u8; 32]),
+    #[default]
     Standard,
 }
 impl FromStr for CertValidationMode {
@@ -154,7 +99,7 @@ impl FromStr for CertValidationMode {
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         let val = value.trim().to_lowercase();
         if val == "skip" {
-            return Ok(CertValidationMode::InsecureSkipVerification);
+            return Err("TLS certificate verification cannot be disabled".into());
         }
         if val == "standard" {
             return Ok(CertValidationMode::Standard);
@@ -199,7 +144,7 @@ impl CertValidationMode {
     pub fn build_verifier(&self) -> anyhow::Result<std::sync::Arc<dyn ServerCertVerifier>> {
         match self {
             CertValidationMode::InsecureSkipVerification => {
-                Ok(std::sync::Arc::new(InsecureVerifier))
+                anyhow::bail!("TLS certificate verification cannot be disabled")
             }
             CertValidationMode::VerifyFingerprint(fingerprint) => {
                 Ok(std::sync::Arc::new(FingerprintVerifier {

@@ -29,6 +29,7 @@ use tcp_ip::{IpStackConfig, IpStackRecv};
 pub(crate) struct QuicTunnelConfig {
     pub mtu: u16,
     pub password: String,
+    pub identity: Option<crate::tls::RoomIdentity>,
     pub open_quic_client: bool,
     pub port_mapping: Vec<PortMapping>,
 }
@@ -70,6 +71,7 @@ pub(crate) async fn quic_tunnel_start(
 
     let (inbound, endpoint) = create_quic_endpoint(
         config.password,
+        config.identity,
         task_group.clone(),
         components.hybrid_outbound,
     )
@@ -112,37 +114,38 @@ pub(crate) async fn quic_tunnel_start(
     let quic_inbound = EnhancedQuicInbound::new(inbound);
     Ok((quic_inbound, quic_outbound))
 }
+pub fn room_tls(password:&str,identity:Option<crate::tls::RoomIdentity>)->anyhow::Result<(ServerConfig,rustls::ClientConfig)> {
+    anyhow::ensure!(!password.is_empty(), "需要房间凭据");
+    let (member,member_key)=tls::cert::generate_deterministic_cert(password)?;
+    let mut roots=rustls::RootCertStore::empty(); roots.add(member.clone())?;
+    let check=rustls::server::WebPkiClientVerifier::builder(Arc::new(roots)).build()?;
+    let (server_cert,server_key,pin)=match identity {
+        Some(tls::RoomIdentity::Host(host))=>{let (cert,key)=host.keys(); (cert,key,host.fingerprint())},
+        Some(tls::RoomIdentity::Guest(pin))=>(member.clone(),member_key.clone_key(),pin),
+        None => (member.clone(),member_key.clone_key(),Sha256::digest(member.as_ref()).into()),
+    };
+    let server=ServerConfig::builder().with_client_cert_verifier(check).with_single_cert(vec![server_cert],server_key)?;
+    let client=rustls::ClientConfig::builder().dangerous().with_custom_certificate_verifier(
+        Arc::new(tls::verifier::FingerprintVerifier::new(pin))).with_client_auth_cert(vec![member],member_key)?;
+    Ok((server,client))
+}
 async fn create_quic_endpoint(
     password: String,
+    identity: Option<crate::tls::RoomIdentity>,
     task_group: TaskGroup,
     hybrid_outbound: HybridOutbound,
 ) -> anyhow::Result<(QuicDataInbound, Endpoint)> {
-    let (cert, private_key) = crate::tls::cert::generate_deterministic_cert(&password)?;
-    let mut hasher = Sha256::new();
-    hasher.update(cert.as_ref());
-    let calculated_hash: [u8; 32] = hasher.finalize().into();
-    log::info!("QUIC Cert Fingerprint: {}", hex::encode(calculated_hash));
+    let (server_config, client_config) = room_tls(&password,identity)?;
 
     let outbound = create_enhanced_outbound(task_group.clone(), hybrid_outbound).await;
     let (inbound, inbound_receiver) = create_enhanced_inbound();
     let socket = ExtendedQuicSocket::new(inbound_receiver, outbound);
-
-    let server_config = ServerConfig::builder()
-        .with_no_client_auth()
-        .with_single_cert(vec![cert], private_key)
-        .context("TLS config error")?;
 
     let server_crypto = QuicServerConfig::try_from(server_config)
         .map_err(|e| anyhow::anyhow!("QUIC TLS config error: {:?}", e))?;
     let server_config = quinn::ServerConfig::with_crypto(Arc::new(server_crypto));
     // 替换运行时
     let runtime = default_runtime().ok_or_else(|| io::Error::other("no async runtime found"))?;
-    let fingerprint_verifier = tls::verifier::FingerprintVerifier::new(calculated_hash);
-
-    let client_config = rustls::ClientConfig::builder()
-        .dangerous()
-        .with_custom_certificate_verifier(Arc::new(fingerprint_verifier))
-        .with_no_client_auth();
     let mut client_config = ClientConfig::new(Arc::new(
         quinn::crypto::rustls::QuicClientConfig::try_from(client_config)
             .context("Failed to create QUIC client config")?,

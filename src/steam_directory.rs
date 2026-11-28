@@ -18,7 +18,7 @@ use windows::Win32::Storage::FileSystem::FILE_SHARE_READ;
 const APP_ID: u32 = 1364020;
 const SDK_SHA: &str = "a44e5537939ae4eebc69000589aa9b2437a667813a1657cc779198bae9b815a9";
 const KIND: &CStr = c"brt.directory";
-const VERSION: &CStr = c"boundary.rooms.1";
+const VERSION: &CStr = c"boundary.rooms.2";
 const HOST: &CStr = c"brt.host";
 const INVITE: &CStr = c"brt.invite";
 const HEARTBEAT: &CStr = c"brt.seen";
@@ -335,8 +335,8 @@ mod tests {
             return Ok(());
         }
         let link = format!(
-            "brt://room/{}/10.193.24.5:18777",
-            uuid::Uuid::new_v4().simple()
+            "brt://room2/{}/10.193.24.5:18777/{}",
+            uuid::Uuid::new_v4().simple(),"ab".repeat(32)
         );
         let (tx, rx) = mpsc::channel();
         thread::spawn(move || {
@@ -348,8 +348,8 @@ mod tests {
     #[test]
     fn directory_ignores_wrong_versions_stale_and_non_friend_targets() {
         let link = format!(
-            "brt://room/{}/10.12.4.5:18777",
-            uuid::Uuid::new_v4().simple()
+            "brt://room2/{}/10.12.4.5:18777/{}",
+            uuid::Uuid::new_v4().simple(),"ab".repeat(32)
         );
         let k = VERSION.to_str().unwrap();
         assert_eq!(

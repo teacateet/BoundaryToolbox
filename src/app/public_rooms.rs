@@ -38,6 +38,7 @@ fn command(target: &std::path::Path, op: &str) -> anyhow::Result<std::process::C
 impl AppController {
     pub(super) fn clear_public_listing(&mut self) {
         let was_public = self.public_rooms.preparing || self.public_rooms.host.is_some();
+        if was_public { if let Some(room)=&self.friend_room {room.revoke_game();} }
         self.public_rooms.host.take();
         self.public_rooms.preparing = false;
         self.ui.set_public_room_active(false);

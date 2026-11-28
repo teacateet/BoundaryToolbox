@@ -161,6 +161,27 @@ fn game_has_port(target: &Path, wrapper_pid: u32, port: u16) -> Result<bool> {
     }))
 }
 
+/// 固定本次开房的进程对象，并在转发前确认该端口仍只属于这个专服。
+pub(crate) fn pin_game_port(target:&Path,port:u16)->Result<std::sync::Arc<dyn Fn()->bool+Send+Sync>> {
+    use std::os::windows::io::{OwnedHandle,FromRawHandle,AsRawHandle};
+    use windows::Win32::{Foundation::{HANDLE,WAIT_TIMEOUT},System::Threading::{OpenProcess,PROCESS_SYNCHRONIZE,WaitForSingleObject}};
+    let pin=|pid| -> Result<OwnedHandle> { let h=unsafe{OpenProcess(PROCESS_SYNCHRONIZE,false,pid)?};Ok(unsafe{OwnedHandle::from_raw_handle(h.0)}) };
+    for dir in [room_path(target,port)?,coop_path(target,port)] {
+        let Some(owner)=saved_owner(&dir)? else {continue};
+        let pids=udp_owners(port)?;
+        let Some(pid)=pids.iter().copied().next().filter(|id|*id!=0 && pids.len()==1) else {continue};
+        let game=pin(pid)?;let launcher=pin(owner.pid)?;
+        if !is_owner(&owner,target,&dir) || !game_has_port(target,owner.pid,port)? {continue;}
+        let check=move || {
+            let alive=|p:&OwnedHandle| unsafe{WaitForSingleObject(HANDLE(p.as_raw_handle()),0)==WAIT_TIMEOUT};
+            alive(&game) && alive(&launcher) && udp_owners(port).is_ok_and(|set|set.len()==1 && set.contains(&pid))
+        };
+        ensure!(check(),"专服已不再独占该端口");
+        return Ok(std::sync::Arc::new(check));
+    }
+    bail!("房间没有持有该游戏端口")
+}
+
 fn configure(room: &Path, port: u16) -> Result<()> {
     let path = room.join("serverconfig.json");
     let config = serde_json::json!({"map":"Warehouse", "mode":"pvp", "serverName":"BRT", "serverRegion":"LOCAL", "offline":true, "port":port, "externalPort":port});
@@ -508,8 +529,11 @@ mod tests {
             "Test room already in use"
         );
         start(&target, port)?;
+        let mut retained=None;
         let check = (|| -> Result<()> {
             ensure!(owned_room_listening(&target, port)?, "Open room cannot be shared or joined");
+            let pinned=pin_game_port(&target,port)?;
+            ensure!(pinned(),"新授权未绑定到本房专服");
             let owner = saved_owner(&room)?.context("Missing ownership record")?;
             ensure!(
                 is_owner(&owner, &target, &room) && game_has_port(&target, owner.pid, port)?,
@@ -520,6 +544,7 @@ mod tests {
                 saved_owner(&room)?.unwrap().pid == owner.pid,
                 "Second start changed the server PID"
             );
+            retained=Some(pinned);
             Ok(())
         })();
         let stopped = stop(&target, port)?;
@@ -527,6 +552,9 @@ mod tests {
         ensure!(!owned_room_listening(&target, port)?, "Closed room still accepts invitations");
         ensure!(stopped && !stop(&target, port)?, "Stop was not idempotent");
         ensure!(udp_owners(port)?.is_empty(), "Game still owns the UDP port");
+        let replacement=std::net::UdpSocket::bind((std::net::Ipv4Addr::LOCALHOST,port))?;
+        ensure!(!retained.context("缺少已验证授权")?(),"同号端口重新占用后，旧授权仍然有效");
+        drop(replacement);
         Ok(())
     }
 }

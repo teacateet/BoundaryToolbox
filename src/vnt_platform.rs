@@ -26,10 +26,14 @@ use vnt_core::utils::task_control::TaskGroupManager;
 use vnt_ipc as vnt_core;
 
 use crate::core::{APP_VERSION, INSTALLER_FOLDER_NAME, WINTUN_RELEASE_NAME, WINTUN_RELEASE_URL};
+#[cfg(test)]
+#[path="vnt_auth_tests.rs"]
+mod auth_tests;
 
 /// 用户提供给 VNT 核心的启动选项。
 #[derive(Debug, Clone)]
 pub struct VntLaunchOptions {
+    pub identity: Option<vnt_ipc::tls::RoomIdentity>,
     pub server_text: String,
     pub username: String,
     pub network_code: String,
@@ -116,6 +120,9 @@ impl VntSession {
 
     /// 在独立 OS 线程上启动 VNT，并使用自己的 Tokio runtime。
     pub fn start(options: VntLaunchOptions, sink: EventSink) -> Result<Self> {
+        anyhow::ensure!(options.no_tun && !options.password.trim().is_empty(),"BRT 联机需要游戏端口模式及房间密码");
+        #[cfg(not(test))]
+        anyhow::ensure!(options.shared_game_port.is_none(),"没有专服归属凭据，不能预先共享游戏端口");
         validate_options(&options)?;
         let (session, stop_rx) = Self::pending(&options);
         let thread_sink = sink.clone();
@@ -148,16 +155,16 @@ impl VntSession {
     }
 
     pub(crate) fn share_owned_room(&mut self, target: PathBuf, port: u16) -> Result<()> {
-        anyhow::ensure!(self.game_route.1.is_none() && crate::core::fixed_host::valid_room_port(port) &&
-            crate::core::fixed_host::owned_room_listening(&target, port)?, "房间没有持有该游戏端口");
-        if self.watched_port == Some(port) && self.share.current() == Some(port) { return Ok(()); }
+        anyhow::ensure!(self.game_route==(true,None) && crate::core::fixed_host::valid_room_port(port), "房间端口无效");
+        let valid=match crate::core::fixed_host::pin_game_port(&target,port){Ok(v)=>v,Err(e)=>{self.unshare_room();return Err(e);}};
+        let previous=self.share.watch().borrow().0;
+        if self.watched_port == Some(port) && self.share.while_granted(previous,port,||()).is_some() { return Ok(()); }
         let share = self.share.clone();
-        share.set(Some(port));
+        let generation=share.grant_owned(port,valid.clone());
         let permit = share.watch();
-        let generation = permit.borrow().0;
         if let Err(e) = thread::Builder::new().name("game-port-owner".into()).spawn(move || {
             while matches!(permit.has_changed(), Ok(false)) && share.current() == Some(port) {
-                if !crate::core::fixed_host::owned_room_listening(&target, port).unwrap_or(false) {
+                if !valid() {
                     share.revoke(generation);
                     break;
                 }
@@ -429,6 +436,14 @@ async fn run_vnt(
 
 /// 将 UI 选项转换为 VNT 核心需要的配置。
 fn build_config(options: &VntLaunchOptions, device_id: String) -> Result<Config> {
+    anyhow::ensure!(options.no_tun && !options.password.trim().is_empty(),"BRT 需要房间密码并仅允许游戏端口模式");
+    let relay=split_servers(&options.server_text);
+    anyhow::ensure!(relay.iter().all(|s|!s.to_ascii_lowercase().starts_with("dynamic://")),"房间中继需要固定的已验证服务名");
+    let cert_mode=match (std::env::var("BRT_ROOM_RELAY"),std::env::var("BRT_ROOM_RELAY_SHA256")) {
+        (Ok(name),Ok(pin)) if relay.as_slice()==[name.as_str()]=>format!("finger:{pin}").parse().map_err(anyhow::Error::msg)?,
+        (_,Ok(_)) if std::env::var_os("BRT_ROOM_RELAY").is_none()=>bail!("中继证书指纹必须绑定指定服务地址"),
+        _=>CertValidationMode::Standard,
+    };
     let server_addr = split_servers(&options.server_text)
         .into_iter()
         .map(|server| {
@@ -455,8 +470,8 @@ fn build_config(options: &VntLaunchOptions, device_id: String) -> Result<Config>
         device_name: resolved_device_name(&options.username),
         tun_name: Some("boundary-vnt".to_string()),
         password,
-        // 内置 VNT 默认以该模式连接公共社区服务器。
-        cert_mode: CertValidationMode::InsecureSkipVerification,
+        room_identity: options.identity.clone(),
+        cert_mode,
         no_punch: options.no_punch,
         compress: options.compress,
         rtx: options.rtx,
@@ -870,8 +885,9 @@ mod tests {
         let listener = TcpListener::bind(("127.0.0.1", 0))?;
         for _ in 0..2 {
             let options = VntLaunchOptions {
+                identity:None,
                 server_text: format!("tcp://{}", listener.local_addr()?), username: "qa".into(),
-                network_code: "brt-local-qa".into(), password: String::new(), no_tun: true,
+                network_code: "brt-local-qa".into(), password: "local-test-only".into(), no_tun: true,
                 port_mapping_host: None, shared_game_port: None, compress: false, rtx: false, no_punch: true,
             };
             let (tx, rx) = mpsc::channel();
@@ -901,10 +917,11 @@ mod tests {
     fn vnt_room_session_route_matches_core_config_without_starting_vnt() -> Result<()> {
         let host: SocketAddrV4 = "10.26.0.8:18777".parse()?;
         let mut options = VntLaunchOptions {
+            identity:None,
             server_text: "tcp://127.0.0.1:11010".into(),
             username: "guest".into(),
             network_code: "test-room".into(),
-            password: String::new(),
+            password: "test-only-credential".into(),
             no_tun: true,
             port_mapping_host: Some(host),
             shared_game_port: None,
@@ -929,6 +946,7 @@ mod tests {
         options.port_mapping_host = None;
         for mode in [false, true] {
             options.no_tun = mode;
+            if !mode {assert!(build_config(&options,"test-device".into()).is_err());continue;}
             let (next, _rx) = VntSession::pending(&options);
             let config = build_config(&options, "test-device".into())?;
             config.check()?;

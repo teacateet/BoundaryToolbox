@@ -5,7 +5,7 @@ use uuid::Uuid;
 pub(super) enum Invite {
     Lan(SocketAddrV4),
     Vnt(SocketAddrV4),
-    Friend { room: Uuid, peer: SocketAddrV4 },
+    Friend { room: Uuid, peer: SocketAddrV4, pin:[u8;32] },
 }
 
 fn lan_ip(ip: Ipv4Addr) -> bool {
@@ -33,11 +33,14 @@ impl Invite {
 
     pub(super) fn parse(value: &str) -> Option<Self> {
         let s = value.trim();
-        if s.len() > 80 {
+        if s.len() > 145 {
             return None;
         }
-        if let Some(payload) = s.strip_prefix("brt://room/") {
+        if let Some(payload) = s.strip_prefix("brt://room2/") {
             let (key, address) = payload.split_once('/')?;
+            let (address,hex)=address.split_once('/')?;
+            if hex.len()!=64 || !hex.bytes().all(|b|b.is_ascii_hexdigit()) {return None;}
+            let mut pin=[0u8;32]; for (i,b) in pin.iter_mut().enumerate(){*b=u8::from_str_radix(&hex[i*2..i*2+2],16).ok()?;}
             if key.len() != 32 || !key.bytes().all(|c| c.is_ascii_hexdigit()) {
                 return None;
             }
@@ -50,7 +53,7 @@ impl Invite {
             {
                 return None;
             }
-            return Some(Self::Friend { room, peer });
+            return Some(Self::Friend { room, peer, pin });
         }
         let (vnt, addr) = if let Some(s) = s.strip_prefix("brt://lan/") {
             (false, s)
@@ -70,7 +73,7 @@ impl std::fmt::Display for Invite {
         match self {
             Self::Lan(peer) => write!(f, "brt://lan/{peer}"),
             Self::Vnt(peer) => write!(f, "brt://vnt/{peer}"),
-            Self::Friend { room, peer } => write!(f, "brt://room/{}/{peer}", room.simple()),
+            Self::Friend { room, peer, pin } => {write!(f, "brt://room2/{}/{peer}/", room.simple())?;for byte in pin {write!(f,"{byte:02x}")?;} Ok(())},
         }
     }
 }
@@ -123,7 +126,8 @@ mod tests {
     #[test]
     fn friend_room_invite_does_not_accept_another_server_or_public_target() {
         let key = Uuid::new_v4();
-        let link = format!("brt://room/{}/10.193.43.8:18777", key.simple());
+        let link = format!("brt://room2/{}/10.193.43.8:18777/{}", key.simple(),"ab".repeat(32));
+        assert!(Invite::parse(&format!("brt://room/{}/10.193.43.8:18777",key.simple())).is_none());
         assert_eq!(Invite::parse(&link).unwrap().to_string(), link);
         for bad in [
             link.replace("10.193.43.8", "127.0.0.1"),

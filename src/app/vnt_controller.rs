@@ -62,6 +62,7 @@ impl AppController {
         // 无网卡邀请在回环接收游戏数据；启动现有组网不必改动 Windows 入站规则。
         let options = VntLaunchOptions {
             server_text: self.ui.get_vnt_server_text().to_string(),
+            identity:None,
             username: self.ui.get_vnt_username().to_string(),
             network_code: self.ui.get_vnt_network_code().to_string(),
             password: self.ui.get_vnt_password().to_string(),
@@ -424,6 +425,7 @@ impl AppController {
 
         let options = VntLaunchOptions {
             server_text: self.ui.get_vnt_server_text().to_string(),
+            identity:None,
             username: self.ui.get_vnt_username().to_string(),
             network_code: self.ui.get_vnt_network_code().to_string(),
             password: self.ui.get_vnt_password().to_string(),
