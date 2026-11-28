@@ -26,6 +26,7 @@ impl AppController {
     pub(super) fn close_window_now(&mut self) {
         self.hide_app_dialog();
         self.stop_background.store(true, Ordering::Relaxed);
+        self.clear_public_listing();
         let _ = self.ui.hide();
     }
 

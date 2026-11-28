@@ -87,6 +87,13 @@ export component AppWindow inherits Window {
     in-out property <bool> fixed_room_pve: true;
     in property <bool> friend_room_connected;
     in property <bool> friend_room_working;
+    in property <bool> public_room_active;
+    in property <bool> public_loading;
+    in property <string> public_status;
+    in property <string> public_host_status;
+    in property <[ServerRow]> public_rows;
+    callback toggle_public_room();
+    callback refresh_public_rooms();
     in property <int> room_host_players: -1;
     in property <int> room_client_players: -1;
     in property <int> friend_online_nodes: -1;
@@ -396,6 +403,13 @@ export component AppWindow inherits Window {
                 }
 
                 rooms := ServersPage {
+                    public_room_active: root.public_room_active;
+                    public_loading: root.public_loading;
+                    public_status: root.public_status;
+                    public_host_status: root.public_host_status;
+                    public_rows: root.public_rows;
+                    toggle_public_room => {root.toggle_public_room();}
+                    refresh_public_rooms => {root.refresh_public_rooms();}
                     room_host_players: root.room_host_players;
                     room_client_players: root.room_client_players;
                     friend_online_nodes: root.friend_online_nodes;

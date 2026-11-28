@@ -4,6 +4,7 @@
 
 mod app;
 mod core;
+mod steam_directory;
 mod vnt_platform;
 
 slint::include_modules!();
@@ -11,6 +12,9 @@ slint::include_modules!();
 fn main() -> anyhow::Result<()> {
     let mut args = std::env::args_os().skip(1);
     let action = args.next();
+    if action.as_deref() == Some(std::ffi::OsStr::new("--brt-steam-rooms")) {
+        return steam_directory::run(args);
+    }
     if action.as_deref() == Some(std::ffi::OsStr::new("--install-community")) {
         let path = args.next().ok_or_else(|| anyhow::anyhow!("请指定 Steam 游戏的 Win64 目录"))?;
         anyhow::ensure!(args.next().is_none(), "安装只接受一个目录");

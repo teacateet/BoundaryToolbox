@@ -84,6 +84,14 @@ impl AppController {
 
     /// Save current target and sync to Slint.
     pub(super) fn set_current_target(&mut self, path: Option<PathBuf>, status: &str) {
+        if self.current_target != path {
+            if self.public_rooms.preparing || self.public_rooms.advertising() {
+                self.disconnect_friend_room();
+                self.clear_public_listing();
+            }
+            self.ui.set_public_rows(Default::default());
+            self.public_rooms.target_changed();
+        }
         self.ui.set_room_client_players(-1);
         self.ui.set_room_host_players(-1);
         self.current_target = path;

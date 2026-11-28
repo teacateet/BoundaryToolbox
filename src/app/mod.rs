@@ -39,6 +39,10 @@ mod dialogs;
 mod drive_scan;
 mod fixed_room;
 mod friend_invite;
+pub(crate) fn public_invite(link: &str) -> bool {
+    matches!(friend_invite::Invite::parse(link), Some(friend_invite::Invite::Friend{..}))
+}
+mod public_rooms;
 mod friend_room;
 mod font;
 mod i18n;
@@ -139,6 +143,8 @@ enum AppMessage {
     SystemCheckFinished(SystemCheckReport),
     VntEvent(VntEvent),
     FriendRoomEvent(uuid::Uuid, VntEvent),
+    PublicListing(uuid::Uuid, Result<(), String>),
+    PublicRows(PathBuf, Result<Vec<crate::steam_directory::Room>, String>),
     RoomCounts { target: PathBuf, hosted: Option<(PathBuf, u16)>, host: Option<u8>, client: Option<u8> },
     InstallProgress(InstallProgress),
     ActionFinished {
@@ -204,6 +210,7 @@ struct AppController {
     vnt_peer_model: Rc<VecModel<VntPeerRow>>,
     vnt_session: Option<VntSession>,
     friend_room: Option<friend_room::FriendSession>,
+    public_rooms: public_rooms::DirectoryState,
     vnt_host_selection_pending: bool,
     invite_auto_route: Option<(std::net::SocketAddrV4, std::time::Instant)>,
     vnt_restart_after_stop: Option<VntLaunchOptions>,

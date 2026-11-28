@@ -104,6 +104,7 @@ impl AppController {
     }
 
     fn close_friend_connection(&mut self) {
+        self.clear_public_listing();
         self.ui.set_friend_online_nodes(-1);
         self.friend_room = None;
         self.ui.set_friend_room_working(false);
@@ -177,6 +178,8 @@ impl AppController {
                 self.ui.set_friend_room_working(true);
                 self.ui.set_friend_room_connected(true);
                 match side {
+                    Side::Host(_) if self.public_rooms.preparing => self.friend_notice(
+                        "正在为公开房间准备游戏连接。", "Preparing the public room connection.", "公開ルームの接続を準備中です。"),
                     Side::Host(_) => self.friend_notice(
                         "正在准备好友邀请，完成后会自动复制。",
                         "Preparing the invite. It will be copied when ready.",
@@ -277,6 +280,10 @@ impl AppController {
     }
 
     fn finish_friend_share(&mut self, invite: friend_invite::Invite) {
+        if self.public_rooms.preparing {
+            self.start_public_listing(invite);
+            return;
+        }
         if let Err(e) = servers::copy_text_to_clipboard(self.ui.window(), &invite.to_string()) {
             self.friend_notice(
                 "剪贴板正在使用，请再点一次「复制好友邀请」。",
@@ -331,6 +338,7 @@ impl AppController {
         };
         match event {
             VntEvent::Snapshot(s) => {
+                let previous_host_ip = r.host_ip;
                 self.ui.set_friend_online_nodes(online_nodes(&s).unwrap_or(-1));
                 if self.ui.get_busy() {
                     return;
@@ -353,7 +361,11 @@ impl AppController {
                         );
                         self.start_launch(LaunchMode::Join(endpoint));
                     }
-                    None => {}
+                    None => {
+                        if self.public_rooms.advertising() && r.host_ip != previous_host_ip {
+                            self.disconnect_friend_room();
+                        }
+                    }
                 }
             }
             VntEvent::Failed(e) | VntEvent::Stopped(e) => self.friend_error(&e),

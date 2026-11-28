@@ -289,6 +289,8 @@ impl AppController {
                 AppMessage::SystemCheckFinished(report) => self.apply_system_check_report(report),
                 AppMessage::VntEvent(event) => self.apply_vnt_event(event),
                 AppMessage::FriendRoomEvent(attempt, event) => self.friend_event(attempt, event),
+                AppMessage::PublicListing(id, result) => self.public_listing_result(id, result),
+                AppMessage::PublicRows(target, rows) => self.public_rows_result(target, rows),
                 AppMessage::ActionFinished {
                     title,
                     status,

@@ -6,6 +6,13 @@ import { OnlineTabs } from "../header.slint";
 
 export component ServersPage inherits Workbench {
     in property <bool> servers_loading;
+    in property <bool> public_room_active;
+    in property <bool> public_loading;
+    in property <string> public_status;
+    in property <string> public_host_status;
+    in property <[ServerRow]> public_rows;
+    callback toggle_public_room();
+    callback refresh_public_rooms();
     in property <bool> busy;
     in property <string> server_status_text;
     in property <[ServerRow]> server_rows;
@@ -70,6 +77,8 @@ export component ServersPage inherits Workbench {
         Command { label: I18n.tr("高级选项", "More", "詳細"); enabled: !root.busy; clicked => { root.more = !root.more; } }
     }
     if root.fixed_room_running : HorizontalLayout { spacing: 8px; alignment: start;
+        Command { label: root.public_room_active ? I18n.tr("撤下并断开组网","Unpublish and disconnect","公開・接続を解除") : I18n.tr("公开我的房间","Publish room","ルームを公開");
+            enabled: !root.busy && (root.public_room_active || !root.friend_room_working); clicked => { root.toggle_public_room(); } }
         Command { label: I18n.tr("复制好友邀请", "Copy friend invite", "フレンド招待をコピー"); emphasis: true; enabled: !root.busy && !root.friend_room_working;
             clicked => { root.share_friend_room_clicked(); } }
         Command { label: I18n.tr("进入房间", "Enter room", "ルームに入る"); enabled: !root.busy && !root.friend_room_working; clicked => { root.join_own_room_clicked(); } }
@@ -79,6 +88,17 @@ export component ServersPage inherits Workbench {
         Caption { text: I18n.tr("游戏端口", "Game port", "ポート"); }
         Field { text <=> root.fixed_room_port; input-type: InputType.number; enabled: !root.busy && !root.fixed_room_running; }
         if root.fixed_room_running && root.vnt_ready : Command { label: I18n.tr("复制已有组网邀请", "Copy custom network invite", "詳細ネットワークの招待"); enabled: !root.busy; clicked => { root.copy_room_invite_clicked(true); } }
+    }
+    if root.fixed_room_running: Value { text: root.public_host_status == "" ? I18n.tr("公开后，其他 BRT 玩家可以看到你的 Steam 昵称并加入。", "Publishing lets BRT players see your Steam name and join.", "公開するとほかの BRT プレイヤーが Steam 名を確認して参加できます。") : root.public_host_status; }
+    Divider {}
+    HorizontalLayout { height: 36px; spacing: 12px;
+        Caption { text: I18n.tr("工具箱公开房间", "Public BRT rooms", "BRT 公開ルーム"); horizontal-stretch: 1; }
+        Command { label: root.public_loading ? I18n.tr("刷新中","Refreshing","更新中") : I18n.tr("刷新房间","Refresh rooms","ルームを更新"); enabled: !root.public_loading; clicked => { root.refresh_public_rooms(); } }
+    }
+    Value { text: root.public_status; }
+    for room in root.public_rows: HorizontalLayout { spacing: 8px;
+        Caption { text: I18n.tr("房主：","Host: ","ホスト：") + room.name; horizontal-stretch: 1; overflow: elide; }
+        Command { label: I18n.tr("加入房间","Join room","参加"); enabled: !root.busy && !root.friend_room_working && !root.fixed_room_running; clicked => { root.join_clicked(room.address); } }
     }
     if root.fixed_room_running || root.friend_room_connected || root.room_client_players >= 0 : HorizontalLayout {
         spacing: 12px;

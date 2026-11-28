@@ -296,6 +296,7 @@ impl AppController {
             vnt_peer_model,
             vnt_session: None,
             friend_room: None,
+            public_rooms: Default::default(),
             vnt_host_selection_pending: false,
             invite_auto_route: None,
             vnt_restart_after_stop: None,
@@ -545,6 +546,10 @@ impl AppController {
         {
             let c = Rc::clone(controller);
             app.on_share_friend_room_clicked(move || c.borrow_mut().share_friend_room());
+            let c = Rc::clone(controller);
+            app.on_toggle_public_room(move || c.borrow_mut().toggle_public_room());
+            let c = Rc::clone(controller);
+            app.on_refresh_public_rooms(move || c.borrow_mut().refresh_public_rooms());
         }
         {
             let c = Rc::clone(controller);
@@ -737,7 +742,9 @@ impl AppController {
         let counter = Rc::clone(controller);
         let count_timer = Timer::default();
         count_timer.start(TimerMode::Repeated, Duration::from_secs(3), move || {
-            counter.borrow_mut().refresh_room_counts();
+            let mut app = counter.borrow_mut();
+            app.refresh_room_counts();
+            app.tick_public_rooms();
         });
         std::mem::forget(count_timer);
     }
@@ -775,6 +782,7 @@ impl AppController {
             self.ui.set_room_client_players(-1);
             self.refresh_room_counts();
             self.start_refresh_servers();
+            self.refresh_public_rooms();
         }
         if page == 3 {
             self.refresh_vnt_status_hint();

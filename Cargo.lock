@@ -707,6 +707,7 @@ dependencies = [
  "hmac",
  "icu_provider",
  "image",
+ "libloading 0.8.9",
  "log",
  "netstat2",
  "regex",
