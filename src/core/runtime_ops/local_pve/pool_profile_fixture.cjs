@@ -29,8 +29,9 @@ const server = net.createServer(async rpc => {
     const user = '76561198185503627', mode = 'Rush_PVE_Normal';
     await wait(() => fs.existsSync('start'));
     const start = (ticket, choice) => {
-      const regions = {ids:['region'], published:[{RegionId:'region'}]};
-      assert.equal(session.start(user,user,mode,ticket,choice,regions).status,'queued');
+      const regions = {authenticated:true,ids:['region'], published:[{RegionId:'region'}]};
+      const chosen = connection === 1 ? 'BRT_NEXT_Normal_CircularX' : 'BRT_NEXT_Normal_OSS';
+      assert.equal(session.start(user,user,chosen,ticket,choice,regions).status,'queued');
     };
     if (connection === 1) {
       start('cancelled',1);

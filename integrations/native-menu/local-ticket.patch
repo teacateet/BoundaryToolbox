@@ -21,11 +21,12 @@ diff --git a/index.js b/index.js
          let matchFound = false;
 -        const localRoom = roomSession.start(socket.playerId, requestedBy, requestedMode, ticketId, attempt.seq);
 +        const localRoom = roomSession.start(socket.playerId, requestedBy, requestedMode, ticketId, attempt.seq,
-+          { ids: localTicketProtocol.regions(MessageBytes), published: menuRegionCatalog?.regions });
++          { ids: localTicketProtocol.regions(MessageBytes), published: menuRegionCatalog?.regions, authenticated: socket.joinAuthenticated });
          try {
            const result = localRoom || await matchServerRequest('POST', '/matchmaking/enqueue', {
 @@ -802,6 +807,36 @@
-         let Resp = RespType.create({StatusCode: 0});
+-        let Resp = RespType.create({StatusCode: 0});
++        let Resp = RespType.create({StatusCode: localRoom?.status === 'unavailable' ? 1 : 0});
          let ResponseBytes = RespType.encode(Resp).finish();
          socket.write(WrapMessageAndSerialize(MessageId, RPCPath, ResponseBytes));
 +        const feedback = roomSession.ticketPublisher(socket.playerId, ticketId,
@@ -37,7 +38,7 @@ diff --git a/index.js b/index.js
 +        if (localRoom?.status === 'found') {
 +          feedback.start();
 +          feedback.ready();
-+        } else if (localRoom && socket.joinAuthenticated)
++        } else if (localRoom?.status === 'queued' && socket.joinAuthenticated)
 +          roomSession.prepare(socket.playerId, ticketId, socket, feedback.ready, feedback.start, feedback.admitted);
 +      }
 +      else if (roomSession.handlesTicket(socket.playerId) && MessageBytes?.length &&

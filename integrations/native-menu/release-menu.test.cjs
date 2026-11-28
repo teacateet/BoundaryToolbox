@@ -771,6 +771,24 @@ async function exerciseRegions(app, expected, revised, fixedQos = revised, poolO
           }
           const full = await playlists();
           assert.deepEqual(full.PVE.map(row => row.Name), ['Rush_PVE_Easy', 'Rush_PVE_Normal', 'Rush_PVE_Hard']);
+          // 原生卡选择的是本次请求；跨版本缓存和错误的图不能得到成功应答。
+          const pool = {v:1, autoPool:true, nextMatch:1, runId:randomUUID(), expiresAt:Date.now()+14000,
+            mode:'pve', offline:true, controlIpc:{v:1, port:bridge.address().port, nonce:randomBytes(32).toString('hex')}};
+          const cardStart = id => type('Request','StartMatchmakingRequest').encode({GameMode:id,
+            Payload:{MatchmakingRequestorUserId:fixtureAccount}}).finish();
+          fs.writeFileSync(file, JSON.stringify(pool));
+          const cards = await playlists(), any = cards.PVE.find(row => row.Name === 'BRT_NEXT_Any');
+          assert.deepEqual(any.GameModeList, ['BRT_NEXT_Any']);
+          assert.equal([...cards.PVE].sort((a,b) => a.Priority-b.Priority)[0].Name, any.Name);
+          assert.ok(cards.PVE.some(row => row.Name === 'BRT_NEXT_Hard_OSS'));
+          assert.ok(!cards.PVE.some(row => row.Name === 'BRT_NEXT_Hard_DataCenter'));
+          assert.deepEqual(cards.PVP, full.PVP);
+          for (const [id, expiresAt] of [['BRT_NEXT_Hard_DataCenter',Date.now()+14000], [any.Name,Date.now()-1]]) {
+            fs.writeFileSync(file, JSON.stringify({...pool, expiresAt}));
+            assert.equal(type('Response','StartMatchmakingResponse').decode(
+              await rpc(prefix+'StartUnityMatchmaking',cardStart(id))).StatusCode, 1);
+          }
+          fs.unlinkSync(file);
           for (const [difficulty, map] of [['normal', 'CircularX'], ['easy', 'Warehouse'], ['hard', 'OSS']]) {
             const plan = pvePlan(table, difficulty.toUpperCase() + ' BOT', map);
             const lease = { v: 1, runId: randomUUID(), expiresAt: Date.now() + 14000,
@@ -906,7 +924,7 @@ async function exerciseRegions(app, expected, revised, fixedQos = revised, poolO
   const selectedRoom = revised && fixedQos;
   assert.equal(report.events.regionRequest.count, selectedRoom ? 3 : 1);
   assert.equal(report.events.qosRequest.count, expected.length * 3);
-  assert.equal(report.events.startRequest.count, selectedRoom ? 8 : 0);
+  assert.equal(report.events.startRequest.count, selectedRoom ? 10 : 0);
   assert.equal(report.events.regionReply.count, selectedRoom ? 3 : Number(revised));
   assert.equal(report.events.discoveryReply.count, Number(revised));
   if (revised) assert.deepEqual(report.replies.find(row => row.via === 'rpc').names, expected.map(row => row.name));

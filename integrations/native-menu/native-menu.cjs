@@ -91,9 +91,43 @@ function roomReader(app) {
   };
 }
 
+// 每张卡只代表本次点击。候选项来自原表，并须能生成实际的本机开房参数。
+const nextPrefix = 'BRT_NEXT_';
+function nextCards(table) {
+  const names = { Easy: '简单', Normal: '普通', Hard: '困难' };
+  const pairs = modesFrom(table).flatMap(mode => [...new Set(mode.maps)].map(row => {
+    const plan = pvePlan(table, mode.id, row);
+    return { mode: mode.id, map: plan.map };
+  }));
+  const cards = [{ id: nextPrefix + 'Any', title: '随机地图 · 随机人机难度', pairs }];
+  for (const map of new Set(pairs.map(p => p.map))) {
+    const eligible = pairs.filter(p => p.map === map);
+    if (eligible.length > 1) cards.push({ id: nextPrefix + 'Any_' + map, title: map + ' · 随机难度', pairs: eligible });
+    for (const p of eligible) {
+      const difficulty = p.mode.slice('Rush_PVE_'.length);
+      cards.push({ id: nextPrefix + difficulty + '_' + map, title: map + ' · ' + names[difficulty] + '人机', pairs: [p] });
+    }
+  }
+  return cards;
+}
+
 function freshRoom(receipt, time) {
   return receipt?.v === 1 && runOK(receipt.runId) && Number.isSafeInteger(receipt.expiresAt) &&
     receipt.expiresAt > time && receipt.expiresAt - time <= leaseMs;
+}
+
+const ephemeralPort = port => Number.isInteger(port) && port >= 1024 && port <= 65535;
+
+function advertisement(receipt, field) {
+  const ipc = receipt?.[field];
+  if (!ipc || Object.keys(ipc).length !== 3 || ipc.v !== 1 || !ephemeralPort(ipc.port) ||
+      ipc.port === receipt.port || typeof ipc.nonce !== 'string' || !/^[0-9a-f]{64}$/.test(ipc.nonce)) return null;
+  return ipc;
+}
+
+function selectablePool(receipt, time) {
+  return freshRoom(receipt, time) && receipt.autoPool === true && receipt.nextMatch === 1 &&
+    receipt.mode === 'pve' && receipt.offline === true && !!advertisement(receipt, 'controlIpc');
 }
 
 function inspectRoom(receipt, readTable, time, selection) {
@@ -144,6 +178,22 @@ function withPvePlaylists(base, table, readRoom = readPlaylistRoom) {
     // 准备大厅可按名称选行，旧焦点失效时也可退回首行。
     return { ...base, PVE: [native || additions[0], ...existing.filter(item => !isNative(item))] };
   }
+  if (selectablePool(receipt, Date.now())) {
+    const cards = nextCards(table).map(({id,title}, i) => {
+      const labels = [{zh: title}, {en: id.slice(nextPrefix.length).replaceAll('_', ' / ')}];
+      return { Name:id, Title:labels, BigTitle:labels, Description:labels, BigDescription:labels,
+        SecondaryDescription:[], PlotImage:[], LargePlotImage:[], GameModeList:[id], bHasFilter:false,
+        bIsLive:true, Priority:-100+i, StartTime:0, StopTime:0 };
+    });
+    const reserved = new Set(cards.map(card => card.Name));
+    const preserved = existing.filter(item => {
+      if (!reserved.has(item?.Name)) return true;
+      if (item.GameModeList?.length !== 1 || item.GameModeList[0] !== item.Name)
+        throw new Error('Playlist name collision: ' + item.Name);
+      return false;
+    });
+    return {...base, PVE:[...cards, ...preserved, ...additions]};
+  }
   return additions.length ? { ...base, PVE: [...existing, ...additions] } : base;
 }
 
@@ -187,7 +237,7 @@ function resolveTutorial(key, exports, worlds) {
   return { key, defaultCollapsed, status: 'mapped-world', world: match[1], argv: [match[1]] };
 }
 
-module.exports = { modesFrom, withPvePlaylists, pvePlan, resolveTutorial, tutorialWorld, packageNames, tutorialKeys,
+module.exports = { selectablePool, advertisement, ephemeralPort, modesFrom, withPvePlaylists, pvePlan, nextCards, nextPrefix, resolveTutorial, tutorialWorld, packageNames, tutorialKeys,
   managedRegionCatalog, regionReplySummary, roomReader, roomFileFor, leaseMs, runOK, freshRoom, inspectRoom };
 
 if (require.main === module) {

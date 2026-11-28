@@ -1,0 +1,33 @@
+{
+  "environment": "isolated retail client and dedicated server, native lobby widgets with QA observer, owned loopback profile",
+  "profileSource": "Project Rebound v0.8.4",
+  "playlist": {
+    "nativeWidgetCount": 13,
+    "first": "BRT_NEXT_Any",
+    "clicked": "BRT_NEXT_Normal_OSS",
+    "searching": true
+  },
+  "allocation": {
+    "expectedMap": "OSS",
+    "reportedMap": "OSS",
+    "reportedMode": "BP_PBGameMode_Rush_PVE_Normal",
+    "bindAddress": "127.0.0.1",
+    "gamePort": 19788,
+    "ownerVerified": true,
+    "roomPrepared": true,
+    "joinAck": true
+  },
+  "client": {
+    "fieldSelectionVisibleBeforeSpawn": true,
+    "controllerWorld": "OSS.OSS.PersistentLevel",
+    "acknowledgedPawnClass": "PBCharacter_BP_Recon_C",
+    "twoConsecutiveReads": {
+      "pawnIsAlive": true,
+      "lastUpdatedPlayerLifeStatus": 1,
+      "fieldSelectionVisible": false
+    }
+  },
+  "teardown": { "sameGamePortReleased": true, "testPassed": true },
+  "regression": { "menuChecksPassed": 70, "poolCancelReselectPassed": true },
+  "limits": "One real local player on Normal / OSS. Other mode/map combinations are covered by definition and protocol checks. No group assignment or remote clients in this acceptance run."
+}

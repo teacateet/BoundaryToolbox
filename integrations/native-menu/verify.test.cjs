@@ -169,6 +169,21 @@ test('a local lease keeps the original row first and preserves community entries
   assert.equal(JSON.stringify(base), before);
 });
 
+test('next-match cards are local, idempotent and restricted to seven retail assignments', () => {
+  const base = {PVE:[], PVP:[{Name:'QuickPlay'}]};
+  const lease = {v:1, runId:'local', autoPool:true, nextMatch:1, mode:'pve', offline:true,
+    expiresAt:Date.now()+12000, controlIpc:{v:1,port:31611,nonce:'0'.repeat(64)}};
+  const catalog = withPvePlaylists(base, table, () => lease);
+  assert.deepEqual(withPvePlaylists(catalog, table, () => lease), catalog);
+  assert.equal(catalog.PVE.length, 13);
+  assert.equal(catalog.PVP, base.PVP);
+  const all = require('./native-menu.cjs').nextCards(table)[0];
+  assert.equal(all.id, 'BRT_NEXT_Any');
+  assert.equal(new Set(all.pairs.map(p => p.mode + '/' + p.map)).size, 7);
+  for (const delta of [{nextMatch:0}, {offline:false}, {mode:'pvp'}, {expiresAt:0}, {controlIpc:{v:1,port:8000}}])
+    assert.ok(!withPvePlaylists(base,table,() => ({...lease, ...delta})).PVE.some(r => r.Name.startsWith('BRT_NEXT_')));
+});
+
 test('tutorial keys need an explicit mapping; direct worlds must exist in the retail list', () => {
   for (const key of tutorialKeys) {
     assert.deepEqual(resolveTutorial(key, [], localWorlds), { key, defaultCollapsed: key === 'Simulation',

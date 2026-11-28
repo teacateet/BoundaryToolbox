@@ -19,6 +19,7 @@ struct Prepare {
     nonce: String,
     request_id: String,
     mode: String,
+    map: Option<String>,
     client_port: u16,
     rpc_port: u16,
 }
@@ -235,7 +236,7 @@ impl Pool {
     }
 
     fn publish(&mut self, choice: Option<&Choice>) -> Result<()> {
-        let mut value = json!({"v":1,"autoPool":true,"mode":"pve","offline":true,"runId":self.slot.run,
+        let mut value = json!({"v":1,"autoPool":true,"nextMatch":1,"mode":"pve","offline":true,"runId":self.slot.run,
             "expiresAt":now_ms()?+TTL_MS,"controlIpc":self.adv});
         let owner = (self.spawn_owner)();
         let eligible = |room: &Active| owner.is_some() && room.spawn_proof.as_ref()
@@ -293,6 +294,10 @@ impl Pool {
             "此选择已处理"
         );
         let files = files.clone();
+        let turn = match &request.map {
+            Some(map) => local_pve::auto_room::selected_slot(&files, &request.mode, map)?,
+            None => self.turns[idx],
+        };
         // 只有同一大厅的合法新选择才替换已交接的房间。
         if let Some((previous, _)) = self.playing.take() {
             previous.retire()?;
@@ -300,14 +305,16 @@ impl Pool {
         let mode = request.mode.clone();
         let grant = (self.spawn_owner)().zip(self.spawn_signer.as_ref())
             .map(|(owner, signer)| spawn_room::Grant::issue(id, owner, &self.slot.run, signer)).transpose()?;
-        let turn = self.turns[idx];
+        let selected = request.map.clone();
         let cancel = Arc::new(AtomicBool::new(false));
         let guard = cancel.clone();
         let worker = thread::Builder::new()
             .name("pve-room-start".into())
             .spawn(move || {
                 let (files, plan) = stage(&files, &mode, turn)?;
-                start_room(&files, plan, &guard, grant)
+                let active = start_room(&files, plan, &guard, grant)?;
+                ensure!(selected.as_ref().is_none_or(|map| map == active.cfg.map()), "准备期间所选地图已变化");
+                Ok(active)
             })?;
         Ok(Some(Choice {
             request,

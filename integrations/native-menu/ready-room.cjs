@@ -1,20 +1,12 @@
 'use strict';
 
-const { modesFrom, roomReader, roomFileFor, leaseMs, runOK, freshRoom, inspectRoom } = require('./native-menu.cjs');
+const { selectablePool, advertisement, ephemeralPort, modesFrom, nextCards, nextPrefix, roomReader, roomFileFor, leaseMs, runOK, freshRoom, inspectRoom } = require('./native-menu.cjs');
 const net = require('node:net');
-const { randomUUID } = require('node:crypto');
+const { randomUUID, randomInt } = require('node:crypto');
 
-const ephemeralPort = port => Number.isInteger(port) && port >= 1024 && port <= 65535;
 const loopback = ip => ip === '127.0.0.1' || ip === '::ffff:127.0.0.1';
 function lobbyRoomReader(socket, read) {
   return loopback(socket.localAddress) && loopback(socket.remoteAddress) ? read : () => undefined;
-}
-
-function advertisement(receipt, field) {
-  const ipc = receipt?.[field];
-  if (!ipc || Object.keys(ipc).length !== 3 || ipc.v !== 1 || !ephemeralPort(ipc.port) ||
-      ipc.port === receipt.port || typeof ipc.nonce !== 'string' || !/^[0-9a-f]{64}$/.test(ipc.nonce)) return null;
-  return ipc;
 }
 
 function localPeer(rpc, ipc) {
@@ -124,6 +116,7 @@ function createReadyRoomSession(readTable, readRoom, { now = Date.now, report = 
     } else if (receipt?.autoPool === true) return wait('different-run');
     const { plan, reason } = inspectRoom(receipt, readTable, now(), selection);
     if (reason) return wait(reason);
+    if (selection.map && selection.map !== plan.map) return wait('different-map');
     if (selection.regionChoice && !supportsRegions(selection.regionChoice.ids, selection.regionChoice.published)) return wait('region');
     if (selection.room && (selection.room.map !== plan.map || selection.room.port !== receipt.port)) return wait('room-changed');
     if (!selection.room || selection.wait) {
@@ -136,11 +129,17 @@ function createReadyRoomSession(readTable, readRoom, { now = Date.now, report = 
   }
   function start(player, requester, gameMode, ticket, choice, regionChoice) {
     const valid = player && player === requester && runOK(ticket) && Number.isSafeInteger(choice) && choice >= 1;
+    const custom = typeof gameMode === 'string' && gameMode.startsWith(nextPrefix);
     const mode = valid && findMode(gameMode);
-    if (!mode) { reset(); return null; }
+    if (!custom && !mode) { reset(); return null; }
     const receipt = readRoom();
+    const available = selectablePool(receipt, now());
+    // 已缓存的本地卡不能交给公网匹配器，也不能降级成别的地图。
+    const blocked = () => { reset(); return {status:'unavailable'}; };
+    if (custom && (!valid || !available || regionChoice?.authenticated !== true ||
+        !supportsRegions(regionChoice?.ids, regionChoice?.published))) return blocked();
     // 同一大厅重复点击仍在准备的同一选项时，保留原控制连接和待发票据。
-    if (selection?.player === player && selection.mode === mode.id && selection.control?.writable &&
+    if (selection?.player === player && selection.input === gameMode && selection.control?.writable &&
         !selection.control.readableEnded && !selection.pool.prepared && poolLease(selection, receipt) &&
         sameLocalRegions(selection.regionChoice, regionChoice)) {
       return { ticketId: selection.ticket, status: 'queued' };
@@ -148,8 +147,17 @@ function createReadyRoomSession(readTable, readRoom, { now = Date.now, report = 
     reset();
     // 未启用本机房间时，原匹配器继续处理。存在但失效的记录不能用于分配。
     if (receipt === undefined) return null;
+    let decided;
+    if (available) {
+      let cards;
+      try { cards = nextCards(readTable()); } catch { return blocked(); }
+      const pairs = custom ? cards.find(c => c.id === gameMode)?.pairs : cards[0].pairs.filter(p => p.mode === mode.id);
+      if (!pairs?.length) return blocked();
+      decided = pairs[randomInt(pairs.length)];
+    }
     localOwner = player;
-    selection = { player, ticket, mode: mode.id, choice, regionChoice, runId: freshRoom(receipt, now()) ? receipt.runId : null };
+    selection = { player, ticket, input: gameMode, mode: decided?.mode ?? mode.id, map: decided?.map,
+      choice, regionChoice, runId: freshRoom(receipt, now()) ? receipt.runId : null };
     if (receipt?.autoPool === true) selection.pool = { id: randomUUID(), ipc: advertisement(receipt, 'controlIpc') };
     return resolve(receipt);
   }
@@ -187,7 +195,7 @@ function createReadyRoomSession(readTable, readRoom, { now = Date.now, report = 
     control.once('connect', () => {
       if (!valid()) return control.destroy();
       control.write(JSON.stringify({ v: 1, op: 'prepare', runId: choice.runId, requestId: id, nonce: ipc.nonce,
-        mode: choice.mode, clientPort: rpc.remotePort, rpcPort: rpc.localPort }) + '\n');
+        mode: choice.mode, ...(choice.map ? {map:choice.map} : {}), clientPort: rpc.remotePort, rpcPort: rpc.localPort }) + '\n');
       started?.();
     });
     receiveLine(control, reply => {

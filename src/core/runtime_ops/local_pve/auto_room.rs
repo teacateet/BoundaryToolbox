@@ -41,6 +41,11 @@ pub(in crate::core) fn coop_choice(
     Ok((difficulty, map))
 }
 
+pub(in crate::core::runtime_ops) fn selected_slot(files: &LaunchFiles, mode: &str, selected: &str) -> Result<u64> {
+    menu_maps(&read_map_table(files)?, mode)?.iter().position(|m| m == selected)
+        .map(|i| i as u64).context("下一局的地图与模式不兼容")
+}
+
 pub(in crate::core) fn config(difficulty: &str, map: &str, port: u16) -> serde_json::Value {
     serde_json::json!({"mode":"pve", "difficulty":difficulty, "map":map, "offline":true,
         "port":port, "externalPort":port, "serverName":"BRT", "serverRegion":"LOCAL"})
