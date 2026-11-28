@@ -1,0 +1,103 @@
+diff --git a/ProjectReboundMainDLL/Client/AutoConnect.cpp b/ProjectReboundMainDLL/Client/AutoConnect.cpp
+index 2d61045..7350329 100644
+--- a/ProjectReboundMainDLL/Client/AutoConnect.cpp
++++ b/ProjectReboundMainDLL/Client/AutoConnect.cpp
+@@ -13,6 +13,7 @@
+ 
+ #include <Windows.h>
+ #include "../BrtInventory/SteamPersona.hpp"
++#include "../BrtInventory/BotMenu.hpp"
+ 
+ #include <atomic>
+ #include <chrono>
+@@ -167,17 +168,23 @@ void BrtRoleConfirmed(SDK::UObject* sender, const SDK::FName& role)
+         BrtDeathMenu::Confirmed(sender, role);
+ }
+ 
++static thread_local bool brtLocalMenuThread = false;
++void BrtTitleMenuReady() { brtLocalMenuThread = true; }
++
+ void BrtOptionClicked(SDK::UObject* sender, int option)
+ {
+-    if (loginCompleted.load() && gameThreadId.load() == GetCurrentThreadId())
++    const bool loggedIn = loginCompleted.load() && gameThreadId.load() == GetCurrentThreadId();
++    if (brtLocalMenuThread || loggedIn)
++        brt::bots::Click(sender, option);
++    if (loggedIn)
+         BrtDeathMenu::OptionClicked(sender, option);
+ }
+ 
+ void PumpPendingClientCommands()
+ {
+     static thread_local bool pumping = false;
+-    if (pumping || !loginCompleted.load() ||
+-        gameThreadId.load() != GetCurrentThreadId())
++    const bool loggedIn = loginCompleted.load() && gameThreadId.load() == GetCurrentThreadId();
++    if (pumping || (!loggedIn && !brtLocalMenuThread))
+     {
+         return;
+     }
+@@ -194,6 +201,8 @@ void PumpPendingClientCommands()
+     if (localPlayer == nullptr)
+         return;
+ 
++    brt::bots::Menu(world, localPlayer);
++    if (!loggedIn) return;
+     brt::steam_names::Tick(world, localPlayer);
+     BrtDeathMenu::Tick(world, localPlayer);
+     BrtFirstEquip::Tick(world, localPlayer);
+diff --git a/ProjectReboundMainDLL/Hooking/ClientHooks.cpp b/ProjectReboundMainDLL/Hooking/ClientHooks.cpp
+index 8f22044..333baeb 100644
+--- a/ProjectReboundMainDLL/Hooking/ClientHooks.cpp
++++ b/ProjectReboundMainDLL/Hooking/ClientHooks.cpp
+@@ -21,6 +21,7 @@ using namespace SDK;
+ void BrtPrepareDeployment(SDK::UObject* sender);
+ void BrtRoleConfirmed(SDK::UObject* sender, const SDK::FName& role);
+ void BrtOptionClicked(SDK::UObject* sender, int option);
++void BrtTitleMenuReady();
+ 
+ // ======================================================
+ //  ProcessEventHookClient — client-side dispatch
+@@ -35,6 +36,7 @@ void ProcessEventHookClient(UObject *Object, UFunction *Function, void *Parms)
+     // Froce space to login
+     if (EventInfo.ClientKind == EClientProcessEventKind::EnterGameConstruct)
+     {
++        BrtTitleMenuReady();
+         ClientDebugLog("[LOGIN] EnterGame Construct forcing SPACE");
+ 
+         std::thread([]()
+diff --git a/ProjectReboundMainDLL/Hooking/ServerLogicHooks.cpp b/ProjectReboundMainDLL/Hooking/ServerLogicHooks.cpp
+index bb32d93..d7b68cd 100644
+--- a/ProjectReboundMainDLL/Hooking/ServerLogicHooks.cpp
++++ b/ProjectReboundMainDLL/Hooking/ServerLogicHooks.cpp
+@@ -4,6 +4,7 @@
+ 
+ #include "ServerLogicHooks.h"
+ #include "HookCore.h"
++#include "../BrtInventory/BotPreference.hpp"
+ #include "../Core/GameOffsets.h"
+ #include "../Logging/LogManager.h"
+ #include "../Config/Config.h"
+@@ -278,6 +279,22 @@ void TickFlushHook(UNetDriver *NetDriver, float DeltaTime)
+         {
+             if (CurrentWorld->AuthorityGameMode)
+             {
++                auto* authority = CurrentWorld->AuthorityGameMode;
++                if (Config.IsPvE && brt::bots::Enabled() && authority->IsA(APBGameMode::StaticClass())) {
++                    auto* mode = static_cast<APBGameMode*>(authority);
++                    auto& caps = mode->TeamBotMaxNums;
++                    // 从对手原有上限取每队席位，不改真人匹配人数、地图或难度。
++                    if (mode->bEnableBots && mode->AIControllerClasses.Num() > 0 &&
++                        caps.Num() == 2 && caps[0] == 0 && caps[1] > 0 &&
++                        (mode->BotBackfillType == EPBBotBackfillType::Fixed ||
++                         mode->BotBackfillType == EPBBotBackfillType::FillWholeTeam)) {
++                        caps[0] = caps[1];
++                        mode->BotBackfillType = EPBBotBackfillType::FillWholeTeam;
++                        mode->bCanBotsJoinTeamContainsPlayers = true;
++                        mode->EnableBackfillPlayerIfBotsAlreadyInGame(true);
++                        ServerLog("[BRT-BOTS] native backfill enabled seats-per-team=" + std::to_string(caps[1]));
++                    }
++                }
+                 ((APBGameMode *)CurrentWorld->AuthorityGameMode)->StartMatch();
+                 HandleServerMatchStarted();
+             }

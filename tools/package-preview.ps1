@@ -32,6 +32,7 @@ if ([version]$version -ge [version]'19.20.35') {
         '19.20.39' { 'live43', 'dbacaf4a67fd953c90864df4b0205edb4c58b52784a9b028bc930a54017f6711' }
         '19.20.40' { 'live44-radar', '40780fd95da980868e15ba8f6af898206ea67f6d66561c3f29a7097ef7673104' }
         '19.20.41' { 'live45', 'aac377cf254d20793b165ba66213cc06caaf0dae300e22688b0c265fce9a3506' }
+        '19.20.42' { 'live46', '99358bf3bf67d46095406ab72e0007b27d55529e6962f9b8eca37aa77d02222f' }
         default { throw 'Unpinned player component version' }
     }
     if (!$GameplayComponent -or (Get-FileHash -LiteralPath $GameplayComponent).Hash -ne $sha) {
@@ -39,7 +40,7 @@ if ([version]$version -ge [version]'19.20.35') {
     }
     $files["components/gameplay/$label/Payload.dll"] = (Resolve-Path -LiteralPath $GameplayComponent).Path
 }
-if ($version -eq '19.20.41'){
+if ($version -in '19.20.41','19.20.42'){
     if (!$OfflineDirectory) {throw 'Use prepare-offline-deps.ps1 and specify its output directory.'}
     foreach($pin in Get-Content -LiteralPath (Join-Path $PSScriptRoot 'offline-components.sha256')){
         if ($pin -cnotmatch '^([a-f0-9]{64})  (base|server|node)\.zip$'){throw 'Invalid offline dependency pin'}

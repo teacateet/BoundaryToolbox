@@ -12,8 +12,8 @@ use std::{
 };
 use uuid::Uuid;
 use zip::ZipArchive;
-#[path = "live45_install.rs"]
-mod live45;
+#[path = "live46_install.rs"]
+mod live46;
 
 pub const REPOSITORY: &str = "https://github.com/STanJK/ProjectRebound";
 const META: &str = "BoundaryMetaServer-main/";
@@ -134,7 +134,7 @@ mod tests {
         let progress: ProgressReporter = Arc::new(|_| {});
         let first = core.install_community(&dst, progress.clone(), InstallCancelToken::new())?;
         assert!(first.contains("已补齐"));
-        assert_eq!(hash(&dst.join("Payload.dll"))?, live45::SHA);
+        assert_eq!(hash(&dst.join("Payload.dll"))?, live46::SHA);
         let files = crate::core::process::launch_files(&dst);
         let config: serde_json::Value = serde_json::from_slice(&fs::read(dst.join("ServerLauncher/serverconfig.json"))?)?;
         assert_eq!(config["difficulty"], "normal");
@@ -367,13 +367,13 @@ impl InstallerCore {
             "请选择游戏本体所在的 Win64 目录"
         );
         check(&cancel)?;
-        let bundled = live45::validated_bundle(&self.runtime_dir, target)?;
-        let payload = live45::inspect(target)?;
+        let bundled = live46::validated_bundle(&self.runtime_dir, target)?;
+        let payload = live46::inspect(target)?;
         if present(target) {
-            let changed = live45::finish(target, &bundled, &payload)?;
+            let changed = live46::finish(target, &bundled, &payload)?;
             return Ok(if changed {
-                "已更新本地人机玩法至 live45，已备份旧组件并保留玩家配装。".into()
-            } else { "已安装 live45；现有组件和玩家配装均保持不变。".into() });
+                "已更新本地人机玩法至 live46，已备份旧组件并保留玩家配装。".into()
+            } else { "已安装 live46；现有组件和玩家配装均保持不变。".into() });
         }
         let notify = |value, title: &str, detail: &str| {
             progress(InstallProgress {
@@ -401,19 +401,19 @@ impl InstallerCore {
                 files.retain(|p| p != Path::new("Payload.dll"));
             } else {
                 fs::copy(&bundled, stage.join("Payload.dll"))?;
-                ensure!(hash(&stage.join("Payload.dll"))? == live45::SHA, "玩法组件校验失败");
+                ensure!(hash(&stage.join("Payload.dll"))? == live46::SHA, "玩法组件校验失败");
             }
             let add = pending(target, &stage, &files)?;
             check(&cancel)?;
             notify(0.90, "安装社区组件", "仅补齐缺失文件，保留现有房间配置。");
             publish(&stage, target, &add, &cancel)?;
-            live45::finish(target, &bundled, &payload)?;
+            live46::finish(target, &bundled, &payload)?;
             if !present(target) {
                 bail!("安装目录的文件在操作期间发生变化，请重新检查");
             }
-            notify(1.0, "安装完成", "ProjectRebound V0.8.4 · BRT live45");
+            notify(1.0, "安装完成", "ProjectRebound V0.8.4 · BRT live46");
             Ok(format!(
-                "社区环境安装完成：已补齐 {} 个文件，live45 已就绪。现在可以进入原版大厅。",
+                "社区环境安装完成：已补齐 {} 个文件，live46 已就绪。现在可以进入原版大厅。",
                 add.len()
             ))
         })();

@@ -7,7 +7,7 @@ $run = Join-Path ([IO.Directory]::CreateDirectory($EvidenceRoot).FullName) ([gui
 $player = Join-Path $run 'unpacked'
 $target = Join-Path $run 'QA 游戏目录/ProjectBoundary/Binaries/Win64'
 $ship = 'ProjectBoundarySteam-Win64-Shipping.exe'
-$expected = 'aac377cf254d20793b165ba66213cc06caaf0dae300e22688b0c265fce9a3506'
+$expected = '99358bf3bf67d46095406ab72e0007b27d55529e6962f9b8eca37aa77d02222f'
 function Digest([string]$path) { (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() }
 function Check([bool]$condition, [string]$message) { if (!$condition) { throw $message } }
 function Install([string]$label, [bool]$success, [string]$message) {
@@ -38,7 +38,7 @@ Check (@(Get-ChildItem -LiteralPath $target -Force).Count -eq 1) 'Missing offlin
 Install 'corrupt-dependency' $false '离线组件 base.zip 校验失败'
 Check (@(Get-ChildItem -LiteralPath $target -Force).Count -eq 1) 'Corrupt offline component changed game directory'
 Copy-Item -LiteralPath $hold -Destination $part -Force
-Install 'fresh' $true 'live45 已就绪'
+Install 'fresh' $true 'live46 已就绪'
 Check (!(Test-Path -LiteralPath (Join-Path $player 'orbital_profile/downloads/community'))) 'Offline install created a download cache'
 Check ((Digest $dll) -eq $expected) 'Fresh install used the wrong component'
 $server = Join-Path $target 'BoundaryMetaServer-main'
@@ -68,6 +68,7 @@ $backups = @(Get-ChildItem -LiteralPath (Join-Path $target '.brt-payload-backups
 Check (($backups.Count -eq 1) -and ((Digest $backups[0].FullName) -eq $old) -and ((Digest $dll) -eq $expected)) 'Upgrade or backup verification failed'
 Install 'after-upgrade' $true '保持不变'
 $oldHashes = @{
+    live45='aac377cf254d20793b165ba66213cc06caaf0dae300e22688b0c265fce9a3506'
     'live44-radar'='40780fd95da980868e15ba8f6af898206ea67f6d66561c3f29a7097ef7673104'
     live43='dbacaf4a67fd953c90864df4b0205edb4c58b52784a9b028bc930a54017f6711'
     live42='d679ad4f972b8a974a3dafb2e23d72076b14bbfa25448e203f1f0e92a3899c05'
