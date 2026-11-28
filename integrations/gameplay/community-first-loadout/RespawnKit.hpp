@@ -161,7 +161,9 @@ inline bool Pod(Order& order,int i,FName id) {
     if (!v || v->GetCharacter()!=pawn) return false;
     auto& old=i==2 ? v->LeftLauncher : v->RightLauncher;
     auto& carried=i==2 ? pawn->CurrentLeftLauncher : pawn->CurrentRightLauncher;
-    if (carried!=old || (old && (old->GetOwnerPawn()!=pawn || old->GetSavedData().ID==id)) || (!old && id==FName{})) return false;
+    // 原生待机挂点属于载具，角色的主动引用可以为空。非空时仍须指向同一挂载。
+    if ((carried && carried!=old) || (old && (old->GetOwnerPawn()!=pawn || old->GetSavedData().ID==id)) || (!old && id==FName{})) return false;
+    const bool active = carried!=nullptr;
     auto* before=old; APBLauncher* fresh{};
     if (id!=FName{}) {
         auto item=ResolveItem(order.role,id,false);
@@ -177,8 +179,8 @@ inline bool Pod(Order& order,int i,FName id) {
         m.AmmoInMagazine=CapAmmo(m.AmmoInMagazine,cap.magazine);m.StoreAmmoInClip=CapAmmo(m.StoreAmmoInClip,cap.stored);
     }
     if (pawn->CurrentLauncher==before && before) pawn->CurrentLauncher=fresh;
-    old=fresh;carried=fresh;
-    if(i==2){v->OnRep_LeftActiveSlotItem();pawn->OnRep_CurrentLeftLauncher();}else{v->OnRep_RightActiveSlotItem();pawn->OnRep_CurrentRightLauncher();}
+    old=fresh;if(active)carried=fresh;
+    if(i==2){v->OnRep_LeftActiveSlotItem();if(active)pawn->OnRep_CurrentLeftLauncher();}else{v->OnRep_RightActiveSlotItem();if(active)pawn->OnRep_CurrentRightLauncher();}
     if (before) before->K2_DestroyActor();
     if (fresh) fresh->ForceNetUpdate();v->ForceNetUpdate();pawn->ForceNetUpdate();
     return true;

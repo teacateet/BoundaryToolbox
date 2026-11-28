@@ -1,0 +1,25 @@
+--- a/ProjectReboundMainDLL/Hooking/ServerLogicHooks.cpp
++++ b/ProjectReboundMainDLL/Hooking/ServerLogicHooks.cpp
+@@ -1,3 +1,4 @@
++#include "../BrtInventory/BotShoulder.hpp"
+ // ServerLogicHooks.cpp
+ // Tick-driven server hooks: TickFlushHook, PostLogin, replication batching,
+ // round state machine, role-selection timer, late-join driver.
+@@ -205,6 +206,7 @@
+ 
+         // Drive LateJoin state machine
+         if (gLateJoinManager)
+             gLateJoinManager->Tick(DeltaTime);
++        if (Config.IsPvE) brt::bot_shoulder::Tick(World);
+     }
+ 
+--- a/ProjectReboundMainDLL/Payload.vcxproj
++++ b/ProjectReboundMainDLL/Payload.vcxproj
+@@ -197,6 +197,7 @@
+     <ClCompile Include="SDK\PBMainMenuManager_BP_functions.cpp" />
+     <ClCompile Include="SDK\PlayerController_BP_functions.cpp" />
+     <ClCompile Include="SDK\ProjectBoundary_functions.cpp" />
++    <ClCompile Include="SDK\AIModule_functions.cpp" />
+     <ClCompile Include="SDK\UMG_functions.cpp" />
+     <ClCompile Include="SDK\UMG_HelmetHUD_MiniMap_functions.cpp" />
+     <ClCompile Include="SDK\UMG_MinimapNode_functions.cpp" />

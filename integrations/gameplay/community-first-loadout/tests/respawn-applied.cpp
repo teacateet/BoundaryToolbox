@@ -33,9 +33,11 @@ int main(){
     changed->clip=1;changedPod->Magazine.TotalAmmo=0;submit(true);
     assert(UGameplayStatics::guns.size()==1 && UGameplayStatics::pods.size()==1 && changed->clip==1 && changedPod->Magazine.TotalAmmo==0);
     order.InPreOrderingInventory={{3},{{}}};submit(true);assert(!pawn.CurrentLeftLauncher);
-    order.InPreOrderingInventory={{3},{pod}};submit(true);assert(pawn.CurrentLeftLauncher->Magazine.TotalAmmo==0);
-    pawn.age=5.0f;auto* atDeadline=pawn.CurrentLeftLauncher;order.InPreOrderingInventory={{3},{{}}};submit(true);
-    assert(pc.pawn==&pawn && pawn.CurrentLeftLauncher==atDeadline && ps.deaths==1);
+    order.InPreOrderingInventory={{3},{pod}};submit(true);assert(vehicle.LeftLauncher && !pawn.CurrentLeftLauncher && vehicle.LeftLauncher->Magazine.TotalAmmo==0);
+    auto* standby=vehicle.LeftLauncher;standby->SavedData.ID={"ATK-HE"};submit(true);
+    assert(vehicle.LeftLauncher!=standby && vehicle.LeftLauncher->SavedData.ID==pod && !pawn.CurrentLeftLauncher && vehicle.LeftLauncher->Magazine.TotalAmmo==0);
+    pawn.age=5.0f;auto* atDeadline=vehicle.LeftLauncher;order.InPreOrderingInventory={{3},{{}}};submit(true);
+    assert(pc.pawn==&pawn && vehicle.LeftLauncher==atDeadline && !pawn.CurrentLeftLauncher && ps.deaths==1);
     assert(!ResolveItem(role,{"PEACE_GSW-DMR"},true).cls);
     UPBDataTableFunctionLibrary::redirect={"BAD-ROW"};assert(!ResolveItem(role,gun,true).cls);
     for(auto* w:UGameplayStatics::guns)delete w;for(auto* p:UGameplayStatics::pods)delete p;

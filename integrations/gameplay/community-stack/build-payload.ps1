@@ -110,6 +110,8 @@ if ($IncludeFirstLoadout) { $ownerModules += 'community-first-loadout' }
 if ($Version -eq 'main') { $ownerModules += 'community-steam-names' }
 # 开发探针只用于本机联调，带探针的构建不得安装给玩家。
 if ($IncludePveLayers) { $ownerModules += 'community-balanced-bots' }
+if ($IncludePveLayers -and $Version -eq 'main') { $ownerModules += 'community-room-count' }
+if ($IncludePveLayers -and $Version -eq 'main') { $ownerModules += 'community-bot-actions' }
 if ($IncludeDevRig) { $ownerModules += 'dev-rig' }
 foreach ($ownerModule in $ownerModules) {
     $moduleDirectory = Join-Path $kits $ownerModule

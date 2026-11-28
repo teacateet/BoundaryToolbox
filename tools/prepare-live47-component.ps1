@@ -2,7 +2,7 @@
 param([Parameter(Mandatory)][string]$Payload,[Parameter(Mandatory)][string]$Destination)
 $ErrorActionPreference = 'Stop'
 $source = (Resolve-Path -LiteralPath $Payload).Path
-if ((Get-FileHash -LiteralPath $source).Hash -ne 'f5ff5322b2ab8e1a3c8ad7c01dd4280d4c9e6fc56e26ac606131a24ad11f0fe2') {
+if ((Get-FileHash -LiteralPath $source).Hash -ne '9f3072a90f144b6cb5de2b87247be748882045947a2738b9ac42405779b9e18f') {
     throw 'Expected the live47 release build, without the development probe.'
 }
 # 唯一改动是 CodeView 调试记录内的 PDB 路径；玩家包不应带维护者机器上的路径。

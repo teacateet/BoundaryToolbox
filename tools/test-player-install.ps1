@@ -7,7 +7,7 @@ $run = Join-Path ([IO.Directory]::CreateDirectory($EvidenceRoot).FullName) ([gui
 $player = Join-Path $run 'unpacked'
 $target = Join-Path $run 'QA 游戏目录/ProjectBoundary/Binaries/Win64'
 $ship = 'ProjectBoundarySteam-Win64-Shipping.exe'
-$expected = '97fee916b272158a83f7888b0bbd77550c337730d3be378f30d6e82b1d76c7d6'
+$expected = '4f70488812902f278091ee29ba7c1032cf1263dae1d4535eba2ddca69d762213'
 function Digest([string]$path) { (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() }
 function Check([bool]$condition, [string]$message) { if (!$condition) { throw $message } }
 function Install([string]$label, [bool]$success, [string]$message) {
@@ -68,7 +68,7 @@ $backups = @(Get-ChildItem -LiteralPath (Join-Path $target '.brt-payload-backups
 Check (($backups.Count -eq 1) -and ((Digest $backups[0].FullName) -eq $old) -and ((Digest $dll) -eq $expected)) 'Upgrade or backup verification failed'
 Install 'after-upgrade' $true '保持不变'
 $oldHashes = @{
-    live47='882b0d50e80de5adcd6009153c7924d044bae9359aa0129b1d9cc5cf7ffd7967'
+    live47=@('882b0d50e80de5adcd6009153c7924d044bae9359aa0129b1d9cc5cf7ffd7967','97fee916b272158a83f7888b0bbd77550c337730d3be378f30d6e82b1d76c7d6','f5fb23005bdcb8a030fb01908e79e28d3cc76b83da55a4767467b8c9354d8720','64c18bfbc8f4b4649913d5798923bc064d1cf8dd2070dc3b4683ae40b377e4e6')
     live46='99358bf3bf67d46095406ab72e0007b27d55529e6962f9b8eca37aa77d02222f'
     live45='aac377cf254d20793b165ba66213cc06caaf0dae300e22688b0c265fce9a3506'
     'live44-radar'='40780fd95da980868e15ba8f6af898206ea67f6d66561c3f29a7097ef7673104'
@@ -88,9 +88,9 @@ foreach ($previousPath in $PreviousPlayerArchive) {
         [IO.Compression.ZipFileExtensions]::ExtractToFile($entries[0], $dll, $true)
     } finally { $previous.Dispose() }
     $from = Digest $dll
-    Check ($from -eq $oldHashes[$label]) 'Previous player module digest mismatch'
+    Check ($from -in @($oldHashes[$label])) 'Previous player module digest mismatch'
     $beforeCount = $backups.Count
-    Install "upgrade-from-player-$label" $true '已备份旧组件'
+    Install "upgrade-from-player-$label-$($from.Substring(0,8))" $true '已备份旧组件'
     $backups = @(Get-ChildItem -LiteralPath (Join-Path $target '.brt-payload-backups') -Filter Payload.dll -Recurse -File)
     Check (($backups.Count -eq ($beforeCount + 1)) -and (@($backups | Where-Object { (Digest $_.FullName) -eq $from }).Count -eq 1) -and ((Digest $dll) -eq $expected)) 'Previous player build was not backed up and upgraded'
 }

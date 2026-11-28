@@ -4,11 +4,17 @@ use std::{fs, io, os::windows::ffi::OsStrExt, path::{Path, PathBuf}};
 use uuid::Uuid;
 use windows::{Win32::Storage::FileSystem::{ReplaceFileW, REPLACE_FILE_FLAGS}, core::PCWSTR};
 
-pub(super) const SHA: &str = "97fee916b272158a83f7888b0bbd77550c337730d3be378f30d6e82b1d76c7d6";
+pub(super) const SHA: &str = "4f70488812902f278091ee29ba7c1032cf1263dae1d4535eba2ddca69d762213";
 const RETAIL: &str = "181c49ffb522b3eb01014c84fd9d3a2a5c0b66ae80a6a6addff4bdd6f8125843";
 const UPGRADABLE: &[&str] = &[
+    "64c18bfbc8f4b4649913d5798923bc064d1cf8dd2070dc3b4683ae40b377e4e6", // 19.20.43 待机挂点候选
+    "9f3072a90f144b6cb5de2b87247be748882045947a2738b9ac42405779b9e18f", // 当前原始组件
+    "f5fb23005bdcb8a030fb01908e79e28d3cc76b83da55a4767467b8c9354d8720", // 19.20.43 首轮 AI 配装候选
+    "f1f39d50c89f8704d188a357c585b812f0410e5ecdafe6493481afc95d0e1743", // 待机挂点候选原始组件
+    "97fee916b272158a83f7888b0bbd77550c337730d3be378f30d6e82b1d76c7d6", // 19.20.43 复活换装联测包
+    "820f05ebb3586a3dd76e331adbd7b26cb119129e1f98e0b4c3b48d75ea881526", // 首轮 AI 配装候选原始组件
     "882b0d50e80de5adcd6009153c7924d044bae9359aa0129b1d9cc5cf7ffd7967", // 19.20.43 首个本地候选包
-    "f5ff5322b2ab8e1a3c8ad7c01dd4280d4c9e6fc56e26ac606131a24ad11f0fe2", // 当前原始组件
+    "f5ff5322b2ab8e1a3c8ad7c01dd4280d4c9e6fc56e26ac606131a24ad11f0fe2", // 上一个联测包的原始组件
     "99358bf3bf67d46095406ab72e0007b27d55529e6962f9b8eca37aa77d02222f", // 19.20.42 玩家包
     "f8758ce2bd068b1b4c239103e2617f3b2de4a26ea53a5cb31e4ccb7f9dca81cd", // live47 原始组件
     "aac377cf254d20793b165ba66213cc06caaf0dae300e22688b0c265fce9a3506", // 19.20.41 玩家包
