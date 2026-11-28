@@ -1,9 +1,10 @@
 'use strict';
 // node tools/test-three-local-lobbies.cjs <BRT.exe> <隔离安装 Win64> <隔离档案源> <验收输出目录>
 const fs=require('node:fs'),path=require('node:path'),net=require('node:net'),dgram=require('node:dgram');
-const {fork}=require('node:child_process'),{once}=require('node:events'),{randomUUID}=require('node:crypto');
+const {fork,execFileSync}=require('node:child_process'),{once}=require('node:events'),{randomUUID}=require('node:crypto');
 const assert=require('node:assert/strict');
-const {coordinator}=require('../integrations/party-match/local-coordinator.cjs');
+const {coordinator,supportedRooms}=require('../integrations/party-match/local-coordinator.cjs');
+const {catalog,selectorCards,key}=require('../integrations/party-match/catalog.cjs');
 const {withLogin}=require('../integrations/native-menu/test-lobby-client.cjs');
 const sleep=n=>new Promise(resolve=>setTimeout(resolve,n));
 async function freePorts(){
@@ -15,7 +16,8 @@ async function freePorts(){
   }finally{await Promise.all(holds.map(s=>new Promise(r=>s.close(r))));}
 }
 async function main(){
-  const [exe,target,source,out]=process.argv.slice(2).map(p=>path.resolve(p));
+  const [exe,target,source,out]=process.argv.slice(2,6).map(p=>path.resolve(p));
+  const selector=process.argv[6] || 'BRT_PARTY_Pair_Rush_PVE_Normal_OSS';
   const q=path.join(out,randomUUID());fs.mkdirSync(q,{recursive:true});
   const kit=path.join(q,'kit');fs.mkdirSync(kit);
   const root=path.resolve(__dirname,'..'),registry=fs.readFileSync(path.join(root,'src/core/local_profile.rs'),'utf8');
@@ -37,7 +39,11 @@ async function main(){
       children.push(child);closes.push(once(child,'close'));
     }
     const table=require(path.join(app,'game/definitions/DT_GameModeDefinition.json'));
-    hub=coordinator({children,accounts,table,capabilities:new Set(['Rush_PVE_Normal/OSS']),exe,target,port});
+    const pairs=catalog(table,supportedRooms());
+    const options=selectorCards(pairs);
+    const selected=options.find(c=>c.id===selector);assert(selected,'Unsupported acceptance selector');
+    assert(pairs.length>1,'Random choice requires multiple real rooms');
+    hub=coordinator({children,accounts,table,exe,target,port});
     for(const [i,p] of ports.entries()){
       let ok=false;for(let k=0;k<100;k++){if(children[i].exitCode!==null)throw Error('Lobby failed: '+q);
         try{await fetch('http://127.0.0.1:'+p.http+'/',{signal:AbortSignal.timeout(600)});ok=true;break;}catch{await sleep(100);}}
@@ -63,7 +69,9 @@ async function main(){
       if(i<2)return collect(i+1);
       const ids=new Set();for(const seat of seats){const party=await seat.create();ids.add(party.PartyId);assert.deepEqual(party.PartyMembers,accounts);}
       assert.equal(ids.size,1);
-      const row=(await seats[0].cards()).find(c=>c.Name==='BRT_PARTY_Pair_Rush_PVE_Normal_OSS');assert(row);
+      const listed=await seats[0].cards();
+      assert.deepEqual(new Set(listed.map(c=>c.Name)),new Set(options.map(c=>c.id)));
+      const row=listed.find(c=>c.Name===selector);assert(row);
       const tk=await seats[0].click(row.Name);
       for(const idx of [1,2]){
         const [card]=await seats[idx].cards();assert.equal(card.Name,'BRT_PARTY_Confirm_'+tk);
@@ -71,12 +79,19 @@ async function main(){
         assert.equal(await seats[idx].click(card.Name),tk);
       }
       const confirmed=await hub.ready();assert.equal(confirmed.ticket,tk);
+      assert(pairs.some(p=>key(p.mode,p.map)===key(confirmed.mode,confirmed.map)));
+      if(selected.mode!==null)assert.equal(confirmed.mode,selected.mode);
+      if(selected.map!==null)assert.equal(confirmed.map,selected.map);
+      const count=JSON.parse(execFileSync('pwsh.exe',['-NoProfile','-NonInteractive','-File',
+        path.join(__dirname,'test-party-empty-count.ps1'),String(port),target],{encoding:'utf8',timeout:20000}));
+      assert.equal(count.humans,0);
       const first=await seats[0].query(tk);
       seats[0].depart();
       await hub.departed(0);
       const arrivals=[first,...await Promise.all(seats.slice(1).map(s=>s.query(tk)))];
       assert.deepEqual(arrivals,Array(3).fill('127.0.0.1:'+port));
       return {lobbyProcesses:3,fixtureAccounts:3,retailPlayers:0,partyIds:ids.size,tickets:1,mode:confirmed.mode,map:confirmed.map,
+        selector,supportedPairs:pairs.length,gameServerCount:count,
         oneWindowsGameEndpoint:true,gamePort:port,earlyAssignment:false,captainLobbyClosedBeforeGuestDelivery:true};
     },undefined,125000);
     const proof=await collect(0);

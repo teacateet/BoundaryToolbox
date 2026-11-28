@@ -27,7 +27,13 @@ function startOwned(exe,target,port,choice) {
   },close(){if(!closing){closing=true;child.stdin.end();}return finished;}};
 }
 // 每个席位来自本机父进程创建的独立档案进程。账号和席位不可通过网络消息指定。
-function coordinator({children,accounts,table,capabilities,exe,target,port}) {
+// 与 BRT 已支持的专服启动组合取交集，不能仅凭零售大厅有卡片就开房。
+function supportedRooms() {
+  return new Set(['Rush/Warehouse','Rush_PVE_Easy/Warehouse','Rush_PVE_Easy/DataCenter',
+    'Rush_PVE_Normal/MiniFarm','Rush_PVE_Normal/CircularX','Rush_PVE_Normal/OSS',
+    'Rush_PVE_Hard/OSS','Rush_PVE_Hard/CircularX']);
+}
+function coordinator({children,accounts,table,capabilities=supportedRooms(),exe,target,port}) {
   if(children.length!==3||accounts.length!==3||new Set(accounts).size!==3)throw Error('Three distinct seats required');
   const pairs=catalog(table,capabilities);
   let party,active=null,closed=false;
@@ -105,4 +111,4 @@ function coordinator({children,accounts,table,capabilities,exe,target,port}) {
       await new Promise(r=>setTimeout(r,10));}},
     async close(){closed=true;await Promise.allSettled([...owned].map(room=>room.close()));}};
 }
-module.exports={coordinator};
+module.exports={coordinator,supportedRooms};
