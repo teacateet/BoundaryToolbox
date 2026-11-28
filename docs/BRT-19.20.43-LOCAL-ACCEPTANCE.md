@@ -2,7 +2,9 @@
 
 本轮使用 Steam Build 14530908 的隔离安装。专服端加载玩家组件，能走游戏菜单并读回复制状态的客户端使用本机验收组件；三大厅协议另用三个独立进程和三个夹具账号，不代表三名真人出生。
 
-[本地回执摘要](../integrations/native-menu/evidence/20261129-seven-local.json)记录发布前的三次三端分房、游戏装备读回和同步撤权结果。对应[预览版 ZIP](https://github.com/teacateet/BoundaryToolbox/releases/tag/v19.20.43) 的 SHA-256 为 `ae221dfde6141b8b581dff6361a404989cdec548e75ab34756db30e09207c8ef`。
+[本地回执摘要](../integrations/native-menu/evidence/20261129-seven-local.json)记录发布前的三次三端分房、游戏装备读回和同步撤权结果。当次本机对局验收包的 SHA-256 为 `ae221dfde6141b8b581dff6361a404989cdec548e75ab34756db30e09207c8ef`。
+
+发布时只重建了工具箱启动器以移除本机构建路径，并更新了包内校验清单。玩法 DLL、离线组件及其余文件逐项核对均与上述验收包一致。[公开下载包](https://github.com/teacateet/BoundaryToolbox/releases/tag/v19.20.43) 的 SHA-256 为 `622d7b8312872d16e766470423cec11999e8f2ffb17ca444446c2fdf66cffc1e`。
 
 | 项目 | 实际观察 | 验收边界 |
 | --- | --- | --- |

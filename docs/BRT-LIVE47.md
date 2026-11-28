@@ -1,6 +1,6 @@
 # BRT 19.20.43 Windows x64 预览版
 
-下载：[玩家 ZIP](https://github.com/teacateet/BoundaryToolbox/releases/download/v19.20.43/BRT-19.20.43-preview-win64.zip)（63,651,034 字节，SHA-256：`ae221dfde6141b8b581dff6361a404989cdec548e75ab34756db30e09207c8ef`）。随包 live47 玩法 DLL 的 SHA-256 为 `e4f480c54a6f792e1b40eb7e61b642c89e7e755d6b78c448b9a2ec042465c63c`。
+下载：[玩家 ZIP](https://github.com/teacateet/BoundaryToolbox/releases/download/v19.20.43/BRT-19.20.43-preview-win64.zip)（61,745,191 字节，SHA-256：`622d7b8312872d16e766470423cec11999e8f2ffb17ca444446c2fdf66cffc1e`）。随包 live47 玩法 DLL 的 SHA-256 为 `e4f480c54a6f792e1b40eb7e61b642c89e7e755d6b78c448b9a2ec042465c63c`。
 
 [最终本机验收记录](BRT-19.20.43-LOCAL-ACCEPTANCE.md)包含三大厅同票同址、AI 枪配与肩挂的实机读回、真人计数和同步撤权。三大厅使用三个测试账号，不代表三名真人跨设备进房。以下结果来自隔离的零售客户端和专服。
 
