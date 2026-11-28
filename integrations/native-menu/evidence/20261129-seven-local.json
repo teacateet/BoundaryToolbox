@@ -1,0 +1,125 @@
+{
+  "version": "19.20.43",
+  "published": false,
+  "archiveSha256": "ae221dfde6141b8b581dff6361a404989cdec548e75ab34756db30e09207c8ef",
+  "payloadSha256": "e4f480c54a6f792e1b40eb7e61b642c89e7e755d6b78c448b9a2ec042465c63c",
+  "party": [
+    {
+      "lobbyProcesses": 3,
+      "fixtureAccounts": 3,
+      "retailPlayers": 0,
+      "partyIds": 1,
+      "tickets": 1,
+      "mode": "Rush",
+      "map": "Warehouse",
+      "selector": "BRT_PARTY_Pair_Rush_Warehouse",
+      "supportedPairs": 8,
+      "gameServerCount": {
+        "humans": 0,
+        "sampleAgeMs": 1047,
+        "pid": 49208
+      },
+      "oneWindowsGameEndpoint": true,
+      "gamePort": 57385,
+      "earlyAssignment": false,
+      "captainLobbyClosedBeforeGuestDelivery": true,
+      "portReleased": true
+    },
+    {
+      "lobbyProcesses": 3,
+      "fixtureAccounts": 3,
+      "retailPlayers": 0,
+      "partyIds": 1,
+      "tickets": 1,
+      "mode": "Rush",
+      "map": "Warehouse",
+      "selector": "BRT_PARTY_Any",
+      "supportedPairs": 8,
+      "gameServerCount": {
+        "sampleAgeMs": 1407,
+        "humans": 0,
+        "pid": 49404
+      },
+      "oneWindowsGameEndpoint": true,
+      "gamePort": 56487,
+      "earlyAssignment": false,
+      "captainLobbyClosedBeforeGuestDelivery": true,
+      "portReleased": true
+    },
+    {
+      "lobbyProcesses": 3,
+      "fixtureAccounts": 3,
+      "retailPlayers": 0,
+      "partyIds": 1,
+      "tickets": 1,
+      "mode": "Rush_PVE_Normal",
+      "map": "OSS",
+      "selector": "BRT_PARTY_Map_OSS",
+      "supportedPairs": 8,
+      "gameServerCount": {
+        "pid": 50596,
+        "humans": 0,
+        "sampleAgeMs": 1000
+      },
+      "oneWindowsGameEndpoint": true,
+      "gamePort": 60790,
+      "earlyAssignment": false,
+      "captainLobbyClosedBeforeGuestDelivery": true,
+      "portReleased": true
+    }
+  ],
+  "gameplay": {
+    "packagedGameCount": 1,
+    "podActions": [
+      "[BRT-BOT-POD] released id=FIXER_TAC-EMP clip-before=1 clip-after=0",
+      "[BRT-BOT-POD] released id=FIXER_TAC-IMPLUSE clip-before=1 clip-after=0",
+      "[BRT-BOT-POD] released id=FORT_TAC-EMP clip-before=1 clip-after=0",
+      "[BRT-BOT-POD] released id=PEACE_ATK-HE clip-before=1 clip-after=0",
+      "[BRT-BOT-POD] released id=PEACE_TAC-EMP clip-before=1 clip-after=0",
+      "[BRT-BOT-POD] released id=PROBE_ATK-HE clip-before=1 clip-after=0",
+      "[BRT-BOT-POD] released id=SPIKE_TAC-EMP clip-before=1 clip-after=0"
+    ],
+    "retailClientWithTestControls": true,
+    "testClientCount": 1,
+    "releaseServer": true,
+    "naturalRespawnVerified": false,
+    "replicatedEquipment": {
+      "role": "AI_PEACE",
+      "left": "#100496:PBGrenadeLauncher_CQB_BP_C_2147472849",
+      "parts": [
+        "RU-AKM_MZL-STD",
+        "RU-AKM_BRL-AK-STD",
+        "RU-AKM_FRM-FULLAUTO",
+        "RU-AKM_GRP-AK-STD",
+        "RU-AKM_SGT-NITE",
+        "RU-AKM_MAG-AK-STD",
+        "RU-AKM_STK-AK-LIGHT",
+        "5001011"
+      ]
+    },
+    "finalReleaseServerCount": 1,
+    "finalInstrumentedClientCount": 1
+  },
+  "network": {
+    "events": [
+      "friend host: registered; emitted invite for game port 51915",
+      "friend guest: host online; route = 服务器转发",
+      "friend UDP: random payload received by host; reply received at 127.0.0.1:7777",
+      "friend UDP: no new game datagram after synchronous revoke"
+    ],
+    "priorTimeout": 10060,
+    "transportTest": "local trusted relay and two real transport endpoints"
+  },
+  "radarFixture": {
+    "passed": 101,
+    "failed": 0,
+    "failureNames": []
+  },
+  "ziplinePromptVerified": false,
+  "radarRuntime": {
+    "despawnVerified": false,
+    "newRadarNodesIdentified": 0,
+    "samples": 13,
+    "markObserved": true
+  }
+}
