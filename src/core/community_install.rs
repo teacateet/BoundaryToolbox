@@ -14,6 +14,8 @@ use uuid::Uuid;
 use zip::ZipArchive;
 #[path = "live46_install.rs"]
 mod live46;
+#[path = "obsolete_components.rs"]
+mod obsolete;
 
 pub const REPOSITORY: &str = "https://github.com/STanJK/ProjectRebound";
 const META: &str = "BoundaryMetaServer-main/";
@@ -371,9 +373,10 @@ impl InstallerCore {
         let payload = live46::inspect(target)?;
         if present(target) {
             let changed = live46::finish(target, &bundled, &payload)?;
-            return Ok(if changed {
+            let message = if changed {
                 "已更新本地人机玩法至 live46，已备份旧组件并保留玩家配装。".into()
-            } else { "已安装 live46；现有组件和玩家配装均保持不变。".into() });
+            } else { "已安装 live46；当前组件和玩家配装保持不变。".into() };
+            return Ok(obsolete::finish(message, target, &self.runtime_dir, &bundled));
         }
         let notify = |value, title: &str, detail: &str| {
             progress(InstallProgress {
@@ -412,10 +415,10 @@ impl InstallerCore {
                 bail!("安装目录的文件在操作期间发生变化，请重新检查");
             }
             notify(1.0, "安装完成", "ProjectRebound V0.8.4 · BRT live46");
-            Ok(format!(
+            Ok(obsolete::finish(format!(
                 "社区环境安装完成：已补齐 {} 个文件，live46 已就绪。现在可以进入原版大厅。",
                 add.len()
-            ))
+            ), target, &self.runtime_dir, &bundled))
         })();
         let _ = fs::remove_dir_all(&stage);
         result
