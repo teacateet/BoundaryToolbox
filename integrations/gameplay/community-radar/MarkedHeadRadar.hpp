@@ -180,12 +180,16 @@ struct View {
     std::optional<Weak> map;
     std::optional<Weak> pawn;
     std::vector<Extra> extras;
+    std::vector<Weak> sharedPings;
+    Clock::time_point refreshPings{};
     Clock::time_point next{}, search{};
     bool deathEvent = false, sawDeadState = false;
 
     void Clear() {
         for (auto& extra : extras) extra.Remove();
         extras.clear();
+        sharedPings.clear();
+        refreshPings = {};
         map.reset();
         pawn.reset();
         next = search = {};
@@ -211,30 +215,31 @@ struct View {
         return nullptr;
     }
 
-    void Draw(Hud* hud, APlayerController* pc, UPBMarkableComponent* target, const Info& info, APBCharacter* actor = nullptr) {
+    bool Draw(Hud* hud, APlayerController* pc, UPBMarkableComponent* target, const Info& info, APBCharacter* actor = nullptr) {
         using BrtUiJournal::Stage;
         const bool supply = info.MarkableType == EPBMarkableType::InteractiveObj;
-        if (Covered(hud,pc,info)) { BrtUiJournal::Note(actor,supply ? Stage::SupplyNative : Stage::NativeDot); return; }
+        if (Covered(hud,pc,info)) { BrtUiJournal::Note(actor,supply ? Stage::SupplyNative : Stage::NativeDot); return true; }
         auto it = std::find_if(extras.begin(),extras.end(),[&](const Extra& e) {
             return e.target.Resolve() == target && e.panel.Resolve() == hud->MiniMapNodeContainer;
         });
-        if (it != extras.end() && it->kept) return;
+        if (it != extras.end() && it->kept) return true;
         auto* dot = it != extras.end() ? static_cast<Dot*>(it->node.Resolve()) : nullptr;
         if (!dot || dot->GetParent() != hud->MiniMapNodeContainer) {
             if (it != extras.end()) { it->Remove(); extras.erase(it); }
             auto* created = UWidgetBlueprintLibrary::Create(hud,hud->UPBMiniMapNodeClass,pc);
             if (!UKismetSystemLibrary::IsValid(created) || !created->IsA(Dot::StaticClass()) || created->GetOwningPlayer() != pc) {
-                BrtUiJournal::Note(actor,Stage::NodeRejected); return;
+                BrtUiJournal::Note(actor,Stage::NodeRejected); return false;
             }
             dot = static_cast<Dot*>(created);
             hud->K2_AddWidgetToCanvasPanel(dot);
-            if (dot->GetParent() != hud->MiniMapNodeContainer) { BrtUiJournal::Note(actor,Stage::NodeRejected); return; }
+            if (dot->GetParent() != hud->MiniMapNodeContainer) { BrtUiJournal::Note(actor,Stage::NodeRejected); return false; }
             extras.push_back({Weak(target),Weak(dot),Weak(hud->MiniMapNodeContainer)});
             it = std::prev(extras.end());
         }
         dot->UpdateNode(info);
         BrtUiJournal::Note(actor,supply ? Stage::SupplyDrawn : Stage::DrewDot);
         it->kept = true;
+        return true;
     }
 
     void Pass(APBCharacter* actor, APlayerController* pc, Hud* hud, UPBMarkerManager* marks) {
@@ -275,6 +280,37 @@ struct View {
                             Draw(hud,pc,key,*info,actor);
                     }
                 }
+            }
+            // 队友的主动报点使用独立的 MarkWidget，不属于本人 Mark，也不一定进入侦察名单。
+            const auto now = Clock::now();
+            if (now >= refreshPings) {
+                refreshPings = now + std::chrono::milliseconds(500);
+                sharedPings.clear();
+                TArray<AActor*> pings;
+                UGameplayStatics::GetAllActorsOfClass(actor,AMarkActor_C::StaticClass(),&pings);
+                for (auto* p : pings) if (UKismetSystemLibrary::IsValid(p)) sharedPings.emplace_back(p);
+            }
+            for (const auto& ref : sharedPings) {
+                auto* ping = static_cast<AMarkActor_C*>(ref.Resolve());
+                if (!ping || !UKismetSystemLibrary::IsValid(ping->MarkWidget)) continue;
+                auto* w = ping->MarkWidget;
+                if (w->GetOwningPlayer() != pc || !w->IsInViewport() || !w->IsVisible() ||
+                    !(w->GetRenderOpacity() > 0) || !UKismetSystemLibrary::IsValid(w->TargetImage)) continue;
+                bool shown = true;
+                for (UWidget* item = w->TargetImage; item; item = item->GetParent())
+                    if (!item->IsVisible() || !(item->GetRenderOpacity() > 0)) { shown = false; break; }
+                const auto size = USlateBlueprintLibrary::GetLocalSize(w->TargetImage->GetCachedGeometry());
+                if (!shown || !(size.X > 0 && size.Y > 0) || !UKismetSystemLibrary::IsValid(w->MarkActor) ||
+                    w->MarkActor != ping->MarkResult.MarkTarget_5_1C9EF1EB484D46D6C0CF7BA74F365E89) continue;
+                auto* source = ping->MarkResult.MarkOwner_3_DD6BB39548A6E38B8E9D27BD82A51719;
+                if (!UKismetSystemLibrary::IsValid(source) || source == actor ||
+                    !source->IsA(APBCharacter::StaticClass()) || static_cast<APBCharacter*>(source)->TeamID != actor->TeamID) continue;
+                auto* enemy = LivingEnemy(actor,ping->MarkResult.MarkTarget_5_1C9EF1EB484D46D6C0CF7BA74F365E89);
+                auto* key = enemy ? enemy->MarkableComponent : nullptr;
+                if (!UKismetSystemLibrary::IsValid(key) || key->GetOwner() != enemy || key->MarkableType != EPBMarkableType::Character) continue;
+                BrtUiJournal::Note(actor,BrtUiJournal::Stage::TeamPing);
+                if (auto info = CaptureAt(hud,enemy->K2_GetActorLocation(),EPBCamp::Enemy,key,plane,actor))
+                    if (Draw(hud,pc,key,*info,actor)) BrtUiJournal::Note(actor,BrtUiJournal::Stage::TeamPingDot);
             }
             // 本方已确认的侦察信号按游戏自己的名单失效；雷达不再重复主画面的视野判定。
             const auto mine = [&](const auto& sources) {

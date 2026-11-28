@@ -280,10 +280,26 @@ void supplyLifecycle(bool enabled) {
     }
     s.event(&s.pawn,"ReceiveEndPlay");
 }
+void visibleTeammatePing() {
+    Scene s; s.marks.IndicatorMap.Reset(); s.otherPawn.TeamID=1; s.otherPawn.at={200,0,0};
+    APBCharacter ally; UPBDynamicMarkableComponent key; key.owner=&s.otherPawn;
+    key.MiniMapTexture=&s.first.texture; s.otherPawn.MarkableComponent=&key;
+    AMarkActor_C ping; UMarkWidget_C widget; UWidget glyph;
+    widget.owner=&s.player; widget.viewport=true; widget.TargetImage=&glyph; widget.MarkActor=&s.otherPawn; ping.MarkWidget=&widget;
+    UGameplayStatics::pings.push_back(&ping);
+    ping.MarkResult.MarkOwner_3_DD6BB39548A6E38B8E9D27BD82A51719=&ally;
+    ping.MarkResult.MarkTarget_5_1C9EF1EB484D46D6C0CF7BA74F365E89=&s.otherPawn;
+    s.pass(); check("teammate_world_ping_without_manager_record",s.added()==1);
+    glyph.visible=false;s.pass();check("hidden_teammate_world_ping_retracted",s.added()==0);
+    glyph.visible=true;ally.TeamID=1;s.pass();check("opposing_pings_are_not_shared",s.added()==0);
+    ally.TeamID=0;ping.MarkWidget=nullptr;s.pass();check("stale_ping_widget_link_rejected",s.added()==0);
+    ping.MarkWidget=&widget;widget.MarkActor=&ally;s.pass();check("widget_showing_another_actor_rejected",s.added()==0);
+    UGameplayStatics::pings.clear();
+}
 int main(int argc,char** argv) {
     const bool enabled=argc==1;
     UKismetSystemLibrary::requested=enabled;
-    if(enabled){visibleAndNative();elevations();poolAndVisibility();rejectAndRecover();cacheAndTargets();staleMapRecord();replicatedMarks();manualEnemy();supplyMarkers();}
+    if(enabled){visibleAndNative();elevations();poolAndVisibility();rejectAndRecover();cacheAndTargets();staleMapRecord();replicatedMarks();manualEnemy();visibleTeammatePing();supplyMarkers();}
     lifecycle(enabled);
     supplyLifecycle(enabled);
     std::printf("SUMMARY passed=%d failed=%d\n",passed,failed);

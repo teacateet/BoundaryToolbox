@@ -2,12 +2,12 @@
 
 BRT 是为 Steam《边境》（Boundary）玩家制作的非官方 Windows 工具箱。它把社区组件安装、本机开房和原版大厅连在一起：你可以在大厅里选干员、调整配装，再用这套配装进入本机人机对局。压缩包不含游戏本体，需要先用拥有《边境》的 Steam 账号安装游戏。
 
-**[下载 Windows x64 玩家工具箱（ZIP，19.20.42 预览版）](https://github.com/teacateet/BoundaryToolbox/releases/download/v19.20.42/BRT-19.20.42-preview-win64.zip)** · [版本说明与校验值](https://github.com/teacateet/BoundaryToolbox/releases/tag/v19.20.42) · [玩家指南](docs/PLAYER_GUIDE.md) · [全部玩家版本](https://github.com/teacateet/BoundaryToolbox/releases)
+**[下载 Windows x64 玩家工具箱（ZIP，19.20.43 预览版）](https://github.com/teacateet/BoundaryToolbox/releases/download/v19.20.43/BRT-19.20.43-preview-win64.zip)** · [版本说明与校验值](https://github.com/teacateet/BoundaryToolbox/releases/tag/v19.20.43) · [玩家指南](docs/PLAYER_GUIDE.md) · [全部玩家版本](https://github.com/teacateet/BoundaryToolbox/releases)
 
 ## 开始一局本机人机
 
 1. 确认已安装 Steam 版《边境》**Build 14530908**。退出游戏、旧工具箱和专服，把下载的 ZIP 完整解压到新文件夹。
-2. 打开新文件夹里的 `BRT.exe`，确认 Steam 游戏目录，点一次 **「安装社区环境」**。首次安装的依赖已随完整 ZIP 提供，不用再连接 GitHub 或 Node.js 官网。从旧版升级也要点这一步。看到 `live46` 已就绪或已安装后再继续。
+2. 打开新文件夹里的 `BRT.exe`，确认 Steam 游戏目录，点一次 **「安装社区环境」**。首次安装的依赖已随完整 ZIP 提供，不用再连接 GitHub 或 Node.js 官网。从旧版升级也要点这一步。看到 `live47` 已就绪或已安装后再继续。
 3. 打开 **「本机人机匹配」→「进入原版大厅」**，在游戏里选 **「人机对战」** 和难度。首次提示选择地区时选「东亚（香港）」。点匹配后保持工具箱开着，等地图加载、角色出生。
 
 想和人机队友一起玩时，房主在游戏标题页按 `F9`，选择「友方人机补位 → 开启」。默认关闭，设置会记住，从下一场支持补位的本机 PvE 对局生效。
@@ -16,7 +16,7 @@ BRT 是为 Steam《边境》（Boundary）玩家制作的非官方 Windows 工�
 
 | 环节 | BRT 的做法 |
 | --- | --- |
-| 安装与升级 | 工具箱识别 Steam 安装目录，校验随包的离线社区基础组件和玩法修复 live46。升级已识别的旧版本会备份原 DLL，保留玩家配装和房间设置。 |
+| 安装与升级 | 工具箱识别 Steam 安装目录，校验随包的离线社区基础组件和玩法修复 live47。升级已识别的旧版本会备份原 DLL，保留玩家配装和房间设置。 |
 | 从大厅进入对局 | 本机运行 Node.js 档案服务，把角色、武器和配件提供给原版大厅。玩家选好难度后，工具箱启动对应地图的社区专服，等房间就绪，再把这次匹配交给它。 |
 | 首次出生与死亡换人 | 首命把镜头交回角色；主枪已进背包但双手持续空闲时，才触发原有装备动作。死亡后按 Esc 换人，即使很快点下部署，客户端也会先记住已确认的干员。若角色迟迟没有出生，本机 PvE 专服核对本次部署并走原生复活流程；等本人接管角色后再恢复移动和转向。 |
 | 玩家与肩挂标敌 | 本机人机中，默认按 Z 标中敌人，或让侦察探针扫到敌人，对应职业图标会跟随目标，雷达平面上的圆点和高度线表示目标在自己的上方或下方。转身不会提前清掉有效标记；最后一个来源撤标后图标消失。运动感应器按原版规则给出范围警报。 |
@@ -25,7 +25,7 @@ BRT 是为 Steam《边境》（Boundary）玩家制作的非官方 Windows 工�
 | 和朋友联机 | 房主在「联机 → 房间」点「创建好友房」，复制一条好友邀请发给朋友，再点「进入房间」。朋友复制邀请后点「粘贴并加入」，无需填写房间号、IP 或端口。同一局域网也可用「同一 Wi-Fi 邀请」直连。 |
 | 局内 Steam 昵称 | 按 Tab 打开比分板，本人姓名栏使用当前 Steam 会话的昵称；队友的公开昵称可用时显示，否则保留游戏原名。开启原版主播模式时保留匿名显示。 |
 
-**本版测试：** [19.20.42 验证记录](docs/BRT-LIVE46.md)。
+**本版测试：** [19.20.43 验证记录](docs/BRT-LIVE47.md)。
 
 **以往版本实测：** [19.20.41 离线安装、雷达与好友房](docs/BRT-LIVE45.md) · [19.20.40 本人标敌与探针](docs/BRT-LOCAL-RADAR.md) · [19.20.39 快速换人、补给雷达与联机](docs/BRT-LIVE43.md) · [19.20.38 死亡换人与建房取消](docs/BRT-LIVE42.md) · [19.20.37 首命持枪截图与连续出钩记录](docs/BRT-LIVE41.md) · [CircularX 死亡换人的键鼠实测](docs/BRT-LIVE39.md)。
 
@@ -36,7 +36,7 @@ BRT 是为 Steam《边境》（Boundary）玩家制作的非官方 Windows 工�
 | 项目 | 在 BRT 中的用途 |
 | --- | --- |
 | [STanJK/rust-boundary-tool-box](https://github.com/STanJK/rust-boundary-tool-box) | Windows 工具箱基底，提供 Rust／Slint 界面及安装、联机代码。 |
-| [STanJK/ProjectRebound](https://github.com/STanJK/ProjectRebound) | 社区运行环境和专服启动器。BRT 使用 Stable、V0.8.4 发行组件；live46 在其 C++ 源码和 SDK 上构建。 |
+| [STanJK/ProjectRebound](https://github.com/STanJK/ProjectRebound) | 社区运行环境和专服启动器。BRT 使用 Stable、V0.8.4 发行组件；live47 在其 C++ 源码和 SDK 上构建。 |
 | [STanJK/BoundaryMetaServer](https://github.com/STanJK/BoundaryMetaServer) | 角色和配装档案服务。BRT 适配 ProjectRebound V0.8.4 随附的版本。 |
 | [vnt-dev/vnt](https://github.com/vnt-dev/vnt) | 联机页的虚拟组网和 P2P 通道。 |
 | [slint-ui/slint](https://github.com/slint-ui/slint) · [nodejs/node](https://github.com/nodejs/node) · [subframe7536/maple-font](https://github.com/subframe7536/maple-font) | 分别用于桌面界面、档案服务运行时，以及可选的中文字体。 |

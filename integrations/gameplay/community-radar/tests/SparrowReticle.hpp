@@ -36,8 +36,11 @@ struct APBSupplyPoint : AActor {
     static int StaticClass(){return 109;} bool IsA(int cls) const override {return cls==StaticClass();}
 };
 struct APBCharacter;
+struct UMarkWidget_C;
 struct UPBDynamicMarkableComponent;
 struct AMarkActor_C : AActor {
+    UMarkWidget_C* MarkWidget{};
+    static int StaticClass(){return 114;} bool IsA(int cls) const override {return cls==StaticClass();}
     struct {
         AActor* MarkOwner_3_DD6BB39548A6E38B8E9D27BD82A51719{};
         AActor* MarkTarget_5_1C9EF1EB484D46D6C0CF7BA74F365E89{};
@@ -73,6 +76,10 @@ struct UWidget : UObject {
     void RemoveFromParent() { parent=nullptr; }
 };
 struct UUserWidget : UWidget {};
+struct UMarkWidget_C : UUserWidget {
+    UWidget* TargetImage{}; AActor* MarkActor{};
+    static int StaticClass(){return 115;} bool IsA(int cls) const override {return cls==StaticClass();}
+};
 struct UCanvasPanel : UWidget {};
 struct UTexture2D : UObject {};
 enum class EPBCamp { Enemy, Ally, Neutral };
@@ -132,6 +139,8 @@ struct UKismetSystemLibrary {
 };
 struct USlateBlueprintLibrary { static FVector2D GetLocalSize(FVector2D size) { return size; } };
 struct UGameplayStatics {
+    static inline TArray<AActor*> pings;
+    static void GetAllActorsOfClass(AActor*,int cls,TArray<AActor*>* out) { for(auto* p:pings) if(p->IsA(cls)) out->push_back(p); }
     static inline APBGameState* state=nullptr;
     static APBGameState* GetGameState(AActor* actor) { return actor && actor->worldState ? actor->worldState : state; }
 };
