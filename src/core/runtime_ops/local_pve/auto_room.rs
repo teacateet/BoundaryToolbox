@@ -46,6 +46,13 @@ pub(in crate::core::runtime_ops) fn selected_slot(files: &LaunchFiles, mode: &st
         .map(|i| i as u64).context("下一局的地图与模式不兼容")
 }
 
+pub(in crate::core) fn party_difficulty(files: &LaunchFiles, mode: &str, selected: &str) -> Result<&'static str> {
+    let data = read_map_table(files)?;
+    let index = menu_maps(&data, mode)?.iter().position(|m| m == selected)
+        .context("组队选择的地图与模式不兼容")?;
+    Ok(rotation(&data, mode, index as u64)?.0)
+}
+
 pub(in crate::core) fn config(difficulty: &str, map: &str, port: u16) -> serde_json::Value {
     serde_json::json!({"mode":"pve", "difficulty":difficulty, "map":map, "offline":true,
         "port":port, "externalPort":port, "serverName":"BRT", "serverRegion":"LOCAL"})

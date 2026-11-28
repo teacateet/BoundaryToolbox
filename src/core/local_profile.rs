@@ -19,6 +19,7 @@ pub(in crate::core) mod room_attestation;
 pub(crate) mod legacy_client;
 
 const KIT: &[(&str, &[u8])] = &[
+    ("party-lobby.cjs", include_bytes!("../../integrations/party-match/party-lobby.cjs")),
     ("legacy-client.cjs", include_bytes!("../../integrations/loadout/legacy-client.cjs")),
     ("legacy-client.patch", include_bytes!("../../integrations/loadout/legacy-client.patch")),
     (
@@ -350,6 +351,7 @@ fn menu_sha(app: &Path) -> Result<String> {
         "legacy-client.cjs",
         "session-progress.cjs",
         "ready-room.cjs",
+        "party-lobby.cjs",
         "room-spawn.cjs",
         "spawn-parts.cjs",
         "receiver-main.json",

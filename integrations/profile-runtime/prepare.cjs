@@ -288,6 +288,17 @@ function prepare(sourcePath, homePath, kit) {
       for (const file of new Set(group.map(h => h.file))) files.set(file, patch(files.get(file), group.filter(h => h.file === file)));
     }
     let entry = bindSoloParty(files.get(indexFile).toString('utf8'));
+    const createSocket = 'const server = net.createServer((socket) => {';
+    entry = single(entry, createSocket, createSocket + "\n  const squad = require('./party-lobby.cjs').attach(socket, protobuf);");
+    const bindGate = '        socket.playerId = gateSessions.get(RPCPath);';
+    entry = single(entry, bindGate, '        squad?.reset();\n' + bindGate);
+    const partyRoute = '      else if(RPCPath === "/party.party/Create"){';
+    entry = single(entry, partyRoute, [
+      '      else if (squad && squad.handles(RPCPath)) {',
+      '        await squad.dispatch(RPCPath, MessageBytes, PLAYLISTS_JSON,',
+      '          bytes => socket.write(WrapMessageAndSerialize(MessageId, RPCPath, bytes)),',
+      '          (name, body) => socket.write(body === null ? WrapMessageAndSerialize(-1, name, Buffer.alloc(0)) : WrapJSONMessageAndSerialize(-1, name, body)));',
+      '      }', partyRoute].join('\n'));
     for (const [before, after] of [
       ['app.listen(process.env.PORT || 8000, () => {', 'app.listen(Number(process.env.PORT || 8000), MatchmakingHost, () => {'],
       ['server.listen(RPCPort, () => {', 'server.listen(RPCPort, MatchmakingHost, () => {'],
@@ -299,7 +310,7 @@ function prepare(sourcePath, homePath, kit) {
       'const DATA_DIR = path.join(__dirname, "..", "data", "loadouts");',
       'const DATA_DIR = require("../profile-location.json").loadoutDir;')));
     files.set('profile-location.json', Buffer.from(JSON.stringify({ source, sourceKind, loadoutDir })));
-    for (const name of ['native-menu.cjs', 'session-progress.cjs', 'ready-room.cjs', 'room-spawn.cjs', 'spawn-parts.cjs', 'receiver-main.json', 'role-paint-scope.cjs', 'role-paint-scopes.json', 'legacy-client.cjs']) {
+    for (const name of ['native-menu.cjs', 'session-progress.cjs', 'ready-room.cjs', 'party-lobby.cjs', 'room-spawn.cjs', 'spawn-parts.cjs', 'receiver-main.json', 'role-paint-scope.cjs', 'role-paint-scopes.json', 'legacy-client.cjs']) {
       files.set(name, readFile(kit, name));
     }
     files.set('LICENSE.txt', readFile(kit, 'release-084-LICENSE.txt'));

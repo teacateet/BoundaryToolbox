@@ -12,6 +12,9 @@ slint::include_modules!();
 fn main() -> anyhow::Result<()> {
     let mut args = std::env::args_os().skip(1);
     let action = args.next();
+    if action.as_deref() == Some(std::ffi::OsStr::new("--brt-party-room")) {
+        return core::fixed_host::party_room::run(args);
+    }
     if action.as_deref() == Some(std::ffi::OsStr::new("--brt-steam-rooms")) {
         return steam_directory::run(args);
     }

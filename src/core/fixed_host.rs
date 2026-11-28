@@ -25,6 +25,7 @@ const PVP_MODE: &str =
     "[SERVER] Mode: /Game/Online/GameMode/PBGameMode_Rush_BP.PBGameMode_Rush_BP_C";
 const DEADLINE: Duration = Duration::from_secs(90);
 pub(crate) mod player_count;
+pub(crate) mod party_room;
 
 #[derive(Default)]
 pub(crate) struct StartAttempt(AtomicU8);
@@ -163,10 +164,13 @@ fn game_has_port(target: &Path, wrapper_pid: u32, port: u16) -> Result<bool> {
 
 /// 固定本次开房的进程对象，并在转发前确认该端口仍只属于这个专服。
 pub(crate) fn pin_game_port(target:&Path,port:u16)->Result<std::sync::Arc<dyn Fn()->bool+Send+Sync>> {
+    pin_in_dirs(target, port, &[room_path(target,port)?, coop_path(target,port)])
+}
+fn pin_in_dirs(target:&Path,port:u16,dirs:&[PathBuf])->Result<std::sync::Arc<dyn Fn()->bool+Send+Sync>> {
     use std::os::windows::io::{OwnedHandle,FromRawHandle,AsRawHandle};
     use windows::Win32::{Foundation::{HANDLE,WAIT_TIMEOUT},System::Threading::{OpenProcess,PROCESS_SYNCHRONIZE,WaitForSingleObject}};
     let pin=|pid| -> Result<OwnedHandle> { let h=unsafe{OpenProcess(PROCESS_SYNCHRONIZE,false,pid)?};Ok(unsafe{OwnedHandle::from_raw_handle(h.0)}) };
-    for dir in [room_path(target,port)?,coop_path(target,port)] {
+    for dir in dirs {
         let Some(owner)=saved_owner(&dir)? else {continue};
         let pids=udp_owners(port)?;
         let Some(pid)=pids.iter().copied().next().filter(|id|*id!=0 && pids.len()==1) else {continue};
@@ -342,7 +346,13 @@ pub(crate) fn start_room(target: &Path, port: u16, coop: bool, attempt: &StartAt
         configure(&room, port)?;
         ("Warehouse".to_owned(), PVP_MODE.to_owned(), 0)
     };
-    let baseline = log_ends(&room)?;
+    launch_configured(target, port, attempt, &room, &map, &mode, coop.then_some(turn))
+}
+
+// 调用者已持有该工作目录的房间锁；启动日志必须出自这次启动。
+fn launch_configured(target: &Path, port: u16, attempt: &StartAttempt, room: &Path,
+    map: &str, mode: &str, rotation: Option<u64>) -> Result<bool> {
+    let baseline = log_ends(room)?;
     if attempt.cancelled() { return Ok(false); }
     let token = Uuid::new_v4().simple().to_string();
     // 游戏按启动工作目录查找相对资源，房间必须与原 ServerLauncher 同级。
@@ -372,7 +382,7 @@ pub(crate) fn start_room(target: &Path, port: u16, coop: bool, attempt: &StartAt
             }
             if startup_log(&room, &baseline, &map, &mode)? && game_has_port(target, owner.pid, port)? {
                 if !attempt.accept_ready() { return Ok(false); }
-                if coop {
+                if let Some(turn) = rotation {
                     write_room_value(&room.join("rotation.json"), &serde_json::json!(turn + 1))?;
                 }
                 return Ok(true);
