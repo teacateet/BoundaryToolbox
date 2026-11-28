@@ -7,7 +7,8 @@ namespace SDK {
 struct State { bool bIsInactive = false, bIsABot = false; };
 struct PC { State* PlayerState; };
 struct Connection { PC* PlayerController; };
-struct UNetDriver { Connection* ServerConnection = nullptr; std::vector<Connection*> ClientConnections; };
+struct UWorld;
+struct UNetDriver { Connection* ServerConnection = nullptr; std::vector<Connection*> ClientConnections; UWorld* World=nullptr; };
 struct GS { std::vector<State*> PlayerArray; };
 struct UWorld {
     UNetDriver* NetDriver; bool AuthorityGameMode; GS* GameState;
@@ -28,7 +29,8 @@ int wmain(int argc, wchar_t** argv) {
         GS gs{{&alice,&bob,&bot,&stale}};
         const bool server = std::wstring(argv[1]) == L"host";
         UWorld world{&net,server,&gs}; UWorld::current = &world;
-        if (server) brt::room_count::Server(&net);
+        net.World=&world;
+        if (server) { UWorld::current=nullptr; brt::room_count::Server(&net); }
         else {
             net.ServerConnection = &ca;
             UPBLocalPlayer self{&a};

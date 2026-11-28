@@ -5,8 +5,8 @@
      ServerLog("[SERVER] Calling Listen()...");
      libReplicate->Listen(NetDriver, World, LibReplicate::EJoinMode::Open, Config.Port);
      NetDriverAccess::Observe(NetDriver, World, NetDriverAccess::Source::World);
-+    // 普通人机地图的两个关卡集合共用当前世界。引擎切换集合时从这里恢复网络驱动。
-+    if (Config.IsPvE && NetDriver->World == World && World->NetDriver == NetDriver) {
++    // PvE 和 PvP 切换关卡集合时都从当前世界的集合恢复网络驱动。
++    if (NetDriver->World == World && World->NetDriver == NetDriver) {
 +        int bound = 0;
 +        for (auto& collection : World->LevelCollections) {
 +            if (collection.PersistentLevel != World->PersistentLevel || collection.NetDriver ||

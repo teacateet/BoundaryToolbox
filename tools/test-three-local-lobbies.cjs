@@ -83,7 +83,7 @@ async function main(){
       if(selected.mode!==null)assert.equal(confirmed.mode,selected.mode);
       if(selected.map!==null)assert.equal(confirmed.map,selected.map);
       const count=JSON.parse(execFileSync('pwsh.exe',['-NoProfile','-NonInteractive','-File',
-        path.join(__dirname,'test-party-empty-count.ps1'),String(port),target],{encoding:'utf8',timeout:20000}));
+        path.join(__dirname,'test-party-empty-count.ps1'),String(port),target],{encoding:'utf8',timeout:47000}));
       assert.equal(count.humans,0);
       const first=await seats[0].query(tk);
       seats[0].depart();

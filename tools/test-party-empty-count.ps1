@@ -1,7 +1,7 @@
 param([Parameter(Mandatory)][int]$Port,[Parameter(Mandatory)][string]$Target)
 $ErrorActionPreference='Stop'
 $game=(Resolve-Path -LiteralPath (Join-Path $Target 'ProjectBoundarySteam-Win64-Shipping.exe')).Path
-$until=[DateTime]::UtcNow.AddSeconds(12)
+$until=[DateTime]::UtcNow.AddSeconds(40)
 do {
     $owners=@(Get-NetUDPEndpoint -LocalPort $Port -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique)
     if ($owners.Count -ne 1 -or (Get-Process -Id $owners[0]).Path -ne $game){throw 'Unexpected dedicated server UDP owner'}

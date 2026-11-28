@@ -32,11 +32,13 @@ public:
 
 inline void Server(SDK::UNetDriver* driver) {
     static Sample sample;
+    auto* world = driver ? driver->World : nullptr;
+    if (!world || world->NetDriver != driver || driver->ServerConnection) return;
     const auto now = GetTickCount64();
     if (!sample.Ready(now)) return;
-    auto* world = SDK::UWorld::GetWorld();
     int n = -1;
-    if (world && driver && world->NetDriver == driver && world->AuthorityGameMode && world->GameState && !driver->ServerConnection) {
+    // 只向所属世界的游戏驱动取连接。空房尚未创建比分状态，也没有已登录的真人。
+    if (world->AuthorityGameMode) {
         n = 0;
         for (auto* c : driver->ClientConnections) {
             auto* pc = c ? c->PlayerController : nullptr;
