@@ -8,6 +8,7 @@ inline Room room;
 inline Gesture gesture;
 inline Time nextSample{};
 inline Time nextAliveUi{};
+inline bool respawnKeyHeld{};
 inline thread_local bool reading = false;
 
 struct ReadingScope
@@ -371,6 +372,7 @@ inline void Travel(SDK::UWorld* world, SDK::UPBLocalPlayer* local, std::string_v
     cancelled = {};
     nextSample = {};
     nextAliveUi = {};
+    respawnKeyHeld = false;
 }
 
 inline bool TextMatches(const SDK::FText& value, const wchar_t* nameSpace, const wchar_t* key)
@@ -621,13 +623,25 @@ inline bool Sample(SDK::UWorld* world, SDK::UPBLocalPlayer* local, Time now)
     if (inputReturn.owner && (inputReturn.owner != pc || inputReturn.state != state || now >= inputReturn.expires))
         inputReturn = {};
     const bool dead = state->IsInPlayerLifeStatus(EPBPlayerLifeStatus::Death);
+    // 这里的年龄只决定本机菜单入口；专服按自己的角色出生时间判定装备提交。
+    auto* current = !dead && state->GetDeaths() > 0 ? pc->GetPBCharacter() : nullptr;
+    const float pawnAge = current && current == pc->K2_GetPawn() && current == state->PawnPrivate
+        ? current->GetGameTimeSinceCreation() : -1.0f;
+    const bool recentRespawn = pawnAge >= 0.0f && pawnAge < 5.0f;
+    static const auto equipmentKey = NamedKey(L"F9");
+    bool requestEquipment = false;
+    if (recentRespawn && pc->PlayerInput) {
+        const bool down = pc->IsInputKeyDown(equipmentKey);
+        requestEquipment = !respawnKeyHeld && pc->WasInputKeyJustPressed(equipmentKey);
+        respawnKeyHeld = down || requestEquipment;
+    } else respawnKeyHeld = false;
     bool observeAlive = !selection.owner && !inputReturn.owner && !dead;
     if (observeAlive)
     {
-        nextSample = now + std::chrono::milliseconds(30);
+        nextSample = now + std::chrono::milliseconds(recentRespawn ? 6 : 30);
         if (!state->IsInPlayerLifeStatus(EPBPlayerLifeStatus::Alive)) return false;
         // 存活时仅低频记录本机菜单和按键的干净状态；不打开控件、不改焦点。
-        if (now < nextAliveUi) return true;
+        if (!requestEquipment && now < nextAliveUi) return true;
         nextAliveUi = now + std::chrono::milliseconds(120);
     }
     if (!gs->HasMatchStarted() || gs->HasMatchEnded() || !gs->IsRoundInProgress())
@@ -646,6 +660,16 @@ inline bool Sample(SDK::UWorld* world, SDK::UPBLocalPlayer* local, Time now)
     manager->GetTopPromptWidget(&top);
     manager->GetTopMenuWidget(&mainMenu);
     manager->GetTopInGameWidget(&inGameMenu);
+    if (requestEquipment && !top && !pc->bShowSelectRole && !pc->IsInGameMenuOpened() &&
+        !pc->bShowMouseCursor && !OtherMenuLayer(pc,mainMenu,inGameMenu) &&
+        RolePawn(pc,state,state->PossessedCharacterId) == current) {
+        // 只响应主动按键。菜单继续走原生的单槽预订，不发部署/重生请求。
+        selection = {};
+        inputReturn = {};
+        gesture = {};
+        pc->OpenInGameSelectRoleMenu();
+        return true;
+    }
     if (cancelled.owner) {
         const auto delta = static_cast<long long>(state->GetDeaths()) - cancelled.deaths;
         if (pc != cancelled.owner || state != cancelled.state || delta < 0 || delta > 1) cancelled = {};

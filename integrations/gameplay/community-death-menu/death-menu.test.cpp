@@ -36,6 +36,8 @@ struct APBCharacter : UObject {
     APBPlayerController* owner{};
     UObject* PlayerState{};
     bool alive{true}, firstPerson{true};
+    float age=20.0f;
+    float GetGameTimeSinceCreation() const { return age; }
     APBPlayerController* GetController() const { return owner; }
     bool IsAlive() const { return alive; }
     bool IsInKilledStatus() const { return !alive; }
@@ -398,6 +400,23 @@ int main()
     check("becoming alive between close and open", [](Scene& s){ s.leave.onBack=[&]{s.show(nullptr); s.state.life=EPBPlayerLifeStatus::Alive;}; s.play(); return s.leave.back==1 && !s.pc.openings; });
     check("CanSelectRole revoked before opening", [](Scene& s){ s.leave.onBack=[&]{s.show(nullptr); s.pc.selectable=false;}; s.play(); return s.leave.back==1 && !s.pc.openings; });
 #ifndef TEST_V084
+    check("respawn equipment key reopens native menu before deadline", [](Scene& s){
+        s.state.deaths=1; s.possess(); s.pc.bShowMouseCursor=false; s.newPawn.age=4.99f;
+        s.key(L"F9"); s.tick(); s.tick();
+        return s.pc.openings==1 && s.pc.bShowSelectRole && s.pc.pawn==&s.newPawn;
+    });
+    check("equipment key expires at five seconds", [](Scene& s){
+        s.state.deaths=1; s.possess(); s.pc.bShowMouseCursor=false; s.newPawn.age=5.0f;
+        s.key(L"F9"); s.tick(); return s.pc.openings==0;
+    });
+    check("equipment key leaves first life unchanged", [](Scene& s){
+        s.state.deaths=0; s.possess(); s.pc.bShowMouseCursor=false; s.newPawn.age=0.2f;
+        s.key(L"F9"); s.tick(); return s.pc.openings==0;
+    });
+    check("equipment key leaves existing prompt alone", [](Scene& s){
+        s.state.deaths=1; s.possess(); s.pc.bShowMouseCursor=false; s.newPawn.age=0.2f;
+        s.show(&s.otherPrompt); s.key(L"F9"); s.tick(); return s.pc.openings==0 && s.prompts.current==&s.otherPrompt;
+    });
     check("changed role returns game focus once", [](Scene& s){
         s.play(); s.state.SelectedCharacterID=L"PEACE"; s.tick(); s.tick(); s.tick();
         return s.pc.closings==1 && !s.pc.bShowSelectRole && !s.pc.bShowMouseCursor && s.pc.gameFocus==1;

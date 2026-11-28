@@ -35,6 +35,7 @@ if(-not(Get-Command cl.exe -ErrorAction SilentlyContinue)){
 }
 $utf8 = [Text.UTF8Encoding]::new($false)
 $expectedBaseline = @(
+    'respawn equipment key reopens native menu before deadline',
     'recorded Chinese Leave Match opens roles','English Leave Match opens roles',
     'second stock Chinese confirmation title','stock English command confirmation',
     'easy round opens roles','hard round opens roles','remapped active device key',
@@ -127,7 +128,7 @@ inline void EntryRoleAction(const std::function<void()>& original){constexpr boo
     [IO.File]::WriteAllLines((Join-Path $d 'tests.log'),[string[]]$lines,$utf8)
     $passed = @($lines -match '^PASS ')
     $failed = @($lines -match '^FAIL ' | ForEach-Object {$_.Substring(5)})
-    if($passed.Count+$failed.Count -ne 157 -or $lines.Count -ne 157){throw "Incomplete $kind results"}
+    if($passed.Count+$failed.Count -ne 161 -or $lines.Count -ne 161){throw "Incomplete $kind results"}
     if($kind -eq 'original'){
         if($code -ne 1 -or (Compare-Object $expectedBaseline $failed)){throw "Unexpected original results in $d"}
     }elseif($code -ne 0 -or $failed.Count){throw "Candidate failures in $d"}
@@ -135,4 +136,4 @@ inline void EntryRoleAction(const std::function<void()>& original){constexpr boo
 }
 $receipt = [ordered]@{source=$sourceRel;sourcePatch=(Get-FileHash -LiteralPath $patch).Hash;logic=(Get-FileHash -LiteralPath (Join-Path $dest 'DeathMenu.hpp')).Hash;adapter=(Get-FileHash -LiteralPath (Join-Path $dest 'DeathMenu.sdk.hpp')).Hash;reversible=$true;results=$results}
 [IO.File]::WriteAllText((Join-Path $run 'receipt.json'),($receipt|ConvertTo-Json -Depth 7),$utf8)
-Write-Output ("Original {0}/157, candidate {1}/157. {2}" -f $results.original.passed,$results.candidate.passed,$run)
+Write-Output ("Original {0}/161, candidate {1}/161. {2}" -f $results.original.passed,$results.candidate.passed,$run)
