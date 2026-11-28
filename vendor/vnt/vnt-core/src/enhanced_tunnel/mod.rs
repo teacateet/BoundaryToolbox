@@ -37,7 +37,7 @@ pub(crate) async fn enhanced_ipv4_tunnel(
     let password = config.password.unwrap_or_else(|| "password".to_string());
     let tun = match &tun_data_sender {
         EnhancedTunInbound::Tun(tun) => Some(tun.clone()),
-        EnhancedTunInbound::Nat(_) => None,
+        EnhancedTunInbound::Nat(_) | EnhancedTunInbound::Disabled => None,
     };
     let (inbound, outbound) = quic_over::boot::quic_tunnel_start(
         app_state.clone(),

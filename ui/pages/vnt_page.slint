@@ -91,11 +91,12 @@ export component VntPage inherits Workbench {
         Caption { text: I18n.tr("房间密码", "Room password", "ルームパスワード"); }
         Field { text <=> root.vnt_password; enabled: root.editable; input-type: InputType.password; edited(_) => { root.vnt_settings_changed(); } }
         HorizontalLayout { spacing: 12px;
-            CheckBox { text: I18n.tr("无网卡模式", "No adapter", "アダプターなし"); enabled: root.editable;
+            CheckBox { text: I18n.tr("无网卡模式（推荐）", "No adapter (recommended)", "アダプターなし（推奨）"); enabled: root.editable;
                 checked <=> root.vnt_no_tun; toggled => { root.vnt_settings_changed(); } }
             CheckBox { text: I18n.tr("仅中转", "Relay only", "中継のみ"); enabled: root.editable;
                 checked <=> root.vnt_no_punch; toggled => { root.vnt_settings_changed(); } }
         }
+        if !root.vnt_no_tun : Caption { text: I18n.tr("虚拟网卡会接入同一网络，仅与信任的成员使用。", "Adapter mode joins a shared network. Use it with trusted peers.", "仮想アダプターは共有ネットワークに接続します。信頼できる相手と使用してください。"); }
         HorizontalLayout { spacing: 12px;
             CheckBox { text: I18n.tr("压缩传输", "Compression", "圧縮"); enabled: root.editable;
                 checked <=> root.vnt_compress; toggled => { root.vnt_settings_changed(); } }

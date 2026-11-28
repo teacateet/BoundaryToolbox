@@ -271,9 +271,13 @@ fn kernel_udp_ownership_rejects_an_existing_room_without_closing_it() {
     );
     let parent = sys.process(id).unwrap().parent().unwrap().as_u32();
     let exe = std::env::current_exe().unwrap();
-    assert!(owns_room(&exe, parent, pid, port).unwrap());
-    assert!(!owns_room(&exe, pid, pid, port).unwrap());
-    assert!(!owns_room(&tmp.0.join("other.exe"), parent, pid, port).unwrap());
+    assert!(owns_room(&exe, parent, pid, port, true).unwrap());
+    assert!(!owns_room(&exe, pid, pid, port, true).unwrap());
+    assert!(!owns_room(&tmp.0.join("other.exe"), parent, pid, port, true).unwrap());
+    let shared = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)).unwrap();
+    let shared_port = shared.local_addr().unwrap().port();
+    assert!(!owns_room(&exe, parent, pid, shared_port, true).unwrap());
+    assert!(owns_room(&exe, parent, pid, shared_port, false).unwrap());
     socket.send_to(b"x", socket.local_addr().unwrap()).unwrap();
     socket
         .set_read_timeout(Some(Duration::from_secs(1)))
@@ -376,7 +380,7 @@ Start-Sleep -Seconds 20
             &logs,
             Duration::from_secs(5),
             || Ok(child.try_wait()?.is_none()),
-            |pid| owns_room(&exe, std::process::id(), pid, port),
+            |pid| owns_room(&exe, std::process::id(), pid, port, true),
             || {
                 opened.set(opened.get() + 1);
                 Ok(())

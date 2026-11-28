@@ -15,6 +15,20 @@ use windows::Win32::{
 };
 
 impl AppController {
+    pub(super) fn refresh_room_counts(&mut self) {
+        if self.reading_room_counts || self.ui.get_page() != 2 { return; }
+        let Some(target) = self.current_target.clone() else {
+            self.ui.set_room_host_players(-1); self.ui.set_room_client_players(-1); return;
+        };
+        self.reading_room_counts = true;
+        let hosted = self.active_fixed_room.clone();
+        let tx = self.tx.clone();
+        thread::spawn(move || {
+            let (host, client) = core::fixed_host::player_count::current(&target, hosted.as_ref());
+            let _ = tx.send(AppMessage::RoomCounts {target, hosted, host, client});
+        });
+    }
+
     pub(super) fn clear_friend_invite(&mut self) {
         self.invite_auto_route = None;
         self.ui.set_pending_friend_invite("".into());
@@ -67,6 +81,12 @@ impl AppController {
             self.show_error_dialog(self.tr("复制邀请","Copy invite","招待をコピー"), message);
             return;
         };
+        if vnt && let Some((target, _)) = &self.active_fixed_room && let Some(session) = &mut self.vnt_session {
+            if let Err(e) = session.share_owned_room(target.clone(), port) {
+                self.show_error_dialog(self.tr("无法共享游戏端口","Could not share the game port","ゲームポートを共有できません"), &e.to_string());
+                return;
+            }
+        }
         match copy_text_to_clipboard(self.ui.window(), &invite.to_string()) {
             Ok(()) => self.ui.set_fixed_room_status(format!("{} · UDP {port}", self.tr("邀请已复制","Invite copied","招待をコピーしました")).into()),
             Err(error) => self.show_error_dialog(self.tr("复制邀请失败","Could not copy invite","招待をコピーできません"),&error.to_string()),

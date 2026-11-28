@@ -5,12 +5,14 @@ use crate::tun::TunDataInbound;
 
 #[derive(Clone)]
 pub enum EnhancedTunInbound {
+    Disabled,
     Tun(TunDataInbound),
     Nat(InternalNatInbound),
 }
 impl EnhancedTunInbound {
     pub async fn inbound(&self, data: TransmissionBytes, net: &NetworkAddr) -> anyhow::Result<()> {
         match self {
+            EnhancedTunInbound::Disabled => Ok(()),
             EnhancedTunInbound::Tun(tun) => tun.send(data, net).await,
             EnhancedTunInbound::Nat(nat) => nat.send(&data, net).await,
         }

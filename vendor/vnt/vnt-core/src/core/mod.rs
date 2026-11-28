@@ -115,9 +115,10 @@ impl NetworkManager {
         let port_mapping_manager = PortMappingManager::new(
             config.no_tun,
             config.allow_port_mapping,
+            config.game_udp_port.clone(),
             app_state.network.clone(),
         );
-        let internal_nat_inbound = if config.no_nat && !config.no_tun {
+        let internal_nat_inbound = if config.no_nat {
             None
         } else {
             let nat_inbound = InternalNatInbound::create(
@@ -134,11 +135,7 @@ impl NetworkManager {
 
         let (enhanced_tun_inbound, tun_receiver) = if config.no_tun {
             (
-                EnhancedTunInbound::Nat(
-                    internal_nat_inbound
-                        .clone()
-                        .expect("internal_nat_inbound must be Some when no_tun is true"),
-                ),
+                internal_nat_inbound.clone().map(EnhancedTunInbound::Nat).unwrap_or(EnhancedTunInbound::Disabled),
                 None,
             )
         } else {

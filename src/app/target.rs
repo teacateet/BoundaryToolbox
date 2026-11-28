@@ -84,6 +84,8 @@ impl AppController {
 
     /// Save current target and sync to Slint.
     pub(super) fn set_current_target(&mut self, path: Option<PathBuf>, status: &str) {
+        self.ui.set_room_client_players(-1);
+        self.ui.set_room_host_players(-1);
         self.current_target = path;
         if let Ok(mut target) = self.port_target.write() {
             *target = self.current_target.clone();

@@ -36,6 +36,7 @@ pub struct VntLaunchOptions {
     pub password: String,
     pub no_tun: bool,
     pub port_mapping_host: Option<SocketAddrV4>,
+    pub shared_game_port: Option<u16>,
     pub compress: bool,
     pub rtx: bool,
     pub no_punch: bool,
@@ -91,6 +92,8 @@ type EventSink = Arc<dyn Fn(VntEvent) + Send + Sync + 'static>;
 pub struct VntSession {
     stop_tx: Option<oneshot::Sender<()>>,
     game_route: (bool, Option<SocketAddrV4>),
+    share: vnt_core::context::config::GameUdpShare,
+    watched_port: Option<u16>,
 }
 
 impl VntSession {
@@ -104,6 +107,8 @@ impl VntSession {
             Self {
                 stop_tx: Some(stop_tx),
                 game_route: (options.no_tun, options.port_mapping_host),
+                share: vnt_core::context::config::GameUdpShare::new(options.shared_game_port),
+                watched_port: None,
             },
             stop_rx,
         )
@@ -114,11 +119,12 @@ impl VntSession {
         validate_options(&options)?;
         let (session, stop_rx) = Self::pending(&options);
         let thread_sink = sink.clone();
+        let share = session.share.clone();
 
         thread::Builder::new()
             .name("boundary-vnt".to_string())
             .spawn(move || {
-                let result = run_vnt_thread(options, stop_rx, thread_sink.clone());
+                let result = run_vnt_thread(options, stop_rx, thread_sink.clone(), share);
                 if let Err(error) = result {
                     thread_sink(VntEvent::Failed(format_error_chain(error)));
                 }
@@ -135,10 +141,34 @@ impl VntSession {
 
     /// 请求优雅关闭；最终状态会通过 VntEvent::Stopped 返回。
     pub fn stop(&mut self) {
+        self.share.set(None);
         if let Some(stop_tx) = self.stop_tx.take() {
             let _ = stop_tx.send(());
         }
     }
+
+    pub(crate) fn share_owned_room(&mut self, target: PathBuf, port: u16) -> Result<()> {
+        anyhow::ensure!(self.game_route.1.is_none() && crate::core::fixed_host::valid_room_port(port) &&
+            crate::core::fixed_host::owned_room_listening(&target, port)?, "房间没有持有该游戏端口");
+        if self.watched_port == Some(port) && self.share.current() == Some(port) { return Ok(()); }
+        let share = self.share.clone();
+        share.set(Some(port));
+        let permit = share.watch();
+        let generation = permit.borrow().0;
+        if let Err(e) = thread::Builder::new().name("game-port-owner".into()).spawn(move || {
+            while matches!(permit.has_changed(), Ok(false)) && share.current() == Some(port) {
+                if !crate::core::fixed_host::owned_room_listening(&target, port).unwrap_or(false) {
+                    share.revoke(generation);
+                    break;
+                }
+                thread::sleep(Duration::from_secs(1));
+            }
+        }) { self.share.set(None); return Err(e.into()); }
+        self.watched_port = Some(port);
+        Ok(())
+    }
+
+    pub(crate) fn unshare_room(&self) { self.share.set(None); }
 }
 
 impl Drop for VntSession {
@@ -218,6 +248,7 @@ fn run_vnt_thread(
     options: VntLaunchOptions,
     stop_rx: oneshot::Receiver<()>,
     sink: EventSink,
+    share: vnt_core::context::config::GameUdpShare,
 ) -> Result<()> {
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -225,7 +256,7 @@ fn run_vnt_thread(
         .build()
         .context("创建 VNT Tokio runtime 失败")?;
 
-    runtime.block_on(run_vnt(options, stop_rx, sink))
+    runtime.block_on(run_vnt(options, stop_rx, sink, share))
 }
 
 /// 运行 VNT 核心生命周期：配置、注册、启动 TUN、轮询状态。
@@ -233,6 +264,7 @@ async fn run_vnt(
     options: VntLaunchOptions,
     mut stop_rx: oneshot::Receiver<()>,
     sink: EventSink,
+    share: vnt_core::context::config::GameUdpShare,
 ) -> Result<()> {
     sink(VntEvent::Snapshot(VntSnapshot {
         busy: true,
@@ -250,7 +282,8 @@ async fn run_vnt(
     }
 
     let device_id = resolved_device_id(&options.username).context("读取设备 ID 失败")?;
-    let config = build_config(&options, device_id).context("VNT 配置无效")?;
+    let mut config = build_config(&options, device_id).context("VNT 配置无效")?;
+    if options.port_mapping_host.is_none() { config.game_udp_port = Some(share); }
     let task_group_manager = TaskGroupManager::new();
     let (task_group, task_group_guard) = task_group_manager
         .create_task()
@@ -411,6 +444,10 @@ fn build_config(options: &VntLaunchOptions, device_id: String) -> Result<Config>
         Some(options.password.trim().to_string())
     };
 
+    if let Some(port) = options.shared_game_port {
+        anyhow::ensure!(options.no_tun && options.port_mapping_host.is_none() &&
+            crate::core::fixed_host::valid_room_port(port), "本次连接没有可分享的游戏端口");
+    }
     Ok(Config {
         server_addr,
         network_code: options.network_code.trim().to_string(),
@@ -425,8 +462,10 @@ fn build_config(options: &VntLaunchOptions, device_id: String) -> Result<Config>
         rtx: options.rtx,
         no_tun: options.no_tun,
         port_mapping: options.guest_game_mappings()?,
-        // 无网卡房客可通过房主的虚拟 IP 访问所选游戏端口，房主无需切换模式。
-        allow_port_mapping: true,
+        // 房客只发起游戏连接；房主仅共享本次房间的 UDP 端口。
+        allow_port_mapping: false,
+        game_udp_port: options.shared_game_port.map(|p| vnt_core::context::config::GameUdpShare::new(Some(p))),
+        no_nat: true,
         ..Default::default()
     })
 }
@@ -833,7 +872,7 @@ mod tests {
             let options = VntLaunchOptions {
                 server_text: format!("tcp://{}", listener.local_addr()?), username: "qa".into(),
                 network_code: "brt-local-qa".into(), password: String::new(), no_tun: true,
-                port_mapping_host: None, compress: false, rtx: false, no_punch: true,
+                port_mapping_host: None, shared_game_port: None, compress: false, rtx: false, no_punch: true,
             };
             let (tx, rx) = mpsc::channel();
             let mut session = VntSession::start(options, Arc::new(move |e| { let _ = tx.send(e); }))?;
@@ -868,6 +907,7 @@ mod tests {
             password: String::new(),
             no_tun: true,
             port_mapping_host: Some(host),
+            shared_game_port: None,
             compress: false,
             rtx: false,
             no_punch: false,
@@ -875,7 +915,7 @@ mod tests {
         let (session, _stop_rx) = VntSession::pending(&options);
         let config = build_config(&options, "test-device".into())?;
         config.check()?;
-        assert!(config.no_tun && config.allow_port_mapping);
+        assert!(config.no_tun && !config.allow_port_mapping && config.no_nat && config.game_udp_port.is_none());
         let [mapping] = config.port_mapping.as_slice() else {
             panic!("expected one UDP game mapping");
         };
@@ -897,6 +937,27 @@ mod tests {
             assert!(config.port_mapping.is_empty());
         }
         assert_eq!(session.game_route(), (true, Some(host)));
+        // 纯策略回归：不向内网、回环档案或其他进程发起连接。
+        let own = *host.ip();
+        let target = |dest, port| vnt_core::context::config::shared_game_target(own, 18777, dest, port);
+        for (dest, port) in [("127.0.0.1",18777), ("localhost",18777), ("192.168.1.1",18777),
+            ("10.26.0.9",18777), ("10.26.0.8",8000), ("::1",18777)] {
+            assert!(target(dest, port).is_none());
+        }
+        assert_eq!(target("10.26.0.8",18777), Some((Ipv4Addr::LOCALHOST,18777).into()));
+        options.no_tun = true;
+        options.shared_game_port = Some(18777);
+        let shared = build_config(&options, "host".into())?;
+        shared.check()?;
+        assert!(shared.no_nat && !shared.allow_port_mapping && shared.game_udp_port.as_ref().unwrap().current() == Some(18777));
+        options.shared_game_port = Some(9001);
+        assert!(build_config(&options, "host".into()).is_err());
+        let share = shared.game_udp_port.unwrap();
+        let before = share.watch().borrow().0;
+        share.set(None);
+        share.set(Some(18777));
+        share.revoke(before);
+        assert_eq!(share.current(), Some(18777));
         Ok(())
     }
 }

@@ -32,7 +32,7 @@ pub(crate) struct VntPrefs {
     pub network_code: String,
     #[serde(default)]
     pub password: String,
-    #[serde(default, alias = "open_ports")]
+    #[serde(default = "default_no_tun", alias = "open_ports")]
     pub no_tun: bool,
     #[serde(default)]
     pub no_punch: bool,
@@ -50,7 +50,7 @@ impl Default for VntPrefs {
             username: String::new(),
             network_code: String::new(),
             password: String::new(),
-            no_tun: false,
+            no_tun: default_no_tun(),
             no_punch: false,
             compress: false,
             rtx: false,
@@ -61,6 +61,8 @@ impl Default for VntPrefs {
 fn default_github_proxy_prefix() -> String {
     crate::core::DEFAULT_GITHUB_PROXY_PREFIX.to_string()
 }
+
+fn default_no_tun() -> bool { true }
 
 fn default_language_preference() -> i32 {
     crate::app::i18n::LANGUAGE_AUTO

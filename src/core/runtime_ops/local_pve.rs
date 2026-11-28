@@ -231,7 +231,7 @@ impl Plan {
             &logs,
             Duration::from_secs(90),
             || { check()?; Ok(child.try_wait()?.is_none()) },
-            |pid| owns_room(&files.game_exe, wrapper, pid, self.endpoint.port()),
+            |pid| owns_room(&files.game_exe, wrapper, pid, self.endpoint.port(), self.managed_host.is_some()),
             lobby,
         ));
         let (pid, round) = match result {
@@ -303,6 +303,10 @@ enum Binding {
 }
 
 fn udp_binding(port: u16, expected: Option<u32>) -> Result<Binding> {
+    check_udp_binding(port, expected, false)
+}
+
+fn check_udp_binding(port: u16, expected: Option<u32>, local_only: bool) -> Result<Binding> {
     let mut any = false;
     let mut loopback = false;
     for row in get_sockets_info(
@@ -316,6 +320,7 @@ fn udp_binding(port: u16, expected: Option<u32>) -> Result<Binding> {
             continue;
         }
         any = true;
+        if local_only && !udp.local_addr.is_loopback() { return Ok(Binding::Other); }
         if row.associated_pids.is_empty()
             || !row.associated_pids.iter().all(|pid| Some(*pid) == expected)
         {
@@ -332,7 +337,7 @@ fn udp_binding(port: u16, expected: Option<u32>) -> Result<Binding> {
     })
 }
 
-fn owns_room(game: &Path, wrapper: u32, child: u32, port: u16) -> Result<bool> {
+fn owns_room(game: &Path, wrapper: u32, child: u32, port: u16, local_only: bool) -> Result<bool> {
     let pid = Pid::from_u32(child);
     let mut system = System::new();
     system.refresh_processes_specifics(
@@ -345,7 +350,7 @@ fn owns_room(game: &Path, wrapper: u32, child: u32, port: u16) -> Result<bool> {
             && p.exe()
                 .is_some_and(|exe| path_match_key(exe) == path_match_key(game))
     });
-    Ok(owned && udp_binding(port, Some(child))? == Binding::Ours)
+    Ok(owned && check_udp_binding(port, Some(child), local_only)? == Binding::Ours)
 }
 
 // CLI 会将 stdout 重定向到 CONOUT$。只认本次启动后原生日志中新写入的完整行。

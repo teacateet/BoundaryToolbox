@@ -1,0 +1,36 @@
+--- a/ProjectReboundMainDLL/Client/AutoConnect.cpp
++++ b/ProjectReboundMainDLL/Client/AutoConnect.cpp
+@@ -14,6 +14,7 @@
+ #include <Windows.h>
+ #include "../BrtInventory/SteamPersona.hpp"
+ #include "../BrtInventory/BotMenu.hpp"
++#include "../BrtInventory/RoomCount.hpp"
+ 
+ #include <atomic>
+ #include <chrono>
+@@ -202,6 +203,7 @@
+         return;
+ 
+     brt::bots::Menu(world, localPlayer);
++    brt::room_count::Client(world, localPlayer);
+     if (!loggedIn) return;
+     brt::steam_names::Tick(world, localPlayer);
+     BrtDeathMenu::Tick(world, localPlayer);
+--- a/ProjectReboundMainDLL/Hooking/ServerLogicHooks.cpp
++++ b/ProjectReboundMainDLL/Hooking/ServerLogicHooks.cpp
+@@ -5,6 +5,7 @@
+ #include "ServerLogicHooks.h"
+ #include "HookCore.h"
+ #include "../BrtInventory/BotPreference.hpp"
++#include "../BrtInventory/RoomCount.hpp"
+ #include "../Core/GameOffsets.h"
+ #include "../Logging/LogManager.h"
+ #include "../Config/Config.h"
+@@ -164,6 +165,7 @@
+ void TickFlushHook(UNetDriver *NetDriver, float DeltaTime)
+ {
+     NoteServerGameTick();
++    brt::room_count::Server(NetDriver);
+ 
+     PVECamFix_Tick(NetDriver, DeltaTime);
+ 

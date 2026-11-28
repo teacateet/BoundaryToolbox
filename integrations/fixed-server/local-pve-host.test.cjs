@@ -14,6 +14,7 @@ test('automatic rooms select the local archive and the chosen retail game mode',
       const {args} = offlineRoom([map, level, '19786', local]);
       assert.deepEqual(args.filter(s => s.startsWith('-LogicServerURL=')), ['-LogicServerURL=' + local]);
       assert.ok(args.includes('-map=' + map));
+      assert.deepEqual(args.filter(s => s.toUpperCase().startsWith('-MULTIHOME=')), ['-MULTIHOME=127.0.0.1']);
       assert.ok(args.find(s => s.startsWith('-mode=')).endsWith('_' + suffix + '_C'));
       assert.ok(args.includes('-server') && args.includes('-pve') && !args.some(s => s.startsWith('-online')));
     }

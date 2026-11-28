@@ -926,6 +926,7 @@ fn parse_config_from_json(json_str: &str) -> anyhow::Result<Config> {
         mtu: cfg.mtu,
         port_mapping,
         allow_port_mapping: cfg.allow_mapping,
+        game_udp_port: None,
         udp_stun,
         tcp_stun,
         fec: cfg.fec,

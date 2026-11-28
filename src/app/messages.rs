@@ -43,6 +43,14 @@ impl AppController {
                     self.set_install_progress_detail_text(&detail);
                 }
                 AppMessage::PortRows(rows) => self.update_port_rows(rows),
+                AppMessage::RoomCounts {target, hosted, host, client} => {
+                    self.reading_room_counts = false;
+                    if self.ui.get_page() == 2 && self.current_target.as_ref() == Some(&target)
+                        && self.active_fixed_room == hosted {
+                        self.ui.set_room_host_players(host.map_or(-1, i32::from));
+                        self.ui.set_room_client_players(client.map_or(-1, i32::from));
+                    }
+                }
                 AppMessage::FixedRoomFinished { target, port, action, result } => {
                     self.finish_fixed_room(target, port, action, result);
                 }

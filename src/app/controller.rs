@@ -285,6 +285,7 @@ impl AppController {
             session_log_file,
             current_target: None,
             active_fixed_room: None,
+            reading_room_counts: false,
             fixed_room_start: None,
             drive_model,
             port_model,
@@ -732,6 +733,13 @@ impl AppController {
             }
         });
         std::mem::forget(pulse_timer);
+
+        let counter = Rc::clone(controller);
+        let count_timer = Timer::default();
+        count_timer.start(TimerMode::Repeated, Duration::from_secs(3), move || {
+            counter.borrow_mut().refresh_room_counts();
+        });
+        std::mem::forget(count_timer);
     }
 
     /// 执行初始自动识别和服务器列表刷新。
@@ -763,6 +771,9 @@ impl AppController {
             self.refresh_port_rows_once();
         }
         if page == 2 {
+            self.ui.set_room_host_players(-1);
+            self.ui.set_room_client_players(-1);
+            self.refresh_room_counts();
             self.start_refresh_servers();
         }
         if page == 3 {

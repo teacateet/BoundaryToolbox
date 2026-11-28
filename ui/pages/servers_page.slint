@@ -19,6 +19,9 @@ export component ServersPage inherits Workbench {
     in property <bool> vnt_ready;
     in property <bool> friend_room_working;
     in property <bool> friend_room_connected;
+    in property <int> room_host_players: -1;
+    in property <int> room_client_players: -1;
+    in property <int> friend_online_nodes: -1;
     in property <string> friend_room_notice;
     private property <bool> more;
     callback share_friend_room_clicked();
@@ -76,6 +79,20 @@ export component ServersPage inherits Workbench {
         Caption { text: I18n.tr("游戏端口", "Game port", "ポート"); }
         Field { text <=> root.fixed_room_port; input-type: InputType.number; enabled: !root.busy && !root.fixed_room_running; }
         if root.fixed_room_running && root.vnt_ready : Command { label: I18n.tr("复制已有组网邀请", "Copy custom network invite", "詳細ネットワークの招待"); enabled: !root.busy; clicked => { root.copy_room_invite_clicked(true); } }
+    }
+    if root.fixed_room_running || root.friend_room_connected || root.room_client_players >= 0 : HorizontalLayout {
+        spacing: 12px;
+        Value {
+            text: (root.fixed_room_running ? I18n.tr("本房真人：", "Players in hosted match: ", "開いた対戦のプレイヤー：")
+                                          : I18n.tr("当前对局真人：", "Players in my match: ", "現在の対戦のプレイヤー："))
+                + (self.n < 0 ? I18n.tr("未知", "Unknown", "不明") : "\{self.n}");
+            private property <int> n: root.fixed_room_running ? root.room_host_players : root.room_client_players;
+        }
+        if root.friend_room_connected : Value {
+            text: I18n.tr("好友组网设备：", "Devices on friend network: ", "フレンドネットワークの端末：")
+                + (root.friend_online_nodes < 0 ? I18n.tr("未知", "Unknown", "不明") : "\{root.friend_online_nodes}");
+            horizontal-alignment: right;
+        }
     }
     if root.friend_room_notice != "" || root.friend_room_connected : HorizontalLayout { spacing: 8px;
         Value { text: root.friend_room_notice; }

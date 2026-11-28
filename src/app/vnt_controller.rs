@@ -67,6 +67,7 @@ impl AppController {
             password: self.ui.get_vnt_password().to_string(),
             no_tun: self.ui.get_vnt_no_tun(),
             port_mapping_host: None,
+            shared_game_port: None,
             compress: self.ui.get_vnt_compress(),
             rtx: self.ui.get_vnt_rtx(),
             no_punch: self.ui.get_vnt_no_punch(),
@@ -324,7 +325,7 @@ impl AppController {
             RoomError::InvalidPeer => self.tr("房主虚拟 IP 无效。", "Invalid host virtual IP.", "ホストの仮想 IP が無効です。"),
             RoomError::OwnPeer => self.tr("不能加入本机节点，请选择另一位房主。", "Select another peer, not this device.", "この端末以外のホストを選択してください。"),
             RoomError::OfflinePeer => self.tr("该节点已不在当前在线列表中，请重新选择。", "This peer is no longer online. Select an online peer.", "このノードはオフラインです。再度選択してください。"),
-            RoomError::InvalidPort => self.tr("房主游戏端口须为 1024 至 65535 的整数，6969、8000、9000 为保留端口。", "Use a host game port from 1024 to 65535, excluding 6969, 8000 and 9000.", "ホストのゲームポートは 1024～65535 で、6969、8000、9000 は使用できません。"),
+            RoomError::InvalidPort => self.tr("房主游戏端口须为 1024 至 65535 的整数，6969、8000、9000、9001 为保留端口。", "Use a host game port from 1024 to 65535, excluding 6969, 8000, 9000 and 9001.", "ホストのゲームポートは 1024～65535 で、6969、8000、9000、9001 は使用できません。"),
             RoomError::WrongMapping => self.tr("当前无网卡映射与所选房主或端口不符。请停止联机，重新启动后选择该房主及游戏端口。", "Restart networking and select this host and game port. The current no-adapter mapping does not match.", "現在の転送先が一致しません。ネットワークを再起動し、このホストとゲームポートを選択してください。"),
         };
         self.show_error_dialog(
@@ -428,6 +429,7 @@ impl AppController {
             password: self.ui.get_vnt_password().to_string(),
             no_tun: true,
             port_mapping_host: Some(host),
+            shared_game_port: None,
             compress: self.ui.get_vnt_compress(),
             rtx: self.ui.get_vnt_rtx(),
             no_punch: self.ui.get_vnt_no_punch(),

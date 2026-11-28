@@ -87,6 +87,9 @@ export component AppWindow inherits Window {
     in-out property <bool> fixed_room_pve: true;
     in property <bool> friend_room_connected;
     in property <bool> friend_room_working;
+    in property <int> room_host_players: -1;
+    in property <int> room_client_players: -1;
+    in property <int> friend_online_nodes: -1;
     in property <string> friend_room_notice;
     in-out property <string> friend_input;
     in-out property <string> pending_friend_invite;
@@ -393,6 +396,9 @@ export component AppWindow inherits Window {
                 }
 
                 rooms := ServersPage {
+                    room_host_players: root.room_host_players;
+                    room_client_players: root.room_client_players;
+                    friend_online_nodes: root.friend_online_nodes;
                     friend_input <=> root.friend_input;
                     friend_room_working: root.friend_room_working;
                     friend_room_connected: root.friend_room_connected;

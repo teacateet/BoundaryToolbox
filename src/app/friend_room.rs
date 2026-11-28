@@ -44,6 +44,7 @@ fn network_options(room: Uuid, side: Side) -> VntLaunchOptions {
         network_code: fingerprint[..32].to_owned(),
         password: room.simple().to_string(),
         no_tun: true,
+        shared_game_port: match side { Side::Host(port) => Some(port), Side::Guest(_) => None },
         port_mapping_host: match side {
             Side::Guest(peer) => Some(peer),
             Side::Host(_) => None,
@@ -52,6 +53,16 @@ fn network_options(room: Uuid, side: Side) -> VntLaunchOptions {
         rtx: false,
         no_punch: false,
     }
+}
+
+fn online_nodes(s: &vnt_platform::VntSnapshot) -> Option<i32> {
+    if !s.running || s.busy { return None; }
+    let own = vnt_controller::room::own_ip(&s.virtual_ip)?;
+    let mut ips = std::collections::HashSet::from([own]);
+    for p in &s.peers {
+        if p.online && let Some(ip) = vnt_controller::room::own_ip(&p.address) { ips.insert(ip); }
+    }
+    i32::try_from(ips.len()).ok()
 }
 
 impl FriendSession {
@@ -93,6 +104,7 @@ impl AppController {
     }
 
     fn close_friend_connection(&mut self) {
+        self.ui.set_friend_online_nodes(-1);
         self.friend_room = None;
         self.ui.set_friend_room_working(false);
         self.ui.set_friend_room_connected(false);
@@ -110,6 +122,7 @@ impl AppController {
     }
 
     pub(super) fn close_friend_host(&mut self) {
+        if let Some(session) = &self.vnt_session { session.unshare_room(); }
         if self
             .friend_room
             .as_ref()
@@ -142,8 +155,17 @@ impl AppController {
         let sink = Arc::new(move |event| {
             let _ = tx.send(AppMessage::FriendRoomEvent(attempt, event));
         });
-        match VntSession::start(network_options(room, side), sink) {
-            Ok(transport) => {
+        let mut options = network_options(room, side);
+        // 生产品只在下方重新核对已经开好的房间后才授予端口。
+        options.shared_game_port = None;
+        match VntSession::start(options, sink) {
+            Ok(mut transport) => {
+                if let Side::Host(port) = side {
+                    let guard = self.active_fixed_room.as_ref().filter(|(_, p)| *p == port)
+                        .ok_or_else(|| anyhow::anyhow!("房间已关闭"))
+                        .and_then(|(target, _)| transport.share_owned_room(target.clone(), port));
+                    if let Err(e) = guard { self.friend_error(&e.to_string()); return; }
+                }
                 self.friend_room = Some(FriendSession {
                     attempt,
                     room,
@@ -309,6 +331,7 @@ impl AppController {
         };
         match event {
             VntEvent::Snapshot(s) => {
+                self.ui.set_friend_online_nodes(online_nodes(&s).unwrap_or(-1));
                 if self.ui.get_busy() {
                     return;
                 }
@@ -369,6 +392,14 @@ mod tests {
     }
 
     #[test]
+    fn friend_device_count_deduplicates_self_and_excludes_offline() {
+        let mut s = snapshot("10.42.0.2/24", &[("10.42.0.2", true), ("10.42.0.9", true),
+            ("10.42.0.9", true), ("10.42.0.8", false), ("", false)]);
+        assert_eq!(online_nodes(&s), Some(2));
+        s.busy = true;
+        assert_eq!(online_nodes(&s), None);
+    }
+    #[test]
     fn friend_invite_waits_for_room_ip_and_selected_peer_then_enters_only_once() {
         let key = Uuid::new_v4();
         let mut host = session(key, Side::Host(18777));
@@ -386,6 +417,8 @@ mod tests {
         let host_opts = network_options(key, Side::Host(18777));
         let guest_opts = network_options(room, Side::Guest(peer));
         assert_eq!(host_opts.server_text, FRIEND_SERVER);
+        assert_eq!(host_opts.shared_game_port, Some(18777));
+        assert_eq!(guest_opts.shared_game_port, None);
         assert_eq!(guest_opts.server_text, host_opts.server_text);
         assert_eq!(guest_opts.network_code, host_opts.network_code);
         assert_eq!(guest_opts.password, host_opts.password);

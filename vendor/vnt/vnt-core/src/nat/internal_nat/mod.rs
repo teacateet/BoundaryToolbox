@@ -151,14 +151,16 @@ impl InternalNatInbound {
 pub(crate) struct PortMappingManager {
     no_tun: bool,
     allow_port_mapping: bool,
+    game_udp_port: Option<crate::context::config::GameUdpShare>,
     network: SharedNetworkAddr,
 }
 
 impl PortMappingManager {
-    pub fn new(no_tun: bool, allow_port_mapping: bool, network: SharedNetworkAddr) -> Self {
+    pub fn new(no_tun: bool, allow_port_mapping: bool, game_udp_port: Option<crate::context::config::GameUdpShare>, network: SharedNetworkAddr) -> Self {
         Self {
             no_tun,
             allow_port_mapping,
+            game_udp_port,
             network,
         }
     }
@@ -203,6 +205,19 @@ impl PortMappingManager {
         R: AsyncRead + Unpin,
         W: AsyncWrite + Unpin,
     {
+        if let Some(share) = &self.game_udp_port {
+            let mut permit = share.watch();
+            let Some(port) = permit.borrow_and_update().1 else { return Ok(()); };
+            let own = self.network.get().context("no network")?.ip;
+            if let Some(local) = crate::context::config::shared_game_target(own, port, &dest, dest_port) {
+                return tokio::select! {
+                    biased;
+                    _ = permit.changed() => Ok(()),
+                    result = udp_nat::loopback_game(recv_stream, send_stream, local) => result,
+                };
+            }
+            return Ok(());
+        }
         if !self.allow_port_mapping {
             log::debug!("port mapping not enabled");
             return Ok(());

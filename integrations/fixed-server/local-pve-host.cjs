@@ -25,7 +25,7 @@ function offlineRoom(values) {
   const bp = 'BP_PBGameMode_Rush_PVE_' + mode.suffix;
   const args = ['-log', '-server', '-nullrhi', '-nosplash', '-NoWindow', '-map=' + map,
     '-mode=/Game/Online/GameMode/' + bp + '.' + bp + '_C', '-port=' + port, '-external=' + port,
-    '-pve', '-LogicServerURL=' + archive, '-servername=BRT', '-serverregion=LOCAL'];
+    '-pve', '-MULTIHOME=127.0.0.1', '-LogicServerURL=' + archive, '-servername=BRT', '-serverregion=LOCAL'];
   return {map, difficulty, port, args};
 }
 

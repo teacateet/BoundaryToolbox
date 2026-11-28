@@ -14,6 +14,26 @@ pub const MAX_NAME_LEN: usize = 128;
 pub const MAX_VERSION_LEN: usize = 32;
 pub const MAX_MTU: u16 = 1500;
 
+/// 将本房唯一允许的 UDP 目的地转换为本机游戏入口，不解析主机名。
+pub fn shared_game_target(own: Ipv4Addr, shared: u16, destination: &str, port: u16) -> Option<std::net::SocketAddr> {
+    (shared != 0 && port == shared && destination.parse::<Ipv4Addr>().ok() == Some(own))
+        .then(|| std::net::SocketAddr::from((Ipv4Addr::LOCALHOST, shared)))
+}
+
+#[derive(Debug, Clone)]
+pub struct GameUdpShare(tokio::sync::watch::Sender<(u64, Option<u16>)>);
+impl GameUdpShare {
+    pub fn new(port: Option<u16>) -> Self { Self(tokio::sync::watch::channel((0, port)).0) }
+    pub fn current(&self) -> Option<u16> { self.0.borrow().1 }
+    pub fn set(&self, port: Option<u16>) { self.0.send_if_modified(|old| {
+        if old.1 == port { false } else { *old = (old.0.wrapping_add(1), port); true }
+    }); }
+    pub fn revoke(&self, generation: u64) { self.0.send_if_modified(|old| {
+        if old.0 != generation || old.1.is_none() { false } else { *old = (old.0.wrapping_add(1), None); true }
+    }); }
+    pub fn watch(&self) -> tokio::sync::watch::Receiver<(u64, Option<u16>)> { self.0.subscribe() }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct Config {
     pub server_addr: Vec<ProtocolAddress>,
@@ -35,12 +55,17 @@ pub struct Config {
     pub mtu: Option<u16>,
     pub port_mapping: Vec<PortMapping>,
     pub allow_port_mapping: bool,
+    pub game_udp_port: Option<GameUdpShare>,
     pub udp_stun: Vec<String>,
     pub tcp_stun: Vec<String>,
     pub tunnel_port: Option<u16>,
 }
 impl Config {
     pub fn check(&self) -> anyhow::Result<()> {
+        if let Some(share) = &self.game_udp_port && (self.allow_port_mapping || !self.no_nat ||
+            share.current() == Some(0) || !self.port_mapping.is_empty()) {
+            bail!("game UDP sharing requires an isolated host session");
+        }
         if self.server_addr.is_empty() {
             bail!("服务器地址不能为空");
         }

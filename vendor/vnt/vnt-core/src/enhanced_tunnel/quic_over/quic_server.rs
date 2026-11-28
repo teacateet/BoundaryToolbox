@@ -167,12 +167,13 @@ async fn quic_stream_bi_handle(
                 .await?;
         }
         Handshake::UdpPortMapping(handshake) => {
+            let port = u16::try_from(handshake.dst_port)?;
             port_mapping_manager
                 .udp_mapping(
                     recv_stream,
                     send_stream,
                     handshake.dst_host,
-                    handshake.dst_port as _,
+                    port,
                 )
                 .await?;
         }

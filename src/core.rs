@@ -68,10 +68,6 @@ pub const WINTUN_RELEASE_NAME: &str = "wintun-0.14.1.zip";
 pub const REQUIRED_TCP_PORTS: &[u16] = &[6969, 7777, 8000, 9000];
 /// 本地游戏服务需要的 UDP 端口。
 pub const REQUIRED_UDP_PORTS: &[u16] = &[7777, 9000];
-/// 联机无网卡模式需要放行/映射的 TCP 端口。
-pub const ONLINE_TCP_PORTS: &[u16] = &[7777];
-/// 联机无网卡模式需要放行/映射的 UDP 端口。
-pub const ONLINE_UDP_PORTS: &[u16] = &[7777];
 /// 玩家无网卡模式实际创建的 TCP 本地映射端口。
 pub const ONLINE_MAPPING_TCP_PORTS: &[u16] = &[];
 /// 玩家无网卡模式实际创建的 UDP 本地映射端口。
@@ -372,7 +368,6 @@ pub(crate) mod local_profile;
 pub(crate) mod discovery;
 pub(crate) mod filesystem;
 pub(crate) mod fixed_host;
-pub(crate) mod firewall;
 pub(crate) mod font;
 pub(crate) mod github_proxy;
 pub(crate) mod community_install;

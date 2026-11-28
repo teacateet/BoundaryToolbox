@@ -24,6 +24,7 @@ const STATE: &str = "orbital-host.json";
 const PVP_MODE: &str =
     "[SERVER] Mode: /Game/Online/GameMode/PBGameMode_Rush_BP.PBGameMode_Rush_BP_C";
 const DEADLINE: Duration = Duration::from_secs(90);
+pub(crate) mod player_count;
 
 #[derive(Default)]
 pub(crate) struct StartAttempt(AtomicU8);
@@ -46,14 +47,14 @@ struct Owner {
 }
 
 pub(crate) fn valid_room_port(port: u16) -> bool {
-    port >= 1024 && ![6969, 8000, 9000].contains(&port)
+    port >= 1024 && ![6969, 8000, 9000, 9001].contains(&port)
 }
 
 fn room_path(target: &Path, port: u16) -> Result<PathBuf> {
     validate_win64_path(target)?;
     ensure!(
         valid_room_port(port),
-        "请选择 1024 至 65535 之间空闲的游戏端口，6969、8000、9000 供档案服务使用"
+        "请选择 1024 至 65535 之间空闲的游戏端口，6969、8000、9000、9001 供档案服务使用"
     );
     let legacy = target.join(format!("BoundaryOrbital-PvP-{port}"));
     Ok(if legacy.try_exists()? { legacy } else { target.join(format!("BRT-PvP-{port}")) })

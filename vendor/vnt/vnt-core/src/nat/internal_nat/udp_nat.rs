@@ -161,6 +161,19 @@ where
     W: AsyncWrite + Unpin,
 {
     let udp_socket = tokio::net::UdpSocket::bind("0.0.0.0:0").await?;
+    relay(recv_stream, send_stream, addr, udp_socket).await
+}
+
+pub(crate) async fn loopback_game<R: AsyncRead + Unpin, W: AsyncWrite + Unpin>(
+    recv_stream: R, send_stream: W, addr: SocketAddr,
+) -> anyhow::Result<()> {
+    let socket = tokio::net::UdpSocket::bind((std::net::Ipv4Addr::LOCALHOST, 0)).await?;
+    relay(recv_stream, send_stream, addr, socket).await
+}
+
+async fn relay<R: AsyncRead + Unpin, W: AsyncWrite + Unpin, A: ToSocketAddrs + Debug>(
+    recv_stream: R, send_stream: W, addr: A, udp_socket: tokio::net::UdpSocket,
+) -> anyhow::Result<()> {
     udp_socket
         .connect(&addr)
         .await
@@ -171,7 +184,8 @@ where
 
     loop {
         tokio::select! {
-            Some(buf) = framed_read.next() => {
+            buf = framed_read.next() => {
+                let Some(buf) = buf else { break; };
                 let buf = buf?;
                 udp_socket.send(&buf).await?;
             },

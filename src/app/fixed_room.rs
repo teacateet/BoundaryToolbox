@@ -72,9 +72,9 @@ impl AppController {
         } else {
             let Some(port) = room_port(self.ui.get_fixed_room_port().as_str()) else {
                 let message = self.tr(
-                    "使用 1024 至 65535 的游戏端口，6969、8000、9000 为保留端口",
-                    "Use 1024 to 65535. Ports 6969, 8000 and 9000 are reserved.",
-                    "1024～65535 を指定してください。6969、8000、9000 は予約済みです",
+                    "使用 1024 至 65535 的游戏端口，6969、8000、9000、9001 为保留端口",
+                    "Use 1024 to 65535. Ports 6969, 8000, 9000 and 9001 are reserved.",
+                    "1024～65535 を指定してください。6969、8000、9000、9001 は予約済みです",
                 );
                 self.ui.set_fixed_room_error(true);
                 self.ui.set_fixed_room_status(message.into());
@@ -91,6 +91,7 @@ impl AppController {
         self.ui.set_fixed_room_port(port.to_string().into());
         self.ui.set_fixed_room_error(false);
         self.ui.set_busy(true);
+        if action == RoomAction::Stop { self.close_friend_host(); }
         let start = Arc::new(core::fixed_host::StartAttempt::default());
         if action != RoomAction::Stop {
             self.fixed_room_start = Some(start.clone());
@@ -134,6 +135,7 @@ impl AppController {
             }
         };
         self.active_fixed_room = (outcome == RoomOutcome::Open).then_some((target, port));
+        self.ui.set_room_host_players(-1);
         if self.active_fixed_room.is_none() { self.close_friend_host(); }
         self.ui
             .set_fixed_room_running(self.active_fixed_room.is_some());

@@ -255,6 +255,7 @@ fn build_from_args_and_file(args: Args, file: FileConfig) -> anyhow::Result<(Con
         mtu: args.mtu.or(file.mtu),
         port_mapping,
         allow_port_mapping: args.allow_mapping || file.allow_mapping.unwrap_or(false),
+        game_udp_port: None,
         udp_stun,
         tcp_stun,
         tunnel_port: args.tunnel_port.or(file.tunnel_port),
@@ -295,6 +296,7 @@ fn build_from_args_only(args: Args) -> anyhow::Result<(Config, CtrlConfig)> {
         mtu: args.mtu,
         port_mapping: args.port_mapping,
         allow_port_mapping: args.allow_mapping,
+        game_udp_port: None,
         ..Default::default()
     };
     let ctrl_config = CtrlConfig {
@@ -352,6 +354,7 @@ fn build_from_file_only(file: FileConfig) -> anyhow::Result<(Config, CtrlConfig)
         mtu: file.mtu,
         port_mapping,
         allow_port_mapping: file.allow_mapping.unwrap_or(false),
+        game_udp_port: None,
         udp_stun,
         tcp_stun,
         tunnel_port: file.tunnel_port,
