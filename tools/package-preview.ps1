@@ -40,7 +40,7 @@ if ([version]$version -ge [version]'19.20.35') {
         '19.20.40' { 'live44-radar', '40780fd95da980868e15ba8f6af898206ea67f6d66561c3f29a7097ef7673104' }
         '19.20.41' { 'live45', 'aac377cf254d20793b165ba66213cc06caaf0dae300e22688b0c265fce9a3506' }
         '19.20.42' { 'live46', '99358bf3bf67d46095406ab72e0007b27d55529e6962f9b8eca37aa77d02222f' }
-        '19.20.43' { 'live47', '882b0d50e80de5adcd6009153c7924d044bae9359aa0129b1d9cc5cf7ffd7967' }
+        '19.20.43' { 'live47', '97fee916b272158a83f7888b0bbd77550c337730d3be378f30d6e82b1d76c7d6' }
         default { throw 'Unpinned player component version' }
     }
     if (!$GameplayComponent -or (Get-FileHash -LiteralPath $GameplayComponent).Hash -ne $sha) {
@@ -73,6 +73,7 @@ foreach ($name in @('session-progress.cjs','session-progress.patch','ready-room.
 }
 if ($version -eq '19.20.43') { $files['工具箱联机说明.md'] = Join-Path $root 'docs/BRT-ROOM-DIRECTORY.md' }
 $manifest = Join-Path $out 'SHA256SUMS.txt'
+$files['components/party-match/party-lobby.cjs'] = Join-Path $root 'integrations/party-match/party-lobby.cjs'
 $lines = foreach ($item in $files.GetEnumerator()) { '{0}  {1}' -f (Get-FileHash -LiteralPath $item.Value).Hash.ToLowerInvariant(), $item.Key }
 [IO.File]::WriteAllLines($manifest, [string[]]$lines, [Text.UTF8Encoding]::new($false))
 $files['SHA256SUMS.txt'] = $manifest

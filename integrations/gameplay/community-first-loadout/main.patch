@@ -54,6 +54,14 @@ diff --git a/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp b/ProjectRebound
 index 8e310f8..4c029d7 100644
 --- a/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp
 +++ b/ProjectReboundMainDLL/Hooking/ServerEventHooks.cpp
+@@ -23,2 +23,3 @@
+ using namespace SDK;
++#include "../BrtInventory/RespawnKit.hpp"
+ 
+@@ -44,2 +45,3 @@
++    brt::respawn_kit::Scope respawnOrder(Object, EventInfo.FullName, Parms);
+     if (EventInfo.ServerKind == EServerProcessEventKind::MatchHasEnded)
+     {
 @@ -143,6 +143,21 @@ void ProcessEventHook(UObject *Object, UFunction *Function, void *Parms)
      birthTrace.OriginalReturned();
  }
