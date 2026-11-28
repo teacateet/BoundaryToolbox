@@ -63,7 +63,10 @@ inline bool Receive(UObject* object, const std::string& event, void* args) {
     if (msg->Type != Tag()) return false;
     if (!object || !object->IsA(APBPlayerController::StaticClass()) ||
         !static_cast<APBPlayerController*>(object)->IsLocalPlayerController()) return true;
+#pragma push_macro("GetCommandLine")
+#undef GetCommandLine
     static const bool selected = UKismetSystemLibrary::ParseParam(UKismetSystemLibrary::GetCommandLine(), L"BrtLocalPveUi");
+#pragma pop_macro("GetCommandLine")
     auto* world = UWorld::GetWorld();
     if (!selected || !world || !world->NetDriver || !world->NetDriver->ServerConnection ||
         world->NetDriver->ServerConnection->PlayerController != object || !world->GameState ||

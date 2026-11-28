@@ -19,6 +19,13 @@ if (Test-Path -LiteralPath $zipPath) { throw "已有同名玩家包：$zipPath�
 $guide = 'BRT-玩家安装指南.html'
 $guidePath = Join-Path $out $guide
 $body = (ConvertFrom-Markdown -LiteralPath $guideSource).Html
+if ($version -eq '19.20.43') {
+    # 下列联机章节来自尚未合并的上一轮草稿；候选包只展示与实装一致的房间契约。
+    $lines=Get-Content -LiteralPath $guideSource -Encoding utf8
+    $guideLines=$lines | Where-Object { $_ -notmatch '若手动关闭高级设置里的「无网卡模式」' }
+    $network=Get-Content -Raw -LiteralPath (Join-Path $root 'docs/BRT-ROOM-DIRECTORY.md') -Encoding utf8
+    $body=(ConvertFrom-Markdown -InputObject (($guideLines -join "`n")+"`n`n"+$network)).Html
+}
 $template = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'player-guide.template.html') -Raw -Encoding utf8
 if (!$template.Contains('<!--GUIDE-->') -or !$body.Contains('<table>')) { throw 'Unexpected player guide markup' }
 [IO.File]::WriteAllText($guidePath, $template.Replace('<!--GUIDE-->', $body), [Text.UTF8Encoding]::new($false))
@@ -33,6 +40,7 @@ if ([version]$version -ge [version]'19.20.35') {
         '19.20.40' { 'live44-radar', '40780fd95da980868e15ba8f6af898206ea67f6d66561c3f29a7097ef7673104' }
         '19.20.41' { 'live45', 'aac377cf254d20793b165ba66213cc06caaf0dae300e22688b0c265fce9a3506' }
         '19.20.42' { 'live46', '99358bf3bf67d46095406ab72e0007b27d55529e6962f9b8eca37aa77d02222f' }
+        '19.20.43' { 'live47', '882b0d50e80de5adcd6009153c7924d044bae9359aa0129b1d9cc5cf7ffd7967' }
         default { throw 'Unpinned player component version' }
     }
     if (!$GameplayComponent -or (Get-FileHash -LiteralPath $GameplayComponent).Hash -ne $sha) {
@@ -40,7 +48,7 @@ if ([version]$version -ge [version]'19.20.35') {
     }
     $files["components/gameplay/$label/Payload.dll"] = (Resolve-Path -LiteralPath $GameplayComponent).Path
 }
-if ($version -in '19.20.41','19.20.42'){
+if ($version -in '19.20.41','19.20.42','19.20.43'){
     if (!$OfflineDirectory) {throw 'Use prepare-offline-deps.ps1 and specify its output directory.'}
     foreach($pin in Get-Content -LiteralPath (Join-Path $PSScriptRoot 'offline-components.sha256')){
         if ($pin -cnotmatch '^([a-f0-9]{64})  (base|server|node)\.zip$'){throw 'Invalid offline dependency pin'}
@@ -63,6 +71,7 @@ foreach ($name in @('probe-secondary.patch','retail-weapon-defaults.patch','reta
 foreach ($name in @('session-progress.cjs','session-progress.patch','ready-room.cjs','ready-room.patch','region-catalog.patch','region-qos.patch','local-ticket.patch','menu-trace.cjs')) {
     $files["components/native-menu/$name"] = Join-Path $root "integrations/native-menu/$name"
 }
+if ($version -eq '19.20.43') { $files['工具箱联机说明.md'] = Join-Path $root 'docs/BRT-ROOM-DIRECTORY.md' }
 $manifest = Join-Path $out 'SHA256SUMS.txt'
 $lines = foreach ($item in $files.GetEnumerator()) { '{0}  {1}' -f (Get-FileHash -LiteralPath $item.Value).Hash.ToLowerInvariant(), $item.Key }
 [IO.File]::WriteAllLines($manifest, [string[]]$lines, [Text.UTF8Encoding]::new($false))
